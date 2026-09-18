@@ -20,7 +20,8 @@ O projeto está na Fase 1: especificação dos contratos. Ainda não há aplica�
 4. [Contrato de workflow](docs/phase-1/workflow-contract.md).
 5. [Estados, limites e tentativas](docs/phase-1/execution-lifecycle.md).
 6. [Cenários de aceitação](docs/phase-1/acceptance-cases.md).
+7. [Perfis de papel, modelo e executor](docs/phase-1/agent-profiles.md).
 
 ## Próxima entrega
 
-Especificar os perfis de papel, modelo e executor, incluindo elegibilidade e telemetria disponível. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Especificar ContextManifest e RoutingDecision: conteúdo enviado, candidatos considerados e razões da escolha. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.

@@ -50,7 +50,7 @@ Os critérios podem usar validação de contrato, testes automatizados, verifica
 ## Relação com os demais contratos
 
 - [WorkflowSpec](workflow-contract.md) contém as tarefas, declara entradas externas e define o espaço de identificação das dependências.
-- Perfis permitem validar o papel e descobrir destinos elegíveis.
+- [Perfis](agent-profiles.md) permitem validar o papel e descobrir destinos elegíveis.
 - RoutingDecision guarda a escolha de destino; ela não é gravada como parte da intenção imutável da tarefa.
 - AttemptRecord guarda execução, contexto, consumo, erros e resultados.
 - EvaluationReport identifica quais artefatos foram avaliados e quais critérios foram atendidos.
@@ -92,7 +92,7 @@ T3 implementa o desenho de autenticação aceito em T2. Seu papel é backend_eng
 
 - Revisar [WorkflowSpec](workflow-contract.md), referências e saídas finais.
 - Revisar [estados, limites e tentativas](execution-lifecycle.md), herança de limites e recuperação de resultados desconhecidos.
-- Formalizar perfis de papel, modelo e executor antes de fechar elegibilidade e permissões.
+- Revisar a proposta de [perfis](agent-profiles.md) e fechar a estrutura de ExecutionPolicy e permissões.
 - Definir formatos de artefato para patch e relatório.
 - Completar os registros necessários para transformar os [cenários de aceitação](acceptance-cases.md) em fixtures.
 

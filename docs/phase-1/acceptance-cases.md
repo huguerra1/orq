@@ -78,4 +78,4 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Catálogo, contexto, artefatos e métricas ainda exigem estruturas próprias; seus casos orientam as próximas entregas.
 
-Antes de encerrar a Fase 1, especificar perfis, RoutingDecision, ContextManifest, RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses perfis e especificar ExecutionPolicy, RoutingDecision, ContextManifest, RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.

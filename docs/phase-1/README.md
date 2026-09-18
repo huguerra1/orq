@@ -58,14 +58,14 @@ Essa é uma ordem de especificação, não uma sequência de serviços a impleme
 
 Uma execução fictícia deve representar: objetivo, plano válido, dois destinos elegíveis, seleção de um deles, contexto identificado, tentativa reprovada, retry limitado e avaliação final. Toda aprovação deve apontar para os artefatos efetivamente avaliados; custo desconhecido não pode ser convertido em zero.
 
-Já existem propostas documentais de TaskSpec, WorkflowSpec, estados, limites e 32 casos de aceitação. Os casos ainda não são testes executados. A fase não está encerrada: faltam perfis e contratos de contexto, decisão, artefatos, metadata de conhecimento, registros de execução e avaliação.
+Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados e limites, com 32 cenários gerais e oito casos de perfis. Os casos ainda não são testes executados. Faltam contratos de contexto, decisão, política de execução, artefatos, metadata de conhecimento, registros de execução e avaliação.
 
 ## Andamento
 
 | Entrega | Situação |
 | --- | --- |
 | 1A — glossário | Primeira versão documentada |
-| 1B — contratos | Tarefa e workflow propostos; demais estruturas pendentes |
+| 1B — contratos | Tarefa, workflow e perfis propostos; demais estruturas pendentes |
 | 1C — estados | Proposta documentada; capacidades reais dos executores serão validadas depois |
 | 1D — aceitação | Matriz e cenário fictício documentados; fixtures executáveis pendentes |
 | 1E — revisão final | Pendente; Fase 1 ainda não concluída |
@@ -77,5 +77,6 @@ Já existem propostas documentais de TaskSpec, WorkflowSpec, estados, limites e 
 - [Contrato de workflow — proposta inicial](workflow-contract.md)
 - [Estados, limites e tentativas](execution-lifecycle.md)
 - [Cenários de aceitação](acceptance-cases.md)
+- [Perfis de papel, modelo e executor](agent-profiles.md)
 
-O próximo passo é especificar perfis de papel, modelo e executor, distinguindo capacidades declaradas de capacidades efetivamente controláveis. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
+O próximo passo é especificar ContextManifest e RoutingDecision, com conteúdo enviado, candidatos e razões da escolha. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
