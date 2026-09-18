@@ -12,6 +12,10 @@ O projeto está na Fase 1: especificação dos contratos. Ainda não há aplica�
 - Registrar decisões, contexto, tentativas, artefatos e avaliação desde a primeira execução real.
 - Definir arquitetura e critérios de aceitação antes de implementar cada etapa.
 
+## Retomar em outra conversa
+
+Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de continuar. Eles registram as regras, o estado atual e o próximo passo.
+
 ## Leitura inicial
 
 1. [Glossário](docs/glossary.md).
