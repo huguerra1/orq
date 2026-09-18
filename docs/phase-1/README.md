@@ -1,6 +1,6 @@
 # Fase 1 — Contratos da plataforma
 
-Estado: proposta inicial para revisão. Nenhum runtime, biblioteca ou serviço foi implementado ou instalado.
+Estado: especificação em andamento, para revisão. Nenhum runtime, biblioteca ou serviço foi implementado ou instalado.
 
 ## Objetivo
 
@@ -58,11 +58,24 @@ Essa é uma ordem de especificação, não uma sequência de serviços a impleme
 
 Uma execução fictícia deve representar: objetivo, plano válido, dois destinos elegíveis, seleção de um deles, contexto identificado, tentativa reprovada, retry limitado e avaliação final. Toda aprovação deve apontar para os artefatos efetivamente avaliados; custo desconhecido não pode ser convertido em zero.
 
-Ainda precisam ser detalhados WorkflowSpec, demais contratos, estados e matriz completa de aceitação. A fase não está encerrada por existir uma primeira proposta de TaskSpec.
+Já existem propostas documentais de TaskSpec, WorkflowSpec, estados, limites e 32 casos de aceitação. Os casos ainda não são testes executados. A fase não está encerrada: faltam perfis e contratos de contexto, decisão, artefatos, metadata de conhecimento, registros de execução e avaliação.
+
+## Andamento
+
+| Entrega | Situação |
+| --- | --- |
+| 1A — glossário | Primeira versão documentada |
+| 1B — contratos | Tarefa e workflow propostos; demais estruturas pendentes |
+| 1C — estados | Proposta documentada; capacidades reais dos executores serão validadas depois |
+| 1D — aceitação | Matriz e cenário fictício documentados; fixtures executáveis pendentes |
+| 1E — revisão final | Pendente; Fase 1 ainda não concluída |
 
 ## Documentos desta entrega
 
 - [Glossário](../glossary.md)
 - [Contrato de tarefa — proposta inicial](task-contract.md)
+- [Contrato de workflow — proposta inicial](workflow-contract.md)
+- [Estados, limites e tentativas](execution-lifecycle.md)
+- [Cenários de aceitação](acceptance-cases.md)
 
-O próximo passo é revisar TaskSpec junto da especificação de WorkflowSpec. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
+O próximo passo é especificar perfis de papel, modelo e executor, distinguindo capacidades declaradas de capacidades efetivamente controláveis. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.

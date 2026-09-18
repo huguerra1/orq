@@ -27,29 +27,29 @@ Todos os campos abaixo são obrigatórios na proposta, salvo indicação contrá
 | objective | Texto não vazio | Resultado concreto esperado |
 | task_type | Identificador de catálogo | Categoria controlada, como analysis ou implementation |
 | agent_role | Referência versionada | Papel responsável, independente do destino |
-| requirements | Lista não vazia de Requirement | Requisitos identificados e sua obrigatoriedade |
+| requirements | Lista não vazia de Requirement | Requisitos identificados; ao menos um deve ser obrigatório |
 | dependencies | Lista de task_id, sem duplicatas | Predecessoras cujos resultados devem ser aceitos; pode ser vazia |
 | inputs | Lista de InputSpec | Artefatos externos ou saídas de predecessoras; pode ser vazia |
 | required_capabilities | Lista de identificadores | Capacidades obrigatórias do destino; pode ser vazia |
-| constraints | Objeto de limites | Política e eventuais limites mais restritivos da tarefa |
+| constraints | Objeto de limites | Restrições locais adicionais; campos ausentes herdam a política do workflow |
 | expected_output | Lista não vazia de OutputSpec | Saídas identificadas, tipos e contratos |
 | knowledge_requirements | Lista de KnowledgeRequirement | Conhecimento obrigatório ou opcional; pode ser vazia |
-| evaluation_criteria | Lista não vazia de EvaluationCriterion | Critérios, evidências esperadas e requisitos cobertos |
+| evaluation_criteria | Lista não vazia de EvaluationCriterion | Critérios, evidências e requisitos cobertos; ao menos um critério obrigatório |
 
 ## Objetos menores
 
 - Requirement: requirement_id, descrição não vazia e indicação de obrigatoriedade.
-- InputSpec: input_id, tipo e origem. A origem é uma referência a artefato existente ou a uma saída nomeada de tarefa predecessora. Não referencia um artefato futuro como se já existisse.
+- InputSpec: input_id, tipo e origem. A origem é external_input (entrada declarada no workflow e vinculada a um artefato no run) ou task_output (saída nomeada de uma dependência direta). Não referencia um artefato futuro como se já existisse.
 - OutputSpec: output_id, tipo de artefato, descrição e referência de contrato de conteúdo quando aplicável.
 - KnowledgeRequirement: identificador, assunto ou referência documental, escopo e indicação de obrigatoriedade.
 - EvaluationCriterion: criterion_id, requirement_ids cobertos, método, regra de aprovação, obrigatoriedade e referência de verificador ou rubrica.
-- Constraints: referência versionada à política de execução e limites explícitos opcionais para a tarefa. Nenhuma ausência de campo significa autorização ilimitada.
+- Constraints: limites opcionais da tarefa. A política versionada é referenciada uma única vez por WorkflowSpec.execution_policy_ref; a tarefa só a restringe. Ausência significa herança, não autorização ilimitada. max_attempts inclui a primeira tentativa.
 
 Os critérios podem usar validação de contrato, testes automatizados, verificação humana ou rubrica por LLM. Um critério obrigatório sem implementação disponível produz avaliação não conclusiva; não produz aprovação automática.
 
 ## Relação com os demais contratos
 
-- WorkflowSpec contém as tarefas e define o espaço de identificação das dependências.
+- [WorkflowSpec](workflow-contract.md) contém as tarefas, declara entradas externas e define o espaço de identificação das dependências.
 - Perfis permitem validar o papel e descobrir destinos elegíveis.
 - RoutingDecision guarda a escolha de destino; ela não é gravada como parte da intenção imutável da tarefa.
 - AttemptRecord guarda execução, contexto, consumo, erros e resultados.
@@ -67,6 +67,7 @@ Os critérios podem usar validação de contrato, testes automatizados, verifica
 8. Limites de tarefa não ampliam a autorização das políticas superiores.
 9. Falta de conhecimento obrigatório impede a execução até que a necessidade seja resolvida.
 10. Estados, modelos selecionados e consumo observado pertencem à execução, não ao TaskSpec.
+11. Entradas external_input correspondem a declarações do workflow; vínculos concretos são verificados antes de executar tarefas.
 
 Estrutura e tipos serão responsabilidade do schema. Referências, ciclos e consistência entre entidades exigirão validação semântica. Aplicação efetiva de permissões e limites pertence à execução.
 
@@ -87,11 +88,12 @@ T3 implementa o desenho de autenticação aceito em T2. Seu papel é backend_eng
 | Executor não suporta capacidade obrigatória | Destino inelegível, sem alteração da tarefa |
 | Resultado entregue, mas reprovado | Tentativa concluída tecnicamente; tarefa ainda não aceita |
 
-## Pontos para a próxima revisão
+## Contratos complementares e próxima revisão
 
-- Especificar WorkflowSpec, referências versionadas e orçamento global.
-- Definir a resolução e combinação dos limites de execução, incluindo max_attempts e deadlines.
+- Revisar [WorkflowSpec](workflow-contract.md), referências e saídas finais.
+- Revisar [estados, limites e tentativas](execution-lifecycle.md), herança de limites e recuperação de resultados desconhecidos.
+- Formalizar perfis de papel, modelo e executor antes de fechar elegibilidade e permissões.
 - Definir formatos de artefato para patch e relatório.
-- Especificar estados e transições da tarefa e da tentativa em documento próprio.
+- Completar os registros necessários para transformar os [cenários de aceitação](acceptance-cases.md) em fixtures.
 
 Depois de fechar essas relações, o próximo passo de implementação será formalizar schemas e fixtures, sem instalar SDKs de agentes ou construir o servidor MCP.

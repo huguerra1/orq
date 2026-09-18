@@ -27,6 +27,10 @@ Estado: proposta inicial da Fase 1.
 | Scheduler | Módulo que escolhe tarefas prontas e propõe alocações | Respeita dependências, elegibilidade, recursos e orçamento |
 | Orchestrator | Componente que controla o ciclo global e as transições de estado | Um eventual papel de LLM com esse nome não possui sua autoridade |
 | Evaluation | Verificação do resultado contra critérios versionados | Conclusão técnica do executor não equivale a aprovação |
+| Tentativa concluída | Execução técnica terminou e disponibilizou resultado | completed não implica avaliação pass |
+| Resultado indeterminado | Despacho ou encerramento externo não confirmado | Bloqueia retry até reconciliação segura |
+| Reconciliação | Busca de evidência sobre execução de estado desconhecido | Não é retry e possui prazo limitado |
+| Entrada externa | Insumo declarado pelo workflow e concretizado pelo run | Sua identidade não é um caminho mutável |
 
 ## Convenções iniciais
 
@@ -37,3 +41,5 @@ Estado: proposta inicial da Fase 1.
 - Dados desconhecidos não são representados por zero ou por uma estimativa sem identificação.
 - Uma mudança de plano aceito produz nova revisão; não reescreve o histórico da execução.
 - Metadados específicos de um provedor ficam nos adaptadores ou em extensões identificadas, sem contaminar o contrato central de tarefa.
+- max_attempts conta todas as tentativas registradas, incluindo a primeira; retry_count conta somente as posteriores à primeira.
+- A política de execução é referenciada no workflow. Restrições de tarefa herdam seus limites e só podem reduzi-los.
