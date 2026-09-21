@@ -14,6 +14,7 @@ Estado: proposta inicial da Fase 1.
 | Runtime | Ambiente que conduz o ciclo interno de ferramentas e contexto do agente | Tem versão, configuração e capacidades próprias |
 | Executor | Adaptador da plataforma para um runtime ou API | Converte pedidos e resultados, sem alterar o plano global |
 | Execution Target | Combinação concreta de executor, runtime, provedor, modelo e configuração | Precisa atender às restrições da tarefa |
+| Execution Policy | Política versionada de limites, permissões, orçamento, roteamento e validade de evidências | Não prova que o executor consegue aplicar os controles |
 | Run | Uma execução concreta de um objetivo/plano | Agrupa decisões, tentativas, resultados e consumo |
 | Attempt | Uma tentativa de executar uma tarefa em um run | Retry cria outra tentativa e preserva a anterior |
 | Artifact | Saída identificável, como patch, relatório ou evidência de testes | Sua revisão e hash identificam o conteúdo |

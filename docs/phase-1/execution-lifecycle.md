@@ -20,7 +20,7 @@ WorkflowSpec.execution_policy_ref fornece a base. WorkflowSpec.constraints só a
 
 Ausência significa herança. Para tetos, vale o menor limite aplicável; para permissões, a interseção. Um teto local explicitamente superior é erro de configuração. Lista de permissões vazia significa nenhuma permissão; lista ausente herda a restrição superior.
 
-RunManifest registra limites resolvidos e origem. A estrutura completa de permissões permanece uma entrega posterior da Fase 1.
+RunManifest registra limites resolvidos e origem. A estrutura de permissões está proposta em [ExecutionPolicy](execution-policy-contract.md) e permanece sujeita à revisão cruzada da Fase 1.
 
 | Limite | Semântica |
 | --- | --- |
@@ -32,7 +32,7 @@ RunManifest registra limites resolvidos e origem. A estrutura completa de permis
 | evaluation_timeout_ms | Prazo por avaliação, inclusive a global |
 | reconciliation_timeout_ms | Prazo de reconciliação, limitado pelo tempo restante do run |
 | max_model_calls_per_attempt | Limite de chamadas internas quando observável e controlável |
-| max_cost | Teto financeiro global com amount decimal e currency; opcional se outros limites finitos existirem |
+| budget.max_cost | Teto financeiro global com amount decimal e currency; opcional se outros limites finitos existirem |
 
 Duração e quantidade de tentativas/avaliações precisam ter limites finitos resolvidos. Valores serão calibrados antes da Fase 6; números dos cenários são fictícios, não defaults.
 

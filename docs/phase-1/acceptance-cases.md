@@ -55,6 +55,14 @@ Recomendação: matriz determinística primeiro. Nenhuma fixture inicial depende
 | C35 | Roteamento externo falha antes da admissão | Registrar custo/erro sem consumir tentativa | Roteamento e orçamento |
 | C36 | Bundle materializado diverge de seu manifesto | Impedir despacho por falha de integridade | Contexto |
 | C37 | Runtime acrescenta contexto não observável | Marcar cobertura parcial/desconhecida, sem alegar reprodução completa | Contexto |
+| C38 | Restrição de tarefa amplia teto do workflow | Rejeição de configuração, sem truncamento silencioso | Política |
+| C39 | Caminho permitido resolve por symlink fora do workspace | Operação negada antes do efeito | Política e filesystem |
+| C40 | Ferramenta permitida recebe argumento de efeito proibido | Operação negada | Política e ferramentas |
+| C41 | URL autorizada redireciona para destino não permitido | Redirecionamento negado | Política e rede |
+| C42 | Efeito externo exige aprovação ausente ou vencida | Nenhum efeito; aguardar ou falhar conforme prazo | Política e aprovação |
+| C43 | Evidência obrigatória pertence a outra versão | Destino inelegível | Política e evidência |
+| C44 | Custo desconhecido sob teto financeiro obrigatório | Não admitir sem estimativa conservadora autorizada | Política e orçamento |
+| C45 | Executor não consegue aplicar controle obrigatório | Destino inelegível | Política e executor |
 
 ## Cenário completo de referência
 
@@ -83,4 +91,4 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Catálogo, contexto, artefatos e métricas ainda exigem estruturas próprias; seus casos orientam as próximas entregas.
 
-Os oito casos específicos de [perfis](agent-profiles.md) e os dez casos de [roteamento e contexto](routing-context-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses contratos e especificar ExecutionPolicy, RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md) e 12 de [política de execução](execution-policy-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses contratos e especificar RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.

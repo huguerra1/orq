@@ -33,11 +33,10 @@ Uma chamada externa de roteamento que falha antes da admissão não consome `max
 
 ## RoutingPolicy
 
-RoutingPolicy é uma configuração versionada usada pela RoutingDecision. Sua estrutura completa poderá fazer parte da ExecutionPolicy; esta proposta define a interface necessária.
+RoutingPolicy é a seção de [ExecutionPolicy](execution-policy-contract.md) usada pela RoutingDecision. Esta proposta define a interface necessária ao roteamento; a política de execução define sua identidade, herança e composição.
 
 | Campo | Tipo conceitual | Semântica |
 | --- | --- | --- |
-| policy_id, version e content_hash | Identidade versionada | Política imutável usada na decisão |
 | mode | Enum | `fixed`, `rules` ou `typed_decision` |
 | ranking_rules_ref | Referência ou null | Regras e desempate para `fixed`/`rules` e fallback, quando aplicável |
 | decision_engine_ref | Referência ou null | Adaptador, provedor, modelo e configuração para `typed_decision` |
@@ -166,13 +165,12 @@ Esses casos são especificação para fixtures futuras, não testes executados n
 ## Decisões ainda abertas
 
 - Linguagem e biblioteca dos schemas executáveis.
-- Forma final de embutir RoutingPolicy na ExecutionPolicy.
 - Valores de limiar, fallback padrão e política de revisão humana.
 - Versão e adaptador concretos de TypeSafe AI/Jev para o primeiro experimento.
 - Tokenizador e margem usados por cada executor.
 - Conteúdo exato do resumo de roteamento e benchmark de calibração.
 
-Antes de integrar Jev, fechar ExecutionPolicy, RunManifest, AttemptRecord e contabilização. A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
+Antes de integrar Jev, fechar RunManifest, AttemptRecord e contabilização em revisão cruzada com [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
 
 ## Referências externas
 

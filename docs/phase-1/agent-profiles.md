@@ -86,7 +86,7 @@ IDs de capacidade pertencem a um vocabulário controlado, que informa a camada r
 
 Permissão e capacidade são verificadas separadamente: suportar escrita não significa estar autorizado a escrever. A permissão efetiva é a interseção dos limites de sistema/projeto, workflow, papel, executor e tarefa. Um perfil não amplia limites superiores.
 
-permission_ceiling explicita ferramentas autorizáveis, áreas de leitura/escrita e acesso à rede. Lista vazia nega acesso. A gramática de caminhos e a estrutura completa de ExecutionPolicy ainda precisam ser fechadas na Fase 1; não serão delegadas a texto livre de prompt. Implementação deverá verificar caminhos resolvidos, inclusive links simbólicos.
+permission_ceiling explicita ferramentas autorizáveis, áreas de leitura/escrita e acesso à rede. Lista vazia nega acesso. A gramática e a composição estão propostas em [ExecutionPolicy](execution-policy-contract.md); não serão delegadas a texto livre de prompt. A implementação deverá verificar caminhos resolvidos, inclusive links simbólicos.
 
 ## ExecutionTarget e elegibilidade
 
@@ -127,8 +127,8 @@ Riscos principais: perfis desatualizados, permissões confundidas com capacidade
 | P07 | Perfil disabled/deprecated | Consultável no histórico, excluído de nova seleção |
 | P08 | Falta de métricas históricas | Regras explícitas, sem fabricar taxas ou custos |
 
-Esses oito casos complementam os [37 cenários gerais](acceptance-cases.md); ainda não foram executados.
+Esses oito casos complementam os [45 cenários gerais](acceptance-cases.md); ainda não foram executados.
 
 ## Próxima etapa
 
-Revisar [ContextManifest e RoutingDecision](routing-context-contract.md) junto da estrutura completa de ExecutionPolicy. Depois fechar registros de execução, artefatos, avaliação e metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.
+Definir ArtifactRef e contratos de patch/relatório, revisando sua relação com RunManifest e AttemptRecord. Depois fechar avaliação e metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.

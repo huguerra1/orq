@@ -18,27 +18,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 - Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
 - Fase 1 em andamento e ainda não concluída.
-- Propostos: TaskSpec, WorkflowSpec, estados/limites/retries, perfis de papel/modelo/executor, RoutingDecision e ContextManifest.
-- Especificados 37 cenários gerais, oito casos de perfis e dez casos específicos de roteamento/contexto. Não são testes executados.
+- Propostos: TaskSpec, WorkflowSpec, estados/limites/retries, perfis de papel/modelo/executor, RoutingDecision, ContextManifest e ExecutionPolicy.
+- Especificados 45 cenários gerais, oito casos de perfis, dez de roteamento/contexto e 12 de política. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Revisar a proposta de [RoutingDecision e ContextManifest](phase-1/routing-context-contract.md) em conjunto com a estrutura completa de ExecutionPolicy, sem implementar código:
+Definir ArtifactRef e os contratos de patch/relatório, revisando sua relação com RunManifest e AttemptRecord, sem implementar código:
 
-1. Fechar permissões efetivas, gramática de caminhos, rede, ferramentas e validade das evidências.
-2. Incorporar RoutingPolicy à política ou definir sua referência normativa sem duplicar configuração.
-3. Definir limites e reservas para chamadas de Planner, Router, execução e avaliação.
-4. Validar como candidate_attempt_number, admissão e custos anteriores à tentativa se relacionam com RunManifest/AttemptRecord.
+1. Definir identidade, hash, mídia/tipo, tamanho, origem, base e relações de derivação dos artefatos.
+2. Especificar patch aplicável a uma base identificada, ordem de aplicação e conflitos.
+3. Especificar relatório estruturado, anexos e referências a evidências sem incorporar fatos não observados.
+4. Ligar artefatos produzidos/aceitos a AttemptRecord, EvaluationReport e saídas de TaskSpec.
 5. Acrescentar casos positivos/negativos, atualizar índices e publicar outra entrega pequena.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
 ## O que falta para fechar a Fase 1
 
-- ExecutionPolicy: estrutura completa de limites e permissões, inclusive semântica de caminhos e validade de evidências.
 - ArtifactRef e contratos de patch/relatório.
 - RunManifest, AttemptRecord, uso/custos/erros e EvaluationReport.
 - Metadata de conhecimento para o Vault.
@@ -91,10 +90,13 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Cenários gerais](phase-1/acceptance-cases.md).
 - [Perfis](phase-1/agent-profiles.md).
 - [Roteamento e contexto](phase-1/routing-context-contract.md).
+- [Política de execução](phase-1/execution-policy-contract.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
-- Esta entrega acrescenta instruções de retomada; consultar git log para seu hash e para trabalhos posteriores.
+- 8bab500: instruções e contexto para retomada.
+- 5961293: roteamento, contexto e encaixe documental de TypeSafe AI/Jev.
+- Consultar git log para trabalhos posteriores.
 
 ## Git e ambiente
 

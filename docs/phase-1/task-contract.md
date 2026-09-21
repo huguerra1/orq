@@ -92,7 +92,7 @@ T3 implementa o desenho de autenticação aceito em T2. Seu papel é backend_eng
 
 - Revisar [WorkflowSpec](workflow-contract.md), referências e saídas finais.
 - Revisar [estados, limites e tentativas](execution-lifecycle.md), herança de limites e recuperação de resultados desconhecidos.
-- Revisar a proposta de [perfis](agent-profiles.md) e fechar a estrutura de ExecutionPolicy e permissões.
+- Revisar a proposta de [perfis](agent-profiles.md) com [ExecutionPolicy](execution-policy-contract.md) e seus tetos de permissão.
 - Definir formatos de artefato para patch e relatório.
 - Completar os registros necessários para transformar os [cenários de aceitação](acceptance-cases.md) em fixtures.
 

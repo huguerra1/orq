@@ -28,9 +28,10 @@ Não são requisitos desta fase: chaves de API, SDKs de agentes, servidor MCP em
 1. Glossário e convenções comuns: identidades, versões, referências e unidades.
 2. TaskSpec e seus objetos menores: Requirement, InputSpec, OutputSpec, KnowledgeRequirement, EvaluationCriterion e limites.
 3. WorkflowSpec: agrupamento das tarefas, referências entre elas, validade do DAG e orçamento global.
-4. Perfis de papel, modelo e executor: elegibilidade e permissões.
-5. ContextManifest e RoutingDecision: quais informações e decisões antecederam a execução.
-6. RunManifest, AttemptRecord e EvaluationReport: condições da execução, fatos observados e aceitação.
+4. Perfis de papel, modelo e executor: elegibilidade e tetos de permissão.
+5. ExecutionPolicy: limites, permissões, roteamento, orçamento e validade de evidências.
+6. ContextManifest e RoutingDecision: quais informações e decisões antecederam a execução.
+7. ArtifactRef, RunManifest, AttemptRecord e EvaluationReport: entregas, condições da execução, fatos observados e aceitação.
 
 Essa é uma ordem de especificação, não uma sequência de serviços a implementar. Algumas regras são revisadas em conjunto, especialmente TaskSpec e WorkflowSpec.
 
@@ -58,14 +59,14 @@ Essa é uma ordem de especificação, não uma sequência de serviços a impleme
 
 Uma execução fictícia deve representar: objetivo, plano válido, dois destinos elegíveis, seleção de um deles, contexto identificado, tentativa reprovada, retry limitado e avaliação final. Toda aprovação deve apontar para os artefatos efetivamente avaliados; custo desconhecido não pode ser convertido em zero.
 
-Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento e contexto, com 37 cenários gerais, oito casos de perfis e dez casos específicos de roteamento/contexto. Os casos ainda não são testes executados. Faltam os contratos completos de política de execução, artefatos, metadata de conhecimento, registros de execução e avaliação.
+Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento, contexto e política de execução, com 45 cenários gerais, oito casos de perfis, dez casos de roteamento/contexto e 12 casos de política. Os casos ainda não são testes executados. Faltam contratos de artefatos, metadata de conhecimento, registros de execução e avaliação.
 
 ## Andamento
 
 | Entrega | Situação |
 | --- | --- |
 | 1A — glossário | Primeira versão documentada |
-| 1B — contratos | Tarefa, workflow, perfis, roteamento e contexto propostos; demais estruturas pendentes |
+| 1B — contratos | Tarefa, workflow, perfis, roteamento, contexto e política propostos; demais estruturas pendentes |
 | 1C — estados | Proposta documentada; capacidades reais dos executores serão validadas depois |
 | 1D — aceitação | Matriz e cenário fictício documentados; fixtures executáveis pendentes |
 | 1E — revisão final | Pendente; Fase 1 ainda não concluída |
@@ -79,5 +80,6 @@ Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, li
 - [Cenários de aceitação](acceptance-cases.md)
 - [Perfis de papel, modelo e executor](agent-profiles.md)
 - [Decisão de roteamento e manifesto de contexto](routing-context-contract.md)
+- [Política de execução](execution-policy-contract.md)
 
-O próximo passo é revisar esta proposta de ContextManifest e RoutingDecision em conjunto com a estrutura completa de ExecutionPolicy. Depois devem ser definidos registros de execução, artefatos, avaliação e metadata de conhecimento. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
+O próximo passo é definir ArtifactRef e os formatos de patch/relatório, revisando sua relação com RunManifest e AttemptRecord. Depois devem ser definidos avaliação e metadata de conhecimento. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
