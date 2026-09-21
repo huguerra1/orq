@@ -238,4 +238,4 @@ Esses casos são especificações para fixtures e adaptadores futuros; não comp
 - Precisão de enforcement exigida para contadores de tools/rede.
 - Formato final de constraints parciais em WorkflowSpec e TaskSpec.
 
-O próximo contrato deve definir ArtifactRef e formatos de patch/relatório ou, se a revisão cruzada indicar dependência maior, RunManifest/AttemptRecord. Nenhum executor real deve ser conectado antes de representar política resolvida, decisão, contexto, intenção de despacho e resultado observado.
+O [contrato de artefatos](artifact-contract.md) define ArtifactRef e formatos de patch/relatório. O próximo passo é especificar RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport. Nenhum executor real deve ser conectado antes de representar política resolvida, decisão, contexto, intenção de despacho e resultado observado.

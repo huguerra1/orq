@@ -60,7 +60,7 @@ Repetir a mesma intenção não deve gerar outro despacho lógico. Isso não gar
 
 O veredicto é pass, fail, inconclusive ou not_run. Qualquer critério obrigatório reprovado determina fail. Na ausência de reprovação, critério obrigatório inconclusivo ou não executado impede pass. Revisão textual não sobrepõe falha determinística obrigatória.
 
-Reavaliar os mesmos artefatos após avaliação inconclusiva ou falha do verificador cria outro EvaluationReport dentro do limite. Uma avaliação compreende o conjunto de critérios, não apenas uma checagem individual. Não repetir um veredicto fail válido para tentar obter aprovação por variação do avaliador. Corrigir um artefato exige outra tentativa. Relatórios identificam hashes e são preservados; o Orchestrator registra qual avaliação fundamenta a aceitação.
+Reavaliar os mesmos [artefatos](artifact-contract.md) após avaliação inconclusiva ou falha do verificador cria outro EvaluationReport dentro do limite. Uma avaliação compreende o conjunto de critérios, não apenas uma checagem individual. Não repetir um veredicto fail válido para tentar obter aprovação por variação do avaliador. Corrigir um artefato exige outra tentativa. Relatórios identificam artifact_ids e digests e são preservados; o Orchestrator registra qual avaliação fundamenta a aceitação.
 
 ## Estado da tarefa
 

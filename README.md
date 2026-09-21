@@ -27,7 +27,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 7. [Perfis de papel, modelo e executor](docs/phase-1/agent-profiles.md).
 8. [Decisão de roteamento e manifesto de contexto](docs/phase-1/routing-context-contract.md).
 9. [Política de execução](docs/phase-1/execution-policy-contract.md).
+10. [Artefatos, patches e relatórios](docs/phase-1/artifact-contract.md).
 
 ## Próxima entrega
 
-Definir ArtifactRef e os formatos de patch/relatório, revisando sua relação com RunManifest e AttemptRecord. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Definir RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.

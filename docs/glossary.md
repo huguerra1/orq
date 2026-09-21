@@ -17,7 +17,9 @@ Estado: proposta inicial da Fase 1.
 | Execution Policy | Política versionada de limites, permissões, orçamento, roteamento e validade de evidências | Não prova que o executor consegue aplicar os controles |
 | Run | Uma execução concreta de um objetivo/plano | Agrupa decisões, tentativas, resultados e consumo |
 | Attempt | Uma tentativa de executar uma tarefa em um run | Retry cria outra tentativa e preserva a anterior |
-| Artifact | Saída identificável, como patch, relatório ou evidência de testes | Sua revisão e hash identificam o conteúdo |
+| Artifact | Conteúdo imutável ingerido ou produzido, como snapshot, patch, relatório ou evidência | Produção não implica aceitação |
+| ArtifactRef | Descritor da ocorrência, digest, tipo, contrato, locator e procedência de um artefato | Hash identifica bytes; artifact_id identifica ocorrência |
+| Patch Application | Aplicação verificada de um patch a uma base exata | Resultado não altera o PatchArtifact original |
 | Context Bundle | Conteúdo materializado para uma tentativa | Deve respeitar escopo, permissões e orçamento |
 | Context Manifest | Registro dos itens, versões, ordem e identidade do contexto | Caminhos de arquivos sem snapshots não bastam |
 | Operational Knowledge | Conhecimento sobre papéis, modelos e funcionamento da plataforma | Apenas fontes autorizadas podem definir instruções operacionais |

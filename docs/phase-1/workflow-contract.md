@@ -97,7 +97,7 @@ Na primeira falha definitiva de tarefa, parar novas admissões. Dependentes dire
 | T4 — testar | T3 | T3.code_patch e repository_snapshot | test_patch, test_report |
 | T5 — revisar | T2, T3, T4 | T2.solution_design, T3.code_patch, T4.test_patch e T4.test_report | review_report |
 
-As saídas finais incluem os patches e relatórios necessários à avaliação global. Antes dessa avaliação, o executor prepara uma cópia limpa do snapshot, aplica code_patch e depois test_patch e verifica o resultado integrado. test_patch declara como base o resultado de code_patch. O formato exato dos artefatos será especificado depois; esta é sua relação semântica.
+As saídas finais incluem os patches e relatórios necessários à avaliação global. Antes dessa avaliação, o executor prepara uma cópia limpa do snapshot, aplica code_patch e depois test_patch e verifica o resultado integrado. Conforme o [contrato de artefatos](artifact-contract.md), test_patch identifica o snapshot original, code_patch como pré-requisito ordenado e o digest exato da base composta.
 
 T5 depende diretamente de T2 porque consome sua saída; um ancestral indireto não basta.
 

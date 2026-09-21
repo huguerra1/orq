@@ -127,8 +127,8 @@ Riscos principais: perfis desatualizados, permissões confundidas com capacidade
 | P07 | Perfil disabled/deprecated | Consultável no histórico, excluído de nova seleção |
 | P08 | Falta de métricas históricas | Regras explícitas, sem fabricar taxas ou custos |
 
-Esses oito casos complementam os [45 cenários gerais](acceptance-cases.md); ainda não foram executados.
+Esses oito casos complementam os [55 cenários gerais](acceptance-cases.md); ainda não foram executados.
 
 ## Próxima etapa
 
-Definir ArtifactRef e contratos de patch/relatório, revisando sua relação com RunManifest e AttemptRecord. Depois fechar avaliação e metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.
+Revisar [ArtifactRef e os contratos de patch/relatório](artifact-contract.md) com RunManifest, AttemptRecord e EvaluationReport. Depois fechar metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.
