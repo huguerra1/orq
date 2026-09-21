@@ -104,7 +104,7 @@ Verificar antes do ranking: referências ativas; task_type; compatibilidade exec
 
 A evidência deve ser válida para a versão e para a política de validade aplicável. Não escolher um prazo de expiração universal neste contrato; a política deverá defini-lo. Provas vencidas ou ausentes não sustentam um requisito obrigatório.
 
-Sem candidatos, retornar no_eligible_target com exclusões. Falta de permissão ou capacidade obrigatória não pode ser compensada por pontuação de qualidade. O Router ordena apenas destinos elegíveis e registra sua política; RoutingDecision será detalhado na próxima entrega.
+Sem candidatos, retornar no_eligible_target com exclusões. Falta de permissão ou capacidade obrigatória não pode ser compensada por pontuação de qualidade. O Router ordena apenas destinos elegíveis e registra sua política conforme a proposta de [RoutingDecision](routing-context-contract.md).
 
 ## Exemplo conceitual
 
@@ -127,8 +127,8 @@ Riscos principais: perfis desatualizados, permissões confundidas com capacidade
 | P07 | Perfil disabled/deprecated | Consultável no histórico, excluído de nova seleção |
 | P08 | Falta de métricas históricas | Regras explícitas, sem fabricar taxas ou custos |
 
-Esses oito casos complementam os [32 cenários gerais](acceptance-cases.md); ainda não foram executados.
+Esses oito casos complementam os [37 cenários gerais](acceptance-cases.md); ainda não foram executados.
 
 ## Próxima etapa
 
-Definir ContextManifest e RoutingDecision, incluindo candidatos considerados, evidências, conteúdo enviado e orçamento de contexto. Depois fechar ExecutionPolicy, registros de execução, artefatos, avaliação e metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.
+Revisar [ContextManifest e RoutingDecision](routing-context-contract.md) junto da estrutura completa de ExecutionPolicy. Depois fechar registros de execução, artefatos, avaliação e metadata de conhecimento. Só após a revisão correspondente implementar schemas e validadores.

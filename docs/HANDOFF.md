@@ -1,6 +1,6 @@
 # Retomada do projeto ORQ
 
-Atualizado em 2026-09-18. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
+Atualizado em 2026-09-21. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
 
 ## Leitura para retomar
 
@@ -18,26 +18,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 - Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
 - Fase 1 em andamento e ainda não concluída.
-- Propostos: TaskSpec, WorkflowSpec, estados/limites/retries e perfis de papel, modelo e executor.
-- Especificados 32 cenários gerais e oito casos de perfis. Não são testes executados.
+- Propostos: TaskSpec, WorkflowSpec, estados/limites/retries, perfis de papel/modelo/executor, RoutingDecision e ContextManifest.
+- Especificados 37 cenários gerais, oito casos de perfis e dez casos específicos de roteamento/contexto. Não são testes executados.
+- TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Criar uma proposta documental para ContextManifest e RoutingDecision, sem implementar código:
+Revisar a proposta de [RoutingDecision e ContextManifest](phase-1/routing-context-contract.md) em conjunto com a estrutura completa de ExecutionPolicy, sem implementar código:
 
-1. ContextManifest: itens enviados, ordem, fonte, revisão/hash, escopo, orçamento e conteúdo materializado.
-2. RoutingDecision: tarefa/tentativa, snapshots utilizados, candidatos elegíveis/excluídos, motivos, política e destino recomendado/selecionado.
-3. Explicitar a sequência entre seleção de destino, montagem de contexto e checagem final de limites.
-4. Definir exemplos válidos/inválidos e manter coerência com TaskSpec e os perfis.
-5. Atualizar índices e este resumo; verificar e publicar uma entrega pequena.
+1. Fechar permissões efetivas, gramática de caminhos, rede, ferramentas e validade das evidências.
+2. Incorporar RoutingPolicy à política ou definir sua referência normativa sem duplicar configuração.
+3. Definir limites e reservas para chamadas de Planner, Router, execução e avaliação.
+4. Validar como candidate_attempt_number, admissão e custos anteriores à tentativa se relacionam com RunManifest/AttemptRecord.
+5. Acrescentar casos positivos/negativos, atualizar índices e publicar outra entrega pequena.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
 ## O que falta para fechar a Fase 1
 
-- ContextManifest e RoutingDecision.
 - ExecutionPolicy: estrutura completa de limites e permissões, inclusive semântica de caminhos e validade de evidências.
 - ArtifactRef e contratos de patch/relatório.
 - RunManifest, AttemptRecord, uso/custos/erros e EvaluationReport.
@@ -90,6 +90,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Estados e limites](phase-1/execution-lifecycle.md).
 - [Cenários gerais](phase-1/acceptance-cases.md).
 - [Perfis](phase-1/agent-profiles.md).
+- [Roteamento e contexto](phase-1/routing-context-contract.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

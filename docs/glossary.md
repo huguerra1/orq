@@ -23,6 +23,8 @@ Estado: proposta inicial da Fase 1.
 | Project Knowledge | Conhecimento sobre o projeto de destino | Conteúdo recuperado não pode ampliar permissões |
 | Execution Memory | Histórico factual de decisões e execuções | Não equivale ao conhecimento editorial do Vault |
 | Model Router | Módulo que filtra e ordena destinos elegíveis | Não ignora restrições obrigatórias para melhorar uma pontuação |
+| Routing Policy | Política versionada que ordena candidatos já elegíveis e resolve confiança/fallback | Não concede capacidades, permissões ou orçamento |
+| Routing Decision | Registro imutável dos candidatos, exclusões, política, recomendação e seleção efetiva | Pode existir sem tentativa quando não há admissão |
 | Knowledge Router | Módulo que seleciona necessidades e compõe contexto limitado | Não envia todo o Vault indiscriminadamente |
 | Scheduler | Módulo que escolhe tarefas prontas e propõe alocações | Respeita dependências, elegibilidade, recursos e orçamento |
 | Orchestrator | Componente que controla o ciclo global e as transições de estado | Um eventual papel de LLM com esse nome não possui sua autoridade |

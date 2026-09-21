@@ -50,6 +50,11 @@ Recomendação: matriz determinística primeiro. Nenhuma fixture inicial depende
 | C30 | Contexto completo acima do limite | Não truncar requisitos obrigatórios silenciosamente | Contexto |
 | C31 | Resposta chega depois de run terminal | Registrar evidência/custo sem reabrir execução | Recuperação |
 | C32 | Modificar plano aceito | Nova versão e novo run no MVP | Versionamento |
+| C33 | Motor tipado recomenda ID fora dos elegíveis | Resposta inválida; fallback explícito ou nenhum despacho | Roteamento |
+| C34 | Confiança de roteamento abaixo do limiar | Preservar recomendação e aplicar ação configurada | Roteamento |
+| C35 | Roteamento externo falha antes da admissão | Registrar custo/erro sem consumir tentativa | Roteamento e orçamento |
+| C36 | Bundle materializado diverge de seu manifesto | Impedir despacho por falha de integridade | Contexto |
+| C37 | Runtime acrescenta contexto não observável | Marcar cobertura parcial/desconhecida, sem alegar reprodução completa | Contexto |
 
 ## Cenário completo de referência
 
@@ -78,4 +83,4 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Catálogo, contexto, artefatos e métricas ainda exigem estruturas próprias; seus casos orientam as próximas entregas.
 
-Os oito casos específicos de [perfis](agent-profiles.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses perfis e especificar ExecutionPolicy, RoutingDecision, ContextManifest, RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md) e os dez casos de [roteamento e contexto](routing-context-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses contratos e especificar ExecutionPolicy, RunManifest, AttemptRecord, ArtifactRef, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.

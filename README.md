@@ -25,7 +25,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 5. [Estados, limites e tentativas](docs/phase-1/execution-lifecycle.md).
 6. [Cenários de aceitação](docs/phase-1/acceptance-cases.md).
 7. [Perfis de papel, modelo e executor](docs/phase-1/agent-profiles.md).
+8. [Decisão de roteamento e manifesto de contexto](docs/phase-1/routing-context-contract.md).
 
 ## Próxima entrega
 
-Especificar ContextManifest e RoutingDecision: conteúdo enviado, candidatos considerados e razões da escolha. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Revisar ContextManifest e RoutingDecision em conjunto com a estrutura completa de ExecutionPolicy. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
