@@ -18,27 +18,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 - Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
 - Fase 1 em andamento e ainda não concluída.
-- Propostos: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos e registros de execução/avaliação.
-- Especificados 70 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos e 16 de registros. Não são testes executados.
+- Propostos: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
+- Especificados 82 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 16 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Definir metadata de conhecimento do Vault, sem implementar RAG ou MCP:
+Realizar a revisão cruzada da Fase 1, ainda sem implementar aplicação, RAG ou MCP:
 
-1. Definir identidade, revisão, hash, projeto, escopo, autoridade e classificação das fontes.
-2. Distinguir conhecimento operacional de conhecimento de projeto e impedir que conteúdo amplie permissões.
-3. Definir unidades recuperáveis, relações, validade, filtros e orçamento de contexto.
-4. Ligar seleção de conhecimento ao ContextManifest com procedência completa.
-5. Acrescentar casos positivos/negativos, atualizar índices e publicar outra entrega pequena.
+1. Representar uma execução fictícia completa atravessando todos os contratos.
+2. Conferir identidades, hashes, estados, limites, seleção de conhecimento, roteamento, tentativa, artefatos e avaliação ponta a ponta.
+3. Registrar conflitos, lacunas e decisões normativas sem preenchê-los silenciosamente.
+4. Classificar cada contrato como aceito ou ainda aberto.
+5. Atualizar cenários, índices e handoff e publicar outra entrega pequena.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
 ## O que falta para fechar a Fase 1
 
-- Metadata de conhecimento para o Vault.
 - Revisão cruzada, cenários completos e definição explícita do que está fechado versus pendente.
 
 Não iniciar MCP, RAG executável ou SDKs de agentes enquanto essa etapa documental estiver aberta.
@@ -91,6 +90,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Política de execução](phase-1/execution-policy-contract.md).
 - [Artefatos, patches e relatórios](phase-1/artifact-contract.md).
 - [Registros de execução e avaliação](phase-1/execution-records-contract.md).
+- [Metadata de conhecimento do Vault](phase-1/knowledge-metadata-contract.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
@@ -98,6 +98,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - 5961293: roteamento, contexto e encaixe documental de TypeSafe AI/Jev.
 - 2cde742: política de execução, permissões, orçamento e evidências.
 - 921c06d: ArtifactRef e contratos de patch/relatório.
+- 8959bf3: registros de execução, uso, aprovação e avaliação.
 - Consultar git log para trabalhos posteriores.
 
 ## Git e ambiente

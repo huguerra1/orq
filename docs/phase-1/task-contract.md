@@ -41,7 +41,7 @@ Todos os campos abaixo são obrigatórios na proposta, salvo indicação contrá
 - Requirement: requirement_id, descrição não vazia e indicação de obrigatoriedade.
 - InputSpec: input_id, tipo e origem. A origem é external_input (entrada declarada no workflow e vinculada a um artefato no run) ou task_output (saída nomeada de uma dependência direta). Não referencia um artefato futuro como se já existisse.
 - OutputSpec: output_id, tipo de artefato, descrição e referência de contrato de conteúdo quando aplicável.
-- KnowledgeRequirement: identificador, assunto ou referência documental, escopo e indicação de obrigatoriedade.
+- KnowledgeRequirement: identificador, assunto, obrigatoriedade, tipos permitidos, escopos de autoridade, referências opcionais, filtros, validade, cobertura e teto local de contexto, conforme o [contrato de metadata de conhecimento](knowledge-metadata-contract.md).
 - EvaluationCriterion: criterion_id, requirement_ids cobertos, método, regra de aprovação, obrigatoriedade e referência de verificador ou rubrica.
 - Constraints: limites opcionais da tarefa. A política versionada é referenciada uma única vez por WorkflowSpec.execution_policy_ref; a tarefa só a restringe. Ausência significa herança, não autorização ilimitada. max_attempts inclui a primeira tentativa.
 
@@ -94,6 +94,7 @@ T3 implementa o desenho de autenticação aceito em T2. Seu papel é backend_eng
 - Revisar [estados, limites e tentativas](execution-lifecycle.md), herança de limites e recuperação de resultados desconhecidos.
 - Revisar a proposta de [perfis](agent-profiles.md) com [ExecutionPolicy](execution-policy-contract.md) e seus tetos de permissão.
 - Revisar os formatos de [artefato, patch e relatório](artifact-contract.md) contra OutputSpec e os critérios.
+- Revisar KnowledgeRequirement, seleção e cobertura contra a [metadata de conhecimento](knowledge-metadata-contract.md) e o ContextManifest.
 - Completar os registros necessários para transformar os [cenários de aceitação](acceptance-cases.md) em fixtures.
 
 Depois de fechar essas relações, o próximo passo de implementação será formalizar schemas e fixtures, sem instalar SDKs de agentes ou construir o servidor MCP.

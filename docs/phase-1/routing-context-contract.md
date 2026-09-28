@@ -91,6 +91,7 @@ ContextManifest identifica o conteúdo materializado pela plataforma para uma te
 | run_id, workflow_ref e task_id | Referências | Obrigatórios |
 | candidate_attempt_number | Inteiro positivo | Obrigatório; deve corresponder à decisão associada |
 | routing_decision_ref | Referência com hash | Obrigatória; decisão que escolheu o destino |
+| knowledge_selection_refs | Lista de referências com hash | Obrigatória; pode ser vazia somente quando não há KnowledgeRequirement nem conhecimento selecionado |
 | target_ref | Referência com hash | Obrigatória; deve ser a seleção efetiva |
 | created_at | Data UTC | Obrigatória |
 | items | Lista ordenada | Obrigatória; pode estar vazia somente se os contratos da tarefa permitirem |
@@ -99,7 +100,7 @@ ContextManifest identifica o conteúdo materializado pela plataforma para uma te
 | bundle_hash | Hash | Obrigatório; identidade da representação canônica montada pelo ORQ |
 | provider_context_coverage | Enum | `complete`, `platform_only` ou `unknown` |
 
-Cada item contém `sequence`, `item_id`, `category`, `source_ref`, `source_revision`, `source_hash`, `materialized_artifact_ref`, `content_hash`, `required`, `selection_reason`, tamanho e método de contagem. Categorias iniciais: instruções operacionais, TaskSpec, entrada externa, artefato aceito de dependência, conhecimento de projeto e feedback de tentativa anterior.
+Cada item contém `sequence`, `item_id`, `category`, `source_ref`, `source_revision`, `source_hash`, `materialized_artifact_ref`, `content_hash`, `required`, `selection_reason`, tamanho e método de contagem. Itens vindos do Vault também registram seleção, requisitos cobertos, unidade e digests definidos no [contrato de metadata de conhecimento](knowledge-metadata-contract.md). Categorias iniciais: instruções operacionais, TaskSpec, entrada externa, artefato aceito de dependência, conhecimento de projeto e feedback de tentativa anterior.
 
 Conteúdo transformado registra a cadeia de derivação: operação, ferramenta/versão, fonte e hash resultante. Resumo ou recorte nunca substitui silenciosamente um item obrigatório. Caminho mutável sem snapshot e hash não identifica conteúdo suficiente.
 
@@ -170,7 +171,7 @@ Esses casos são especificação para fixtures futuras, não testes executados n
 - Tokenizador e margem usados por cada executor.
 - Conteúdo exato do resumo de roteamento e benchmark de calibração.
 
-Antes de integrar Jev, revisar RunManifest, AttemptRecord e contabilização do [contrato de registros](execution-records-contract.md) em conjunto com [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
+Antes de integrar Jev, concluir a revisão cruzada de RunManifest, AttemptRecord, [metadata de conhecimento](knowledge-metadata-contract.md), contabilização e [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
 
 ## Referências externas
 

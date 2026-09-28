@@ -71,7 +71,7 @@ RunManifest é fechado quando o plano foi validado ou quando a preparação term
 | validation_report_ref | ArtifactRef ou null | Relatório do plano quando produzido |
 | execution_policy_snapshot | Objeto/referência com hash ou null | Obrigatório para ready; null se preparação terminou antes da resolução |
 | catalog_snapshot_refs | Lista | Perfis, targets, ferramentas e contratos resolvidos; pode ser parcial fora de ready |
-| knowledge_catalog_snapshot_ref | Referência com hash ou null | Catálogo disponível no início; conteúdo usado aparece no ContextManifest |
+| knowledge_catalog_snapshot_ref | Referência com hash ou null | [Catálogo de conhecimento](knowledge-metadata-contract.md) disponível no início; conteúdo usado aparece no ContextManifest |
 | external_input_bindings | Lista | input_id para ArtifactRef; todos verificados em ready, possivelmente parciais nos demais status |
 | resolved_limits | Objeto ou null | Valores efetivos e origem; obrigatório para ready |
 | budget_snapshot | Objeto ou null | Teto, envelopes, moeda e reservas iniciais; obrigatório antes de chamada cobrada |
@@ -358,4 +358,4 @@ Esses casos especificam persistência e projeção futuras; não são testes exe
 - Formato de assinatura/autenticação de decisões humanas.
 - Política de publicação e congelamento de relatórios experimentais.
 
-O próximo passo é definir metadata de conhecimento do Vault e então realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, antes de escolher stack ou implementar schemas.
+O próximo passo é realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar contratos como aceitos ou ainda abertos, antes de escolher stack ou implementar schemas.

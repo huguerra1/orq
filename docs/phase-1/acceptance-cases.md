@@ -88,6 +88,18 @@ Recomendação: matriz determinística primeiro. Nenhuma fixture inicial depende
 | C68 | Falha determinística e rubrica textual pass | Verdict final fail | Avaliação |
 | C69 | Reavaliação autorizada após inconclusive | Novo evaluation_id; relatórios preservados | Avaliação |
 | C70 | Evaluation pass usa digest diferente do binding | outputs_accepted rejeitado | Avaliação e artefatos |
+| C71 | Frontmatter se declara autoridade de plataforma | Autoatribuição rejeitada ou ignorada conforme CatalogPolicy | Conhecimento |
+| C72 | Fonte de outro projeto tem score lexical maior | Excluída antes do ranking | Conhecimento |
+| C73 | Project Knowledge tenta ampliar rede ou escrita | ExecutionPolicy permanece inalterada | Conhecimento e política |
+| C74 | Mesma source_id/revision possui digest diferente | Conflito de catálogo; snapshot não é admitido | Conhecimento |
+| C75 | Fonte obrigatória está vencida ou não verificada | Cobertura obrigatória falha; nenhum despacho | Conhecimento |
+| C76 | Unidade obrigatória excede o orçamento de contexto | Não truncar silenciosamente; seleção não admissível ou transformação explícita | Conhecimento e contexto |
+| C77 | Fontes obrigatórias se contradizem sem precedência | SelectionRecord conflict; nenhum despacho | Conhecimento |
+| C78 | Conhecimento opcional não é encontrado | partial permitido com lacuna explícita | Conhecimento |
+| C79 | Mesmos bytes existem em duas fontes | Bundle pode deduplicar; procedências permanecem registradas | Conhecimento e contexto |
+| C80 | Fonte é revogada entre seleção e despacho | Preflight rejeita; nova seleção é exigida | Conhecimento e contexto |
+| C81 | Retry usa catálogo revisado | Novos SelectionRecord e ContextManifest; histórico preservado | Conhecimento e recuperação |
+| C82 | Fato da Execution Memory é promovido automaticamente | Rejeição sem curadoria e revisão editorial versionada | Conhecimento e registros |
 
 ## Cenário completo de referência
 
@@ -114,6 +126,6 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 ## Critério de revisão
 
-Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Os contratos permanecem sujeitos à revisão cruzada; metadata de conhecimento ainda exige estrutura própria.
+Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) e aos contratos complementares identificados. Os contratos permanecem sujeitos à revisão cruzada.
 
-Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md), 14 de [artefatos](artifact-contract.md) e 16 de [registros](execution-records-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, definir metadata de conhecimento e realizar revisão cruzada. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md), 14 de [artefatos](artifact-contract.md), 16 de [registros](execution-records-contract.md) e 16 de [conhecimento](knowledge-metadata-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, realizar a revisão cruzada. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.

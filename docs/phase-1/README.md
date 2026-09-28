@@ -32,6 +32,7 @@ Não são requisitos desta fase: chaves de API, SDKs de agentes, servidor MCP em
 5. ExecutionPolicy: limites, permissões, roteamento, orçamento e validade de evidências.
 6. ContextManifest e RoutingDecision: quais informações e decisões antecederam a execução.
 7. ArtifactRef, RunManifest, AttemptRecord e EvaluationReport: entregas, condições da execução, fatos observados e aceitação.
+8. KnowledgeSource, KnowledgeUnit, catálogo e seleção: elegibilidade, procedência e materialização do conhecimento.
 
 Essa é uma ordem de especificação, não uma sequência de serviços a implementar. Algumas regras são revisadas em conjunto, especialmente TaskSpec e WorkflowSpec.
 
@@ -59,14 +60,14 @@ Essa é uma ordem de especificação, não uma sequência de serviços a impleme
 
 Uma execução fictícia deve representar: objetivo, plano válido, dois destinos elegíveis, seleção de um deles, contexto identificado, tentativa reprovada, retry limitado e avaliação final. Toda aprovação deve apontar para os artefatos efetivamente avaliados; custo desconhecido não pode ser convertido em zero.
 
-Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento, contexto, política, artefatos e registros de execução/avaliação, com 70 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos e 16 de registros. Os casos ainda não são testes executados. Falta a metadata de conhecimento e a revisão cruzada final.
+Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento, contexto, política, artefatos, registros de execução/avaliação e metadata de conhecimento, com 82 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 16 de conhecimento. Os casos ainda não são testes executados. Falta a revisão cruzada final.
 
 ## Andamento
 
 | Entrega | Situação |
 | --- | --- |
 | 1A — glossário | Primeira versão documentada |
-| 1B — contratos | Tarefa, workflow, perfis, roteamento, contexto, política, artefatos e registros propostos; metadata pendente |
+| 1B — contratos | Tarefa, workflow, perfis, roteamento, contexto, política, artefatos, registros e metadata de conhecimento propostos; revisão pendente |
 | 1C — estados | Proposta documentada; capacidades reais dos executores serão validadas depois |
 | 1D — aceitação | Matriz e cenário fictício documentados; fixtures executáveis pendentes |
 | 1E — revisão final | Pendente; Fase 1 ainda não concluída |
@@ -83,5 +84,6 @@ Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, li
 - [Política de execução](execution-policy-contract.md)
 - [Artefatos, patches e relatórios](artifact-contract.md)
 - [Registros de execução, uso, aprovação e avaliação](execution-records-contract.md)
+- [Metadata de conhecimento do Vault](knowledge-metadata-contract.md)
 
-O próximo passo é definir a metadata de conhecimento do Vault e então realizar a revisão cruzada da Fase 1 com uma execução fictícia completa. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
+O próximo passo é realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar contratos como aceitos ou ainda abertos. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.

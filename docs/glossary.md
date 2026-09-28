@@ -28,6 +28,10 @@ Estado: proposta inicial da Fase 1.
 | Context Manifest | Registro dos itens, versões, ordem e identidade do contexto | Caminhos de arquivos sem snapshots não bastam |
 | Operational Knowledge | Conhecimento sobre papéis, modelos e funcionamento da plataforma | Apenas fontes autorizadas podem definir instruções operacionais |
 | Project Knowledge | Conhecimento sobre o projeto de destino | Conteúdo recuperado não pode ampliar permissões |
+| Knowledge Source | Documento editorial identificado por source_id, revisão e digest | Não atribui autoridade ou escopo a si próprio |
+| Knowledge Unit | Trecho recuperável derivado deterministicamente de uma revisão exata | Não amplia classificação, aplicabilidade ou autoridade da fonte |
+| Knowledge Catalog Snapshot | Conjunto imutável de fontes, unidades e regras disponível para um run | Fecha o universo consultável; não registra o contexto efetivamente enviado |
+| Knowledge Selection Record | Registro de candidatos, exclusões, ranking e cobertura de conhecimento para uma tarefa | Context Manifest registra depois os bytes materializados e sua ordem |
 | Execution Memory | Histórico factual de decisões e execuções | Não equivale ao conhecimento editorial do Vault |
 | Model Router | Módulo que filtra e ordena destinos elegíveis | Não ignora restrições obrigatórias para melhorar uma pontuação |
 | Routing Policy | Política versionada que ordena candidatos já elegíveis e resolve confiança/fallback | Não concede capacidades, permissões ou orçamento |

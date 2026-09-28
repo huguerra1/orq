@@ -29,7 +29,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 9. [Política de execução](docs/phase-1/execution-policy-contract.md).
 10. [Artefatos, patches e relatórios](docs/phase-1/artifact-contract.md).
 11. [Registros de execução e avaliação](docs/phase-1/execution-records-contract.md).
+12. [Metadata de conhecimento do Vault](docs/phase-1/knowledge-metadata-contract.md).
 
 ## Próxima entrega
 
-Definir a metadata de conhecimento do Vault e depois realizar a revisão cruzada da Fase 1. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar cada contrato como aceito ou ainda aberto. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
