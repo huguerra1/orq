@@ -69,7 +69,7 @@ RoutingDecision é o registro imutável e finalizado de uma operação de seleç
 | recommendation | Objeto ou null | Escolha bruta do ranking, antes de fallback |
 | effective_selection | Objeto ou null | Destino efetivo e razão; null significa não despachar |
 | decision_status | Enum | `selected`, `no_eligible_target`, `low_confidence`, `invalid_response`, `provider_error` ou `preflight_rejected` |
-| usage | Objeto | Duração, consumo e custo da decisão; valores desconhecidos permanecem identificados |
+| usage_record_refs | Lista | Duração, consumo e custo da decisão em UsageRecords; valores desconhecidos permanecem identificados |
 | provider_extension | Objeto opcional | Dados específicos, namespaced e sem alterar a semântica central |
 
 Cada candidato contém `target_ref`, posição de entrada, `eligible`, códigos de razão e referências das evidências. Para elegíveis, pode conter pontuação ou posição produzida pela política. Candidatos inelegíveis são preservados para auditoria, mas nunca enviados como opções selecionáveis ao motor probabilístico.
@@ -170,7 +170,7 @@ Esses casos são especificação para fixtures futuras, não testes executados n
 - Tokenizador e margem usados por cada executor.
 - Conteúdo exato do resumo de roteamento e benchmark de calibração.
 
-Antes de integrar Jev, fechar RunManifest, AttemptRecord e contabilização em revisão cruzada com [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
+Antes de integrar Jev, revisar RunManifest, AttemptRecord e contabilização do [contrato de registros](execution-records-contract.md) em conjunto com [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
 
 ## Referências externas
 

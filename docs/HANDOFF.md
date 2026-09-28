@@ -1,6 +1,6 @@
 # Retomada do projeto ORQ
 
-Atualizado em 2026-09-21. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
+Atualizado em 2026-09-28. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
 
 ## Leitura para retomar
 
@@ -18,27 +18,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 - Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
 - Fase 1 em andamento e ainda não concluída.
-- Propostos: TaskSpec, WorkflowSpec, estados/limites/retries, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, ArtifactRef e contratos de patch/relatório.
-- Especificados 55 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política e 14 de artefatos. Não são testes executados.
+- Propostos: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos e registros de execução/avaliação.
+- Especificados 70 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos e 16 de registros. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Definir RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport em conjunto, sem implementar código:
+Definir metadata de conhecimento do Vault, sem implementar RAG ou MCP:
 
-1. Fechar snapshots de política, catálogo, workflow, inputs e limites no RunManifest.
-2. Registrar intenção, despacho, contexto, destino, ferramentas, artefatos, consumo e erros no AttemptRecord.
-3. Definir registros imutáveis de aplicação de patch e aprovação humana/externa.
-4. Ligar critérios, evidências exatas e veredictos no EvaluationReport.
+1. Definir identidade, revisão, hash, projeto, escopo, autoridade e classificação das fontes.
+2. Distinguir conhecimento operacional de conhecimento de projeto e impedir que conteúdo amplie permissões.
+3. Definir unidades recuperáveis, relações, validade, filtros e orçamento de contexto.
+4. Ligar seleção de conhecimento ao ContextManifest com procedência completa.
 5. Acrescentar casos positivos/negativos, atualizar índices e publicar outra entrega pequena.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
 ## O que falta para fechar a Fase 1
 
-- RunManifest, AttemptRecord, uso/custos/erros e EvaluationReport.
 - Metadata de conhecimento para o Vault.
 - Revisão cruzada, cenários completos e definição explícita do que está fechado versus pendente.
 
@@ -91,12 +90,14 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Roteamento e contexto](phase-1/routing-context-contract.md).
 - [Política de execução](phase-1/execution-policy-contract.md).
 - [Artefatos, patches e relatórios](phase-1/artifact-contract.md).
+- [Registros de execução e avaliação](phase-1/execution-records-contract.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
 - 8bab500: instruções e contexto para retomada.
 - 5961293: roteamento, contexto e encaixe documental de TypeSafe AI/Jev.
 - 2cde742: política de execução, permissões, orçamento e evidências.
+- 921c06d: ArtifactRef e contratos de patch/relatório.
 - Consultar git log para trabalhos posteriores.
 
 ## Git e ambiente

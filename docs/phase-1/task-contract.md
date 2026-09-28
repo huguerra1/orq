@@ -52,8 +52,8 @@ Os critérios podem usar validação de contrato, testes automatizados, verifica
 - [WorkflowSpec](workflow-contract.md) contém as tarefas, declara entradas externas e define o espaço de identificação das dependências.
 - [Perfis](agent-profiles.md) permitem validar o papel e descobrir destinos elegíveis.
 - RoutingDecision guarda a escolha de destino; ela não é gravada como parte da intenção imutável da tarefa.
-- AttemptRecord guarda execução, contexto, consumo, erros e resultados.
-- EvaluationReport identifica quais artefatos foram avaliados e quais critérios foram atendidos.
+- [AttemptRecord](execution-records-contract.md) guarda execução, contexto, consumo, erros e resultados.
+- [EvaluationReport](execution-records-contract.md) identifica quais artefatos foram avaliados e quais critérios foram atendidos.
 
 ## Regras de validação
 

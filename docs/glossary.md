@@ -16,7 +16,11 @@ Estado: proposta inicial da Fase 1.
 | Execution Target | Combinação concreta de executor, runtime, provedor, modelo e configuração | Precisa atender às restrições da tarefa |
 | Execution Policy | Política versionada de limites, permissões, orçamento, roteamento e validade de evidências | Não prova que o executor consegue aplicar os controles |
 | Run | Uma execução concreta de um objetivo/plano | Agrupa decisões, tentativas, resultados e consumo |
+| Run Manifest | Snapshot imutável das condições resolvidas para um run | Não contém decisões ou resultados futuros |
 | Attempt | Uma tentativa de executar uma tarefa em um run | Retry cria outra tentativa e preserva a anterior |
+| Journal Event | Intenção ou fato append-only ligado a um agregado e sequência | Projeções de estado não substituem seu histórico |
+| Usage Record | Medição reportada, estimada ou indisponível de uma operação | Correções preservam o registro anterior |
+| Approval Record | Decisão de autoridade sobre ação, alvo e validade específicos | Não amplia a Execution Policy |
 | Artifact | Conteúdo imutável ingerido ou produzido, como snapshot, patch, relatório ou evidência | Produção não implica aceitação |
 | ArtifactRef | Descritor da ocorrência, digest, tipo, contrato, locator e procedência de um artefato | Hash identifica bytes; artifact_id identifica ocorrência |
 | Patch Application | Aplicação verificada de um patch a uma base exata | Resultado não altera o PatchArtifact original |
@@ -32,6 +36,7 @@ Estado: proposta inicial da Fase 1.
 | Scheduler | Módulo que escolhe tarefas prontas e propõe alocações | Respeita dependências, elegibilidade, recursos e orçamento |
 | Orchestrator | Componente que controla o ciclo global e as transições de estado | Um eventual papel de LLM com esse nome não possui sua autoridade |
 | Evaluation | Verificação do resultado contra critérios versionados | Conclusão técnica do executor não equivale a aprovação |
+| Evaluation Report | Resultado imutável de critérios sobre artifact_ids/digests exatos | Não se aplica a conteúdo alterado |
 | Tentativa concluída | Execução técnica terminou e disponibilizou resultado | completed não implica avaliação pass |
 | Resultado indeterminado | Despacho ou encerramento externo não confirmado | Bloqueia retry até reconciliação segura |
 | Reconciliação | Busca de evidência sobre execução de estado desconhecido | Não é retry e possui prazo limitado |

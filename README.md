@@ -28,7 +28,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 8. [Decisão de roteamento e manifesto de contexto](docs/phase-1/routing-context-contract.md).
 9. [Política de execução](docs/phase-1/execution-policy-contract.md).
 10. [Artefatos, patches e relatórios](docs/phase-1/artifact-contract.md).
+11. [Registros de execução e avaliação](docs/phase-1/execution-records-contract.md).
 
 ## Próxima entrega
 
-Definir RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Definir a metadata de conhecimento do Vault e depois realizar a revisão cruzada da Fase 1. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.

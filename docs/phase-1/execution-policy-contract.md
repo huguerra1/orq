@@ -233,9 +233,8 @@ Esses casos são especificações para fixtures e adaptadores futuros; não comp
 
 - Valores operacionais dos limites e envelopes.
 - Catálogo inicial de ferramentas, comandos e classes de dados.
-- Formato de ApprovalRecord e sua relação com RunManifest.
 - Estratégia concreta de sandbox do primeiro executor.
 - Precisão de enforcement exigida para contadores de tools/rede.
 - Formato final de constraints parciais em WorkflowSpec e TaskSpec.
 
-O [contrato de artefatos](artifact-contract.md) define ArtifactRef e formatos de patch/relatório. O próximo passo é especificar RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport. Nenhum executor real deve ser conectado antes de representar política resolvida, decisão, contexto, intenção de despacho e resultado observado.
+O [contrato de artefatos](artifact-contract.md) define ArtifactRef e formatos de patch/relatório; o [contrato de registros](execution-records-contract.md) fecha RunManifest, AttemptRecord, aplicação, aprovação, uso, erros e avaliação. Nenhum executor real deve ser conectado antes de representar política resolvida, decisão, contexto, intenção de despacho e resultado observado.

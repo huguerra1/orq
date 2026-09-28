@@ -63,19 +63,19 @@ Ao ingerir, o ORQ calcula tamanho e digest em fluxo, aplica o limite antes de pe
 
 Antes de consumo relevante, os bytes são revalidados contra digest e tamanho. Conteúdo ausente produz `unavailable`; divergência produz `integrity_mismatch`. Nenhum deles é substituído por uma cópia parecida ou arquivo com mesmo nome.
 
-Verificações são eventos dos futuros RunManifest/AttemptRecord/EvaluationReport, pois podem ocorrer várias vezes. ArtifactRef guarda os valores esperados, não um status mutável de verificação.
+Verificações são eventos dos [registros de execução/avaliação](execution-records-contract.md), pois podem ocorrer várias vezes. ArtifactRef guarda os valores esperados, não um status mutável de verificação.
 
 Arquivos compactados e diretórios exigem manifesto interno com entradas, caminhos relativos, tipos, tamanhos e digests. Extração rejeita caminho absoluto, `..`, colisões por normalização/case, dispositivos, links inseguros e expansão acima do orçamento. Um snapshot de repositório identifica também o digest lógico da árvore e, quando aplicável, commit/base Git; um commit isolado não substitui o conteúdo quando arquivos não rastreados fazem parte da entrada.
 
 ## Vínculo com TaskSpec e execução
 
-OutputSpec declara `output_id`, artifact_type e content_contract_ref esperados. AttemptRecord futuramente separará:
+OutputSpec declara `output_id`, artifact_type e content_contract_ref esperados. AttemptRecord separa:
 
 - `produced_artifacts`: tudo que a tentativa materializou e preservou;
 - `output_bindings`: mapeamento entre output_id declarado e ArtifactRef entregue;
 - `undeclared_artifacts`: diagnósticos ou anexos preservados que não satisfazem saídas por si próprios.
 
-Um output binding válido exige tipo e contrato compatíveis. Produzir bytes não torna a saída aceita. EvaluationReport referencia os artifact_ids e digests exatos avaliados; somente seu veredicto pode fundamentar a seleção de uma saída aceita. RunManifest preserva o vínculo aceito usado por dependências e saídas finais.
+Um output binding válido exige tipo e contrato compatíveis. Produzir bytes não torna a saída aceita. EvaluationReport referencia os artifact_ids e digests exatos avaliados; somente seu veredicto pode fundamentar a seleção de uma saída aceita. O journal e o RunSummary preservam o vínculo aceito usado por dependências e saídas finais; o RunManifest inicial não contém resultados futuros.
 
 Artefato de tentativa reprovada permanece no histórico, mas não satisfaz task_output. Retry cria novas ocorrências mesmo quando os bytes coincidem, preservando a tentativa produtora.
 
@@ -115,7 +115,7 @@ O aplicador não confia em `declared_operations`: analisa o payload, compara ope
 
 Aplicação ocorre em workspace limpo e isolado. Primeiro materializa e verifica a base; depois executa check sem efeito quando disponível; em seguida aplica uma única vez e calcula o digest da árvore resultante. Falha parcial não produz snapshot aceito.
 
-O resultado pertence a PatchApplicationRecord, não ao PatchArtifact imutável. Esse registro contém patch/base exatos, aplicador e versão, horários, status `applied`, `rejected`, `conflict`, `policy_denied` ou `integrity_error`, diagnósticos e, em sucesso, o repository_snapshot resultante. AttemptRecord ou EvaluationReport referencia o registro conforme a finalidade da aplicação.
+O resultado pertence a PatchApplicationRecord, não ao PatchArtifact imutável. Esse registro contém patch/base exatos, aplicador e versão, horários, status `applied`, `rejected`, `conflict`, `policy_denied`, `integrity_error` ou `unknown`, diagnósticos e, em sucesso, o repository_snapshot resultante. AttemptRecord ou EvaluationReport referencia o registro conforme a finalidade da aplicação.
 
 Aplicar novamente sobre base diferente é outra operação e não prova equivalência. Fuzz, rejeições ignoradas, resolução automática de conflito e aplicação parcial são proibidos no MVP. Modos de arquivo, renames, symlinks e binários só são aceitos quando contrato, política e aplicador declaram suporte verificável.
 
@@ -216,7 +216,6 @@ Esses casos especificam validadores e armazenamento futuros; não são testes ex
 - Serialização canônica dos manifestos JSON.
 - Subconjunto exato de `git_diff_v1`, incluindo modos, renames, symlinks e binários.
 - Vocabulário inicial de artifact_type, report_kind e classificação de dados.
-- Formato detalhado de PatchApplicationRecord e eventos de verificação.
 - Limites de tamanho por tipo e proteção contra parsing/expansão excessiva.
 
-O próximo passo é especificar RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport em conjunto, usando ArtifactRef como referência imutável.
+O [contrato de registros](execution-records-contract.md) especifica RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport usando ArtifactRef como referência imutável. O próximo passo é definir metadata de conhecimento do Vault.

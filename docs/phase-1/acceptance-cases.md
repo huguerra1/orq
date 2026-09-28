@@ -73,6 +73,21 @@ Recomendação: matriz determinística primeiro. Nenhuma fixture inicial depende
 | C53 | Aplicação parcial falha | Nenhum snapshot resultante aceito | Patch |
 | C54 | Relatório afirma sucesso sem evidência adequada | Alegação não sustenta veredicto pass | Relatório e avaliação |
 | C55 | Avaliação referencia digest diferente da saída | Não aceita o output binding | Artefatos e avaliação |
+| C56 | Planejamento falha após gerar custo | RunIntent, Usage/Error e manifesto incompleto explícito preservados | Registros |
+| C57 | Crash após intenção de despacho | Reconciliar a mesma intenção; nenhum segundo despacho lógico | Persistência |
+| C58 | Evento idempotente é repetido | Deduplicar sem nova transição ou contabilização | Persistência |
+| C59 | Mesma chave idempotente chega com conteúdo diferente | Rejeitar conflito | Persistência |
+| C60 | Transição declara estado anterior divergente | Evento rejeitado | Estado |
+| C61 | Dado tardio chega após estado terminal | Registrar fato/custo sem reabrir estado ou cutoff | Registros |
+| C62 | Attempt completed ainda não avaliado | Dependências permanecem bloqueadas | Avaliação |
+| C63 | Correção de uso substitui estimativa | Histórico preservado; agregação usa a correção uma vez | Métricas |
+| C64 | Reserva financeira é liquidada | Reserva e custo não são somados simultaneamente | Orçamento |
+| C65 | Aprovação pertence a outra ação/escopo | Uso rejeitado | Aprovação |
+| C66 | PatchApplication applied | Base, aplicador e snapshot resultante exatos registrados | Patch |
+| C67 | EvaluationReport omite critério obrigatório | Verdict pass inválido | Avaliação |
+| C68 | Falha determinística e rubrica textual pass | Verdict final fail | Avaliação |
+| C69 | Reavaliação autorizada após inconclusive | Novo evaluation_id; relatórios preservados | Avaliação |
+| C70 | Evaluation pass usa digest diferente do binding | outputs_accepted rejeitado | Avaliação e artefatos |
 
 ## Cenário completo de referência
 
@@ -99,6 +114,6 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 ## Critério de revisão
 
-Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Catálogo, contexto, artefatos e métricas ainda exigem estruturas próprias; seus casos orientam as próximas entregas.
+Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) ou a um contrato pendente identificado. Os contratos permanecem sujeitos à revisão cruzada; metadata de conhecimento ainda exige estrutura própria.
 
-Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md) e 14 de [artefatos](artifact-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, revisar esses contratos e especificar RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, EvaluationReport e metadata de conhecimento. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md), 14 de [artefatos](artifact-contract.md) e 16 de [registros](execution-records-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, definir metadata de conhecimento e realizar revisão cruzada. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.

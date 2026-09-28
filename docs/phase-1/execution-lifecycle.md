@@ -42,7 +42,7 @@ Um runtime incapaz de observar ou controlar uma restrição obrigatória é inel
 
 ## Tentativa e avaliação
 
-Persistir attempt_id, attempt_number e intenção de despacho antes da chamada externa. max_attempts conta tentativas registradas, inclusive canceladas antes de iniciar. Erros anteriores à criação não consomem tentativa.
+Persistir attempt_id, attempt_number e intenção de despacho antes da chamada externa, conforme o [contrato de registros](execution-records-contract.md). max_attempts conta tentativas registradas, inclusive canceladas antes de iniciar. Erros anteriores à criação não consomem tentativa.
 
 | Estado da tentativa | Significado | Transições possíveis |
 | --- | --- | --- |
