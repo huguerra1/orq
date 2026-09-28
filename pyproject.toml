@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orq-contracts"
+version = "0.1.0"
+description = "Contratos executáveis e validadores do ORQ"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "jsonschema==4.26.0",
+  "rfc8785==0.1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.1.1",
+]
+
+[project.scripts]
+orq-contracts = "orq_contracts.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

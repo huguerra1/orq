@@ -16,23 +16,25 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
+- Baseline documental v0.1 concluído e primeira camada executável criada; ainda não há Orchestrator, Vault executável ou integração real com modelo.
 - Fase 1 concluída como baseline documental v0.1; nenhuma implementação foi iniciada.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
-- Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- ADR 0001 escolheu Python 3.12, JSON Schema Draft 2020-12, jsonschema/pytest e RFC 8785/JCS.
+- Implementados schemas comuns, TaskSpec/WorkflowSpec, validação semântica, CLI, fixtures e digest SHA-256 canônico.
+- Verificações feitas: 24 testes locais aprovados, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Preparar a primeira implementação dos contratos, ainda sem integrar agentes, RAG, MCP ou Jev:
+Avançar o Vault local, ainda sem integrar agentes, MCP ou Jev:
 
-1. Comparar linguagem e tooling para JSON Schema/fixtures e registrar uma ADR.
-2. Definir serialização canônica e representação de digest/referência antes de criar valores de teste.
-3. Implementar primeiro os schemas comuns, TaskSpec e WorkflowSpec.
-4. Criar fixtures positivas e negativas determinísticas, começando pelo grafo e referências.
-5. Manter Vault, persistência, executores e ranking tipado fora desse primeiro incremento.
+1. Formalizar schemas executáveis dos contratos de conhecimento.
+2. Comparar parser Markdown/YAML e layout físico do Vault; registrar ADR.
+3. Implementar ingestão segura, sem aceitar autoridade do frontmatter.
+4. Implementar unidades determinísticas e busca lexical local com orçamento.
+5. Ligar a seleção futura ao ContextManifest; manter MCP e ranking tipado fora deste incremento.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -40,7 +42,7 @@ Não é necessário pedir novamente autorização para a documentação ou para 
 
 A revisão cruzada está em [phase-1/cross-review.md](phase-1/cross-review.md). Todos os contratos centrais foram aceitos como baseline v0.1; decisões tecnológicas e valores operacionais permanecem gates explícitos para as etapas que dependem deles.
 
-Não iniciar MCP, RAG executável ou SDKs de agentes antes dos schemas e fixtures comuns.
+Não iniciar MCP ou SDKs de agentes antes do Vault local e de seus testes determinísticos.
 
 ## Decisões aceitas no baseline v0.1
 
@@ -93,6 +95,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Registros de execução e avaliação](phase-1/execution-records-contract.md).
 - [Metadata de conhecimento do Vault](phase-1/knowledge-metadata-contract.md).
 - [Revisão cruzada e baseline v0.1](phase-1/cross-review.md).
+- [Andamento da Fase 2](phase-2/README.md).
+- [ADR 0001 — tooling e JSON canônico](adr/0001-contract-tooling-and-canonical-json.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

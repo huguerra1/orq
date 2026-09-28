@@ -1,0 +1,111 @@
+{
+  "schema_version": "0.1",
+  "workflow_id": "workflow-demo",
+  "version": "1",
+  "project_id": "project-demo",
+  "objective": "Executar uma tarefa verificável",
+  "requirements": [
+    {
+      "requirement_id": "WREQ1",
+      "description": "Produzir o relatório final",
+      "required": true
+    }
+  ],
+  "external_inputs": [],
+  "tasks": [
+    {
+      "schema_version": "0.1",
+      "task_id": "T1",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [],
+      "inputs": [],
+      "required_capabilities": [],
+      "constraints": {"max_attempts": 2},
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "report-contract",
+            "version": "1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": ["REQ1"],
+          "method": "schema_validation",
+          "pass_rule": {"kind": "valid"},
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    }
+  ],
+  "requirement_coverage": [
+    {
+      "workflow_requirement_id": "WREQ1",
+      "task_id": "T1",
+      "task_requirement_id": "REQ1"
+    }
+  ],
+  "outputs": [
+    {
+      "output_id": "final-report",
+      "artifact_type": "report",
+      "source_task_id": "T1",
+      "source_output_id": "report"
+    }
+  ],
+  "evaluation_criteria": [
+    {
+      "criterion_id": "WCRIT1",
+      "workflow_requirement_ids": ["WREQ1"],
+      "output_ids": ["final-report"],
+      "method": "schema_validation",
+      "pass_rule": {"kind": "valid"},
+      "required": true,
+      "verifier_ref": null
+    }
+  ],
+  "execution_policy_ref": {
+    "id": "policy-default",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  },
+  "constraints": {
+    "max_concurrency": 1,
+    "max_run_duration_ms": 600000,
+    "max_attempts": 2,
+    "attempt_timeout_ms": 60000,
+    "max_evaluations_per_attempt": 2,
+    "evaluation_timeout_ms": 20000,
+    "reconciliation_timeout_ms": 15000
+  }
+}

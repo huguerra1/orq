@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1",
+  "task_id": "T1",
+  "objective": "",
+  "task_type": "analysis",
+  "agent_role": {
+    "id": "researcher",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  },
+  "requirements": [{"requirement_id": "REQ1", "description": "Obrigatório", "required": true}],
+  "dependencies": [],
+  "inputs": [],
+  "required_capabilities": [],
+  "constraints": {},
+  "expected_output": [
+    {
+      "output_id": "report",
+      "artifact_type": "report",
+      "description": "Relatório",
+      "content_contract_ref": {
+        "id": "report-contract",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      }
+    }
+  ],
+  "knowledge_requirements": [],
+  "evaluation_criteria": [
+    {
+      "criterion_id": "CRIT1",
+      "requirement_ids": ["REQ1"],
+      "method": "schema_validation",
+      "pass_rule": {"kind": "valid"},
+      "required": true,
+      "verifier_ref": null
+    }
+  ]
+}

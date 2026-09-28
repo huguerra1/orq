@@ -2,7 +2,7 @@
 
 ## Ao iniciar uma conversa
 
-1. Leia [docs/HANDOFF.md](docs/HANDOFF.md) e o [andamento da Fase 1](docs/phase-1/README.md).
+1. Leia [docs/HANDOFF.md](docs/HANDOFF.md), o [baseline da Fase 1](docs/phase-1/README.md) e o [andamento da Fase 2](docs/phase-2/README.md).
 2. Confira git status, branch, remoto e alterações recentes antes de editar.
 3. Retome o próximo passo registrado, respeitando instruções novas do usuário. Não refaça entregas existentes.
 4. Trate documentos marcados como proposta como decisões revisáveis, não como implementação concluída.
@@ -12,7 +12,7 @@
 - Responda em português, de forma curta, para economizar tokens. Documentos podem conter o detalhe necessário.
 - Trabalhe em etapas pequenas, verificáveis e mensuráveis.
 - Antes de implementar uma parte, explique problema, alternativas, vantagens/desvantagens, recomendação, interfaces, schemas, riscos e testes.
-- Não implemente grandes partes de uma vez. A Fase 1 está em especificação; não iniciar código de aplicação enquanto seus contratos não estiverem definidos e revisados.
+- Não implemente grandes partes de uma vez. O baseline v0.1 da Fase 1 está fechado; código novo deve seguir seus contratos e os gates registrados na Fase 2.
 - Apresente alternativas para dúvidas arquiteturais relevantes, sem assumir decisões silenciosamente.
 - Mantenha o MVP pequeno. Questione a necessidade de novos componentes, dependências e serviços.
 - Não confunda casos de aceitação documentados com testes executados.

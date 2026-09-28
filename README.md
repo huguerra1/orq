@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O baseline documental v0.1 da Fase 1 está concluído. Ainda não há aplicação executável, dependências instaláveis ou chamadas a provedores.
+O baseline documental v0.1 da Fase 1 está concluído. A Fase 2 iniciou com schemas, validadores, fixtures e uma CLI local; ainda não há Orchestrator, Vault executável ou chamadas a provedores.
 
 ## Princípios
 
@@ -31,7 +31,22 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 11. [Registros de execução e avaliação](docs/phase-1/execution-records-contract.md).
 12. [Metadata de conhecimento do Vault](docs/phase-1/knowledge-metadata-contract.md).
 13. [Revisão cruzada e fechamento do baseline v0.1](docs/phase-1/cross-review.md).
+14. [Andamento da Fase 2](docs/phase-2/README.md).
+
+## Executar os contratos
+
+Requer Python 3.12:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock
+.venv/bin/python -m pip install --no-deps -e .
+.venv/bin/python -m pytest
+.venv/bin/orq-contracts validate workflow fixtures/v0.1/valid/workflow-minimal.json
+```
+
+As dependências resolvidas do ambiente verificado também estão em `requirements.lock`.
 
 ## Próxima entrega
 
-Comparar linguagem/tooling para JSON Schema e definir a serialização canônica. Depois, implementar referências comuns, TaskSpec e WorkflowSpec com fixtures determinísticas. Vault, MCP e Jev permanecem posteriores a esse núcleo.
+Formalizar os contratos de conhecimento e escolher parser/layout do Vault antes de implementar ingestão Markdown, chunking e busca lexical. MCP e Jev permanecem posteriores a esse núcleo.

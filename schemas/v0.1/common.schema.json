@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/common.schema.json",
+  "title": "ORQ common types v0.1",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+    },
+    "nonEmptyText": {
+      "type": "string",
+      "minLength": 1
+    },
+    "digest": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "value": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "versionedRef": {
+      "type": "object",
+      "required": ["id", "version", "content_digest"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "version": {"$ref": "#/$defs/nonEmptyText"},
+        "content_digest": {"$ref": "#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "artifactRef": {
+      "type": "object",
+      "required": ["artifact_id", "content_digest"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/identifier"},
+        "content_digest": {"$ref": "#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["requirement_id", "description", "required"],
+      "properties": {
+        "requirement_id": {"$ref": "#/$defs/identifier"},
+        "description": {"$ref": "#/$defs/nonEmptyText"},
+        "required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "outputSpec": {
+      "type": "object",
+      "required": ["output_id", "artifact_type", "description", "content_contract_ref"],
+      "properties": {
+        "output_id": {"$ref": "#/$defs/identifier"},
+        "artifact_type": {"$ref": "#/$defs/identifier"},
+        "description": {"$ref": "#/$defs/nonEmptyText"},
+        "content_contract_ref": {"$ref": "#/$defs/versionedRef"}
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "max_attempts": {"type": "integer", "minimum": 1},
+        "attempt_timeout_ms": {"type": "integer", "minimum": 1},
+        "max_evaluations_per_attempt": {"type": "integer", "minimum": 1},
+        "evaluation_timeout_ms": {"type": "integer", "minimum": 1},
+        "max_model_calls_per_attempt": {"type": "integer", "minimum": 1},
+        "max_context_input_tokens": {"type": "integer", "minimum": 1},
+        "max_output_tokens_per_attempt": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

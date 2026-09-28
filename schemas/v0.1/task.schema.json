@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/task.schema.json",
+  "title": "ORQ TaskSpec v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "objective",
+    "task_type",
+    "agent_role",
+    "requirements",
+    "dependencies",
+    "inputs",
+    "required_capabilities",
+    "constraints",
+    "expected_output",
+    "knowledge_requirements",
+    "evaluation_criteria"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "task_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "objective": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "task_type": {"$ref": "common.schema.json#/$defs/identifier"},
+    "agent_role": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "common.schema.json#/$defs/requirement"},
+      "contains": {
+        "type": "object",
+        "properties": {"required": {"const": true}},
+        "required": ["required"]
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "common.schema.json#/$defs/identifier"}
+    },
+    "inputs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/inputSpec"}
+    },
+    "required_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "common.schema.json#/$defs/identifier"}
+    },
+    "constraints": {"$ref": "common.schema.json#/$defs/constraints"},
+    "expected_output": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "common.schema.json#/$defs/outputSpec"}
+    },
+    "knowledge_requirements": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/knowledgeRequirement"}
+    },
+    "evaluation_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/evaluationCriterion"},
+      "contains": {
+        "type": "object",
+        "properties": {"required": {"const": true}},
+        "required": ["required"]
+      }
+    }
+  },
+  "$defs": {
+    "inputSpec": {
+      "type": "object",
+      "required": ["input_id", "artifact_type", "source"],
+      "properties": {
+        "input_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "artifact_type": {"$ref": "common.schema.json#/$defs/identifier"},
+        "content_contract_ref": {
+          "oneOf": [
+            {"$ref": "common.schema.json#/$defs/versionedRef"},
+            {"type": "null"}
+          ]
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["kind", "input_id"],
+              "properties": {
+                "kind": {"const": "external_input"},
+                "input_id": {"$ref": "common.schema.json#/$defs/identifier"}
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": ["kind", "task_id", "output_id"],
+              "properties": {
+                "kind": {"const": "task_output"},
+                "task_id": {"$ref": "common.schema.json#/$defs/identifier"},
+                "output_id": {"$ref": "common.schema.json#/$defs/identifier"}
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "knowledgeRequirement": {
+      "type": "object",
+      "required": [
+        "knowledge_requirement_id",
+        "subject",
+        "required",
+        "allowed_kinds",
+        "required_authority_scopes",
+        "source_refs",
+        "applicability_filters",
+        "freshness",
+        "coverage_rule",
+        "max_context_tokens"
+      ],
+      "properties": {
+        "knowledge_requirement_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "subject": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "required": {"type": "boolean"},
+        "allowed_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["operational", "project"]}
+        },
+        "required_authority_scopes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "common.schema.json#/$defs/identifier"}
+        },
+        "source_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "common.schema.json#/$defs/versionedRef"}
+        },
+        "applicability_filters": {
+          "type": "object",
+          "properties": {
+            "topics": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "domain": {"type": ["string", "null"], "minLength": 1},
+            "roles": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+            "task_types": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+          },
+          "additionalProperties": false
+        },
+        "freshness": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["max_age_ms"],
+              "properties": {"max_age_ms": {"type": "integer", "minimum": 1}},
+              "additionalProperties": false
+            }
+          ]
+        },
+        "coverage_rule": {"enum": ["at_least_one", "all_source_refs"]},
+        "max_context_tokens": {"type": ["integer", "null"], "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "evaluationCriterion": {
+      "type": "object",
+      "required": ["criterion_id", "requirement_ids", "method", "pass_rule", "required", "verifier_ref"],
+      "properties": {
+        "criterion_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "common.schema.json#/$defs/identifier"}
+        },
+        "method": {"$ref": "common.schema.json#/$defs/identifier"},
+        "pass_rule": {"type": "object", "minProperties": 1},
+        "required": {"type": "boolean"},
+        "verifier_ref": {
+          "oneOf": [
+            {"$ref": "common.schema.json#/$defs/versionedRef"},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
