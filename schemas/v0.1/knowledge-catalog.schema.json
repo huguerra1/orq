@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/knowledge-catalog.schema.json",
+  "title": "ORQ KnowledgeCatalogSnapshot v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "catalog_id", "version", "created_at", "status_cutoff",
+    "catalog_policy_ref", "status_assertions", "source_entries", "parser_chunker_snapshots",
+    "vocabulary_refs", "exclusions", "catalog_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "catalog_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "status_cutoff": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "catalog_policy_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "status_assertions": {"type": "array", "items": {"$ref": "#/$defs/statusAssertion"}},
+    "source_entries": {"type": "array", "items": {"$ref": "#/$defs/sourceEntry"}},
+    "parser_chunker_snapshots": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+    "vocabulary_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+    "exclusions": {"type": "array", "items": {"$ref": "#/$defs/exclusion"}},
+    "catalog_hash": {"$ref": "common.schema.json#/$defs/digest"}
+  },
+  "$defs": {
+    "sourceRef": {
+      "type": "object",
+      "required": ["source_id", "revision", "content_digest"],
+      "properties": {
+        "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "content_digest": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "statusAssertion": {
+      "type": "object",
+      "required": ["assertion_id", "source_ref", "status", "effective_at", "issuer_ref", "evidence_ref", "assertion_digest"],
+      "properties": {
+        "assertion_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "source_ref": {"$ref": "#/$defs/sourceRef"},
+        "status": {"enum": ["active", "deprecated", "revoked"]},
+        "effective_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+        "issuer_ref": {"$ref": "common.schema.json#/$defs/identifier"},
+        "evidence_ref": {"type": "string", "minLength": 1},
+        "assertion_digest": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "unit": {
+      "type": "object",
+      "required": [
+        "unit_id", "source_ref", "ordinal", "unit_kind", "heading_path", "source_span",
+        "content_digest", "size_bytes", "parent_unit_id", "effective_topics",
+        "effective_applicability", "effective_classification", "instruction_scope",
+        "token_estimates", "derivation", "oversized"
+      ],
+      "properties": {
+        "unit_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "source_ref": {"$ref": "#/$defs/sourceRef"},
+        "ordinal": {"type": "integer", "minimum": 0},
+        "unit_kind": {"enum": ["prose", "code", "table", "list", "frontmatter", "mixed"]},
+        "heading_path": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "source_span": {
+          "type": "object",
+          "required": ["start_line", "end_line", "start_byte", "end_byte"],
+          "properties": {
+            "start_line": {"type": "integer", "minimum": 1},
+            "end_line": {"type": "integer", "minimum": 1},
+            "start_byte": {"type": "integer", "minimum": 0},
+            "end_byte": {"type": "integer", "minimum": 0}
+          },
+          "additionalProperties": false
+        },
+        "content_digest": {"$ref": "common.schema.json#/$defs/digest"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "parent_unit_id": {"type": ["string", "null"]},
+        "effective_topics": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "effective_applicability": {"type": "object"},
+        "effective_classification": {"enum": ["public", "internal", "confidential", "restricted", "unknown"]},
+        "instruction_scope": {"enum": ["none", "project", "operational"]},
+        "token_estimates": {"type": "array"},
+        "derivation": {"type": "object", "minProperties": 1},
+        "oversized": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "sourceEntry": {
+      "type": "object",
+      "required": ["source_metadata", "resolved_status", "status_assertion_refs", "materialized_artifact_ref", "units"],
+      "properties": {
+        "source_metadata": {"$ref": "knowledge-source.schema.json"},
+        "resolved_status": {"enum": ["active", "deprecated", "revoked"]},
+        "status_assertion_refs": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "materialized_artifact_ref": {"$ref": "common.schema.json#/$defs/artifactRef"},
+        "units": {"type": "array", "items": {"$ref": "#/$defs/unit"}}
+      },
+      "additionalProperties": false
+    },
+    "exclusion": {
+      "type": "object",
+      "required": ["source_id", "revision", "reason_code", "details"],
+      "properties": {
+        "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "reason_code": {"$ref": "common.schema.json#/$defs/identifier"},
+        "details": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

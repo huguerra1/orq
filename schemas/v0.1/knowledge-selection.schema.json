@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/knowledge-selection.schema.json",
+  "title": "ORQ KnowledgeSelectionRecord v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "selection_id", "run_id", "workflow_ref", "task_id",
+    "candidate_attempt_number", "catalog_snapshot_ref", "requirement_snapshots",
+    "query_input", "policy_snapshot_refs", "candidates", "selected_units", "coverage",
+    "budget", "status", "created_at", "selection_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "selection_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "workflow_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "task_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "candidate_attempt_number": {"type": "integer", "minimum": 1},
+    "catalog_snapshot_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "requirement_snapshots": {"type": "array", "items": {"type": "object", "minProperties": 1}},
+    "query_input": {
+      "type": "object",
+      "required": ["text", "query_hash"],
+      "properties": {
+        "text": {"type": "string"},
+        "query_hash": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "policy_snapshot_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+    "candidates": {"type": "array", "items": {"$ref": "#/$defs/candidate"}},
+    "selected_units": {"type": "array", "items": {"$ref": "#/$defs/selectedUnit"}},
+    "coverage": {"type": "array", "items": {"$ref": "#/$defs/coverage"}},
+    "budget": {
+      "type": "object",
+      "required": ["max_tokens", "estimated_tokens", "tokenizer_ref", "margin_tokens"],
+      "properties": {
+        "max_tokens": {"type": "integer", "minimum": 1},
+        "estimated_tokens": {"type": "integer", "minimum": 0},
+        "tokenizer_ref": {"type": "string", "minLength": 1},
+        "margin_tokens": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "status": {"enum": ["satisfied", "partial", "unsatisfied", "conflict"]},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "selection_hash": {"$ref": "common.schema.json#/$defs/digest"}
+  },
+  "$defs": {
+    "unitRef": {
+      "type": "object",
+      "required": ["source_id", "revision", "unit_id", "source_digest", "unit_digest"],
+      "properties": {
+        "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "unit_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "source_digest": {"$ref": "common.schema.json#/$defs/digest"},
+        "unit_digest": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["unit_ref", "eligible", "reason_codes", "score", "rank"],
+      "properties": {
+        "unit_ref": {"$ref": "#/$defs/unitRef"},
+        "eligible": {"type": "boolean"},
+        "reason_codes": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "score": {"type": ["number", "null"]},
+        "rank": {"type": ["integer", "null"], "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "selectedUnit": {
+      "type": "object",
+      "required": ["unit_ref", "score", "rank", "selection_reason", "requirement_ids"],
+      "properties": {
+        "unit_ref": {"$ref": "#/$defs/unitRef"},
+        "score": {"type": "number"},
+        "rank": {"type": "integer", "minimum": 1},
+        "selection_reason": {"type": "string", "minLength": 1},
+        "requirement_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["knowledge_requirement_id", "required", "status", "unit_ids", "gap_reason"],
+      "properties": {
+        "knowledge_requirement_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "required": {"type": "boolean"},
+        "status": {"enum": ["satisfied", "unsatisfied", "conflict"]},
+        "unit_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "gap_reason": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

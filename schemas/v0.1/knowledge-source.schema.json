@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/knowledge-source.schema.json",
+  "title": "ORQ KnowledgeSourceMetadata v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "source_id", "revision", "title", "knowledge_kind",
+    "content_locator", "media_type", "encoding", "language", "content_digest",
+    "size_bytes", "project_scope", "authority", "instruction_scope", "applicability",
+    "data_classification", "owner_ref", "verified_at", "effective_from", "expires_at",
+    "relationships", "chunking_policy_ref", "metadata_provenance"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "title": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "knowledge_kind": {"enum": ["operational", "project"]},
+    "content_locator": {
+      "type": "object",
+      "required": ["root_id", "path"],
+      "properties": {
+        "root_id": {"const": "vault"},
+        "path": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "media_type": {"const": "text/markdown"},
+    "encoding": {"const": "utf-8"},
+    "language": {"type": "string", "minLength": 2},
+    "content_digest": {"$ref": "common.schema.json#/$defs/digest"},
+    "size_bytes": {"type": "integer", "minimum": 0},
+    "project_scope": {"$ref": "#/$defs/projectScope"},
+    "authority": {"$ref": "#/$defs/authority"},
+    "instruction_scope": {"enum": ["none", "project", "operational"]},
+    "applicability": {
+      "type": "object",
+      "required": ["roles", "task_types", "topics", "paths", "domains", "capabilities"],
+      "properties": {
+        "roles": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "task_types": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "topics": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "domains": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "capabilities": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+      },
+      "additionalProperties": false
+    },
+    "data_classification": {"enum": ["public", "internal", "confidential", "restricted", "unknown"]},
+    "owner_ref": {"$ref": "common.schema.json#/$defs/identifier"},
+    "verified_at": {"oneOf": [{"$ref": "common.schema.json#/$defs/utcTimestamp"}, {"type": "null"}]},
+    "effective_from": {"oneOf": [{"$ref": "common.schema.json#/$defs/utcTimestamp"}, {"type": "null"}]},
+    "expires_at": {"oneOf": [{"$ref": "common.schema.json#/$defs/utcTimestamp"}, {"type": "null"}]},
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "source_ref"],
+        "properties": {
+          "kind": {"enum": ["supersedes", "depends_on", "related_to", "conflicts_with"]},
+          "source_ref": {"$ref": "common.schema.json#/$defs/versionedRef"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "chunking_policy_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "metadata_provenance": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["origin", "evidence_ref"],
+        "properties": {
+          "origin": {"enum": ["catalog_rule", "accepted_frontmatter", "controlled_inheritance", "external_verification", "computed"]},
+          "evidence_ref": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "projectScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "project_id"],
+          "properties": {"kind": {"const": "project"}, "project_id": {"$ref": "common.schema.json#/$defs/identifier"}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "collection_id"],
+          "properties": {"kind": {"const": "collection"}, "collection_id": {"$ref": "common.schema.json#/$defs/identifier"}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {"kind": {"const": "global_operational"}},
+          "additionalProperties": false
+        }
+      ]
+    },
+    "authority": {
+      "type": "object",
+      "required": ["authority_level", "authority_scopes", "issuer_ref", "assigned_at", "evidence_ref"],
+      "properties": {
+        "authority_level": {"enum": ["platform_authoritative", "project_authoritative", "reference", "untrusted"]},
+        "authority_scopes": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "issuer_ref": {"$ref": "common.schema.json#/$defs/identifier"},
+        "assigned_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+        "evidence_ref": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -16,25 +16,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1 concluído e primeira camada executável criada; ainda não há Orchestrator, Vault executável ou integração real com modelo.
+- Baseline documental v0.1 concluído; contratos iniciais e ingestão/chunking do Vault são executáveis, mas ainda não há Orchestrator, MCP ou integração real com modelo.
 - Fase 1 concluída como baseline documental v0.1; nenhuma implementação foi iniciada.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - ADR 0001 escolheu Python 3.12, JSON Schema Draft 2020-12, jsonschema/pytest e RFC 8785/JCS.
-- Implementados schemas comuns, TaskSpec/WorkflowSpec, validação semântica, CLI, fixtures e digest SHA-256 canônico.
-- Verificações feitas: 24 testes locais aprovados, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Implementados schemas comuns, TaskSpec/WorkflowSpec e conhecimento, validação semântica, CLI, fixtures e digest SHA-256 canônico.
+- Implementados parsing seguro de frontmatter, paths confinados, ingestão por digest, chunking por headings e snapshot com revogação append-only.
+- Verificações feitas: 33 testes locais aprovados, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Avançar o Vault local, ainda sem integrar agentes, MCP ou Jev:
+Completar seleção do Vault local, ainda sem integrar agentes, MCP ou Jev:
 
-1. Formalizar schemas executáveis dos contratos de conhecimento.
-2. Comparar parser Markdown/YAML e layout físico do Vault; registrar ADR.
-3. Implementar ingestão segura, sem aceitar autoridade do frontmatter.
-4. Implementar unidades determinísticas e busca lexical local com orçamento.
-5. Ligar a seleção futura ao ContextManifest; manter MCP e ranking tipado fora deste incremento.
+1. Filtrar por projeto, tipo, autoridade, classificação, validade e applicability antes do ranking.
+2. Implementar BM25 versionado e desempate estável.
+3. Selecionar cobertura obrigatória antes de opcionais sob orçamento.
+4. Emitir KnowledgeSelectionRecord validado e ligar a futura materialização ao ContextManifest.
+5. Adicionar fixtures/CLI e publicar o incremento antes de iniciar MCP.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -97,6 +98,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Revisão cruzada e baseline v0.1](phase-1/cross-review.md).
 - [Andamento da Fase 2](phase-2/README.md).
 - [ADR 0001 — tooling e JSON canônico](adr/0001-contract-tooling-and-canonical-json.md).
+- [ADR 0002 — Vault e parsing Markdown](adr/0002-vault-layout-and-markdown-parsing.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

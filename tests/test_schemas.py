@@ -4,7 +4,14 @@ from orq_contracts.schemas import load_schemas, validator_for
 
 
 def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
-    assert set(load_schemas()) == {"common", "task", "workflow"}
+    assert set(load_schemas()) == {
+        "common",
+        "knowledge_catalog",
+        "knowledge_selection",
+        "knowledge_source",
+        "task",
+        "workflow",
+    }
 
 
 def test_validators_use_draft_2020_12() -> None:

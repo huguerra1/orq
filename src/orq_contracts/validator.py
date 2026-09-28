@@ -104,6 +104,12 @@ def validate_task(task: Any) -> list[ValidationIssue]:
     return _task_semantic_issues(task)
 
 
+def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
+    """Valida uma instância contra um schema local fechado."""
+
+    return _structural_issues(instance, schema_name)
+
+
 def _cycle_issues(tasks: list[dict[str, Any]]) -> list[ValidationIssue]:
     dependencies = {task["task_id"]: task["dependencies"] for task in tasks}
     state: dict[str, int] = {}

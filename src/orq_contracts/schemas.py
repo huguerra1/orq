@@ -14,6 +14,9 @@ from referencing import Registry, Resource
 SCHEMA_DIRECTORY = Path(__file__).resolve().parents[2] / "schemas" / "v0.1"
 SCHEMA_FILES = {
     "common": "common.schema.json",
+    "knowledge_catalog": "knowledge-catalog.schema.json",
+    "knowledge_selection": "knowledge-selection.schema.json",
+    "knowledge_source": "knowledge-source.schema.json",
     "task": "task.schema.json",
     "workflow": "workflow.schema.json",
 }
