@@ -1,6 +1,6 @@
 # Registros de execução, uso, aprovação e avaliação
 
-Estado: proposta documental da Fase 1. Não implementa persistência, executor, cobrança, aprovação ou avaliador.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não implementa persistência, executor, cobrança, aprovação ou avaliador.
 
 ## Problema e alternativas
 
@@ -358,4 +358,4 @@ Esses casos especificam persistência e projeção futuras; não são testes exe
 - Formato de assinatura/autenticação de decisões humanas.
 - Política de publicação e congelamento de relatórios experimentais.
 
-O próximo passo é realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar contratos como aceitos ou ainda abertos, antes de escolher stack ou implementar schemas.
+A consistência ponta a ponta está registrada na [revisão cruzada](cross-review.md). O próximo passo é decidir linguagem/tooling e serialização canônica antes de implementar schemas e fixtures.

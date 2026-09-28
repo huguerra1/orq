@@ -1,6 +1,6 @@
-# WorkflowSpec — proposta inicial
+# WorkflowSpec — baseline v0.1
 
-Estado: especificação documental para revisão. Nenhum scheduler ou schema executável foi implementado.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Nenhum scheduler ou schema executável foi implementado.
 
 ## Problema e alternativas
 
@@ -105,4 +105,4 @@ T5 depende diretamente de T2 porque consome sua saída; um ancestral indireto n�
 
 Um DAG válido não prova que o objetivo foi atendido nem evita conflitos de arquivos. Isolamento do workspace e verificação final serão necessários antes de executar código.
 
-A matriz de [aceitação](acceptance-cases.md) cobre grafo, referências e resultado integrado. [Estados e limites](execution-lifecycle.md) complementam o contrato. Após fechar a Fase 1, a implementação começa pelos validadores e fixtures; não pelo scheduler concorrente.
+A matriz de [aceitação](acceptance-cases.md) cobre grafo, referências e resultado integrado. [Estados e limites](execution-lifecycle.md) complementam o contrato, e a [revisão cruzada](cross-review.md) verificou o fluxo completo. A implementação começa pelos validadores e fixtures; não pelo scheduler concorrente.

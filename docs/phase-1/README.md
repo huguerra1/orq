@@ -1,6 +1,6 @@
 # Fase 1 — Contratos da plataforma
 
-Estado: especificação em andamento, para revisão. Nenhum runtime, biblioteca ou serviço foi implementado ou instalado.
+Estado: baseline documental v0.1 concluído e aceito na revisão cruzada. Nenhum runtime, biblioteca ou serviço foi implementado ou instalado.
 
 ## Objetivo
 
@@ -60,23 +60,23 @@ Essa é uma ordem de especificação, não uma sequência de serviços a impleme
 
 Uma execução fictícia deve representar: objetivo, plano válido, dois destinos elegíveis, seleção de um deles, contexto identificado, tentativa reprovada, retry limitado e avaliação final. Toda aprovação deve apontar para os artefatos efetivamente avaliados; custo desconhecido não pode ser convertido em zero.
 
-Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento, contexto, política, artefatos, registros de execução/avaliação e metadata de conhecimento, com 82 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 16 de conhecimento. Os casos ainda não são testes executados. Falta a revisão cruzada final.
+O baseline v0.1 contém TaskSpec, WorkflowSpec, perfis, estados, limites, roteamento, contexto, política, artefatos, registros de execução/avaliação e metadata de conhecimento, com 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Os casos ainda não são testes executados. A revisão cruzada representou uma execução completa e classificou todos os contratos centrais como aceitos para formalização executável.
 
 ## Andamento
 
 | Entrega | Situação |
 | --- | --- |
-| 1A — glossário | Primeira versão documentada |
-| 1B — contratos | Tarefa, workflow, perfis, roteamento, contexto, política, artefatos, registros e metadata de conhecimento propostos; revisão pendente |
-| 1C — estados | Proposta documentada; capacidades reais dos executores serão validadas depois |
-| 1D — aceitação | Matriz e cenário fictício documentados; fixtures executáveis pendentes |
-| 1E — revisão final | Pendente; Fase 1 ainda não concluída |
+| 1A — glossário | Baseline v0.1 aceito |
+| 1B — contratos | Baseline v0.1 aceito; escolhas operacionais permanecem versionadas |
+| 1C — estados | Baseline v0.1 aceito; capacidades reais dos executores serão validadas depois |
+| 1D — aceitação | Matriz e cenário fictício aceitos; fixtures executáveis são a próxima camada |
+| 1E — revisão final | Concluída; execução ponta a ponta representada sem decisões normativas implícitas |
 
 ## Documentos desta entrega
 
 - [Glossário](../glossary.md)
-- [Contrato de tarefa — proposta inicial](task-contract.md)
-- [Contrato de workflow — proposta inicial](workflow-contract.md)
+- [Contrato de tarefa — baseline v0.1](task-contract.md)
+- [Contrato de workflow — baseline v0.1](workflow-contract.md)
 - [Estados, limites e tentativas](execution-lifecycle.md)
 - [Cenários de aceitação](acceptance-cases.md)
 - [Perfis de papel, modelo e executor](agent-profiles.md)
@@ -85,5 +85,6 @@ Já existem propostas documentais de TaskSpec, WorkflowSpec, perfis, estados, li
 - [Artefatos, patches e relatórios](artifact-contract.md)
 - [Registros de execução, uso, aprovação e avaliação](execution-records-contract.md)
 - [Metadata de conhecimento do Vault](knowledge-metadata-contract.md)
+- [Revisão cruzada e baseline v0.1](cross-review.md)
 
-O próximo passo é realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar contratos como aceitos ou ainda abertos. Não é necessário instalar dependências. A implementação deve começar apenas depois do fechamento dos contratos correspondentes.
+O próximo passo é decidir linguagem/tooling de schemas e serialização canônica, registrando as escolhas antes de implementar referências comuns, TaskSpec e WorkflowSpec com fixtures determinísticas. Integrações de agentes, MCP e Jev continuam fora dessa primeira implementação.

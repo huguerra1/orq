@@ -1,6 +1,6 @@
-# Estados, limites e tentativas — proposta inicial
+# Estados, limites e tentativas — baseline v0.1
 
-Estado: contrato de comportamento para revisão. Não existe execução implementada.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não existe execução implementada.
 
 ## Problema e alternativas
 
@@ -20,7 +20,7 @@ WorkflowSpec.execution_policy_ref fornece a base. WorkflowSpec.constraints só a
 
 Ausência significa herança. Para tetos, vale o menor limite aplicável; para permissões, a interseção. Um teto local explicitamente superior é erro de configuração. Lista de permissões vazia significa nenhuma permissão; lista ausente herda a restrição superior.
 
-RunManifest registra limites resolvidos e origem. A estrutura de permissões está proposta em [ExecutionPolicy](execution-policy-contract.md) e permanece sujeita à revisão cruzada da Fase 1.
+RunManifest registra limites resolvidos e origem. A estrutura de permissões é definida em [ExecutionPolicy](execution-policy-contract.md) e qualquer revisão futura permanece versionada.
 
 | Limite | Semântica |
 | --- | --- |

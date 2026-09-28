@@ -1,6 +1,6 @@
 # Cenários de aceitação — Fase 1
 
-Estado: especificação dos testes futuros. Não são testes executáveis nem resultados de provedores.
+Estado: baseline v0.1 dos testes futuros, aceita na revisão cruzada. Não são testes executáveis nem resultados de provedores.
 
 ## Estratégia
 
@@ -98,8 +98,9 @@ Recomendação: matriz determinística primeiro. Nenhuma fixture inicial depende
 | C78 | Conhecimento opcional não é encontrado | partial permitido com lacuna explícita | Conhecimento |
 | C79 | Mesmos bytes existem em duas fontes | Bundle pode deduplicar; procedências permanecem registradas | Conhecimento e contexto |
 | C80 | Fonte é revogada entre seleção e despacho | Preflight rejeita; nova seleção é exigida | Conhecimento e contexto |
-| C81 | Retry usa catálogo revisado | Novos SelectionRecord e ContextManifest; histórico preservado | Conhecimento e recuperação |
+| C81 | Retry muda feedback/contexto mantendo o catálogo do run | Novos SelectionRecord e ContextManifest; histórico preservado | Conhecimento e recuperação |
 | C82 | Fato da Execution Memory é promovido automaticamente | Rejeição sem curadoria e revisão editorial versionada | Conhecimento e registros |
+| C83 | Retry tenta usar revisão fora do catálogo fixado | Rejeição; iniciar novo run com outro manifesto | Conhecimento e versionamento |
 
 ## Cenário completo de referência
 
@@ -126,6 +127,6 @@ A tentativa reprovada entra no custo. Reservas não são despesas adicionais. Co
 
 ## Critério de revisão
 
-Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) e aos contratos complementares identificados. Os contratos permanecem sujeitos à revisão cruzada.
+Os casos devem corresponder às regras de [tarefa](task-contract.md), [workflow](workflow-contract.md), [execução](execution-lifecycle.md) e aos contratos complementares identificados. Mudanças futuras nos contratos exigem versão e atualização dos casos afetados.
 
-Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md), 14 de [artefatos](artifact-contract.md), 16 de [registros](execution-records-contract.md) e 16 de [conhecimento](knowledge-metadata-contract.md) complementam esta matriz. Antes de encerrar a Fase 1, realizar a revisão cruzada. Depois converter esta matriz em fixtures e testes na etapa de implementação autorizada.
+Os oito casos específicos de [perfis](agent-profiles.md), dez de [roteamento e contexto](routing-context-contract.md), 12 de [política de execução](execution-policy-contract.md), 14 de [artefatos](artifact-contract.md), 16 de [registros](execution-records-contract.md) e 17 de [conhecimento](knowledge-metadata-contract.md) complementam esta matriz. A [revisão cruzada](cross-review.md) aceitou o baseline v0.1. O próximo passo é converter esta matriz em fixtures e testes na etapa de implementação autorizada.

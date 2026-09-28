@@ -1,6 +1,6 @@
-# TaskSpec — proposta inicial
+# TaskSpec — baseline v0.1
 
-Estado: proposta documental. Ainda não é um schema executável nem encerra a Fase 1.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Ainda não é schema executável.
 
 ## Problema
 
@@ -18,7 +18,7 @@ Recomendação: contrato estruturado próprio, com texto nos campos descritivos 
 
 ## Campos
 
-Todos os campos abaixo são obrigatórios na proposta, salvo indicação contrária. Listas podem estar vazias apenas quando a semântica permitir.
+Todos os campos abaixo são obrigatórios no baseline, salvo indicação contrária. Listas podem estar vazias apenas quando a semântica permitir.
 
 | Campo | Tipo conceitual | Semântica |
 | --- | --- | --- |
@@ -92,9 +92,9 @@ T3 implementa o desenho de autenticação aceito em T2. Seu papel é backend_eng
 
 - Revisar [WorkflowSpec](workflow-contract.md), referências e saídas finais.
 - Revisar [estados, limites e tentativas](execution-lifecycle.md), herança de limites e recuperação de resultados desconhecidos.
-- Revisar a proposta de [perfis](agent-profiles.md) com [ExecutionPolicy](execution-policy-contract.md) e seus tetos de permissão.
+- Manter [perfis](agent-profiles.md), [ExecutionPolicy](execution-policy-contract.md) e seus tetos de permissão alinhados nas próximas revisões.
 - Revisar os formatos de [artefato, patch e relatório](artifact-contract.md) contra OutputSpec e os critérios.
 - Revisar KnowledgeRequirement, seleção e cobertura contra a [metadata de conhecimento](knowledge-metadata-contract.md) e o ContextManifest.
 - Completar os registros necessários para transformar os [cenários de aceitação](acceptance-cases.md) em fixtures.
 
-Depois de fechar essas relações, o próximo passo de implementação será formalizar schemas e fixtures, sem instalar SDKs de agentes ou construir o servidor MCP.
+Essas relações foram verificadas na [revisão cruzada](cross-review.md). O próximo passo é formalizar schemas e fixtures, sem instalar SDKs de agentes ou construir o servidor MCP.

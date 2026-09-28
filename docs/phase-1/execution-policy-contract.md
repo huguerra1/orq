@@ -1,6 +1,6 @@
 # ExecutionPolicy — limites, permissões e evidências
 
-Estado: proposta documental da Fase 1. Não implementa sandbox, autorização, controle financeiro ou integração externa.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não implementa sandbox, autorização, controle financeiro ou integração externa.
 
 ## Problema e alternativas
 
@@ -82,7 +82,7 @@ RunManifest preservará a política resolvida, suas fontes e hashes. Alterar uma
 
 Os limites não financeiros já definidos no ciclo de execução permanecem normativos: `max_concurrency`, `max_attempts`, `attempt_timeout_ms`, `max_run_duration_ms`, `max_evaluations_per_attempt`, `evaluation_timeout_ms`, `reconciliation_timeout_ms` e `max_model_calls_per_attempt`. Para evitar duas fontes, o antigo `max_cost` passa a ser `budget.max_cost`, preservando sua semântica.
 
-Esta proposta acrescenta limites de admissão necessários para separar a sobrecarga do Orchestrator:
+Este contrato acrescenta limites de admissão necessários para separar a sobrecarga do Orchestrator:
 
 | Campo | Semântica |
 | --- | --- |

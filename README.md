@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O projeto está na Fase 1: especificação dos contratos. Ainda não há aplicação executável, dependências instaláveis ou chamadas a provedores.
+O baseline documental v0.1 da Fase 1 está concluído. Ainda não há aplicação executável, dependências instaláveis ou chamadas a provedores.
 
 ## Princípios
 
@@ -30,7 +30,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 10. [Artefatos, patches e relatórios](docs/phase-1/artifact-contract.md).
 11. [Registros de execução e avaliação](docs/phase-1/execution-records-contract.md).
 12. [Metadata de conhecimento do Vault](docs/phase-1/knowledge-metadata-contract.md).
+13. [Revisão cruzada e fechamento do baseline v0.1](docs/phase-1/cross-review.md).
 
 ## Próxima entrega
 
-Realizar a revisão cruzada da Fase 1 com uma execução fictícia completa, fechar lacunas normativas e classificar cada contrato como aceito ou ainda aberto. Os contratos continuam sujeitos a revisão; a Fase 1 ainda não está concluída.
+Comparar linguagem/tooling para JSON Schema e definir a serialização canônica. Depois, implementar referências comuns, TaskSpec e WorkflowSpec com fixtures determinísticas. Vault, MCP e Jev permanecem posteriores a esse núcleo.

@@ -1,6 +1,6 @@
 # Decisão de roteamento e manifesto de contexto
 
-Estado: proposta documental da Fase 1. Não integra TypeSafe AI, Jev, provedores ou executores.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não integra TypeSafe AI, Jev, provedores ou executores.
 
 ## Problema e alternativas
 
@@ -33,7 +33,7 @@ Uma chamada externa de roteamento que falha antes da admissão não consome `max
 
 ## RoutingPolicy
 
-RoutingPolicy é a seção de [ExecutionPolicy](execution-policy-contract.md) usada pela RoutingDecision. Esta proposta define a interface necessária ao roteamento; a política de execução define sua identidade, herança e composição.
+RoutingPolicy é a seção de [ExecutionPolicy](execution-policy-contract.md) usada pela RoutingDecision. Este contrato define a interface necessária ao roteamento; a política de execução define sua identidade, herança e composição.
 
 | Campo | Tipo conceitual | Semântica |
 | --- | --- | --- |
@@ -69,6 +69,7 @@ RoutingDecision é o registro imutável e finalizado de uma operação de seleç
 | recommendation | Objeto ou null | Escolha bruta do ranking, antes de fallback |
 | effective_selection | Objeto ou null | Destino efetivo e razão; null significa não despachar |
 | decision_status | Enum | `selected`, `no_eligible_target`, `low_confidence`, `invalid_response`, `provider_error` ou `preflight_rejected` |
+| preflight_checks | Lista | Controle, status, instante e evidências finais; referencia o rascunho/bundle quando aplicável |
 | usage_record_refs | Lista | Duração, consumo e custo da decisão em UsageRecords; valores desconhecidos permanecem identificados |
 | provider_extension | Objeto opcional | Dados específicos, namespaced e sem alterar a semântica central |
 
@@ -79,6 +80,8 @@ Cada candidato contém `target_ref`, posição de entrada, `eligible`, códigos 
 Para `typed_decision`, recommendation registra `target_id`, confiança, probabilidades ou pontuações disponíveis, identificador solicitado/resolvido do modelo, chamada externa e validação da resposta. Ausência de confiança segue a política de baixa confiança; não vira confiança máxima. Resposta fora do conjunto é inválida, mesmo que nomeie um destino existente no catálogo.
 
 `effective_selection` distingue `recommended_target_ref` de `selected_target_ref`, informa se houve fallback e aponta sua regra. Uma decisão não registra justificativa textual do modelo como se fosse evidência de capacidade; elegibilidade deriva das verificações determinísticas.
+
+Cada preflight check identifica o controle (`context_integrity`, `knowledge_status`, `classification`, `credentials`, `quota`, `budget`, `limits` ou extensão versionada), resultado, observed_at e evidence_refs. Para contexto, pode registrar context_manifest_id ainda em rascunho e bundle_hash; não referencia o hash final do ContextManifest, evitando ciclo com routing_decision_ref.
 
 ## ContextManifest
 
@@ -134,6 +137,7 @@ Essas operações podem ser funções locais no MVP. TypeSafe AI/Jev, quando exp
 10. Custo do roteamento integra o consumo do run, mesmo quando não há tentativa de execução.
 11. Falha prévia à admissão não consome tentativa; despacho persistido segue as regras do ciclo de execução.
 12. Resultado de Jev é evidência da política de ranking, não evidência de qualidade, segurança ou capacidade do destino.
+13. Despacho exige preflight_checks obrigatórios aprovados e ainda válidos; revogação ou mudança observada reprova a decisão.
 
 ## Riscos e verificações
 
@@ -171,7 +175,7 @@ Esses casos são especificação para fixtures futuras, não testes executados n
 - Tokenizador e margem usados por cada executor.
 - Conteúdo exato do resumo de roteamento e benchmark de calibração.
 
-Antes de integrar Jev, concluir a revisão cruzada de RunManifest, AttemptRecord, [metadata de conhecimento](knowledge-metadata-contract.md), contabilização e [ExecutionPolicy](execution-policy-contract.md). A integração deverá começar com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
+A [revisão cruzada](cross-review.md) aceitou a interface v0.1. A integração Jev deverá começar somente após schemas/fixtures, com transporte simulado e respostas fixas, seguida de experimento isolado contra os mesmos casos usados pelos baselines.
 
 ## Referências externas
 

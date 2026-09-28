@@ -1,6 +1,6 @@
 # ArtifactRef e contratos de patch/relatório
 
-Estado: proposta documental da Fase 1. Não implementa armazenamento, aplicação de patches ou geração de relatórios.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não implementa armazenamento, aplicação de patches ou geração de relatórios.
 
 ## Problema e alternativas
 
@@ -218,4 +218,4 @@ Esses casos especificam validadores e armazenamento futuros; não são testes ex
 - Vocabulário inicial de artifact_type, report_kind e classificação de dados.
 - Limites de tamanho por tipo e proteção contra parsing/expansão excessiva.
 
-O [contrato de registros](execution-records-contract.md) especifica RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport usando ArtifactRef como referência imutável. A [metadata de conhecimento](knowledge-metadata-contract.md) aplica a mesma identidade à ingestão das fontes e unidades do Vault. O próximo passo é revisar esses contratos em conjunto numa execução fictícia completa.
+O [contrato de registros](execution-records-contract.md) especifica RunManifest, AttemptRecord, PatchApplicationRecord, ApprovalRecord, uso/custos/erros e EvaluationReport usando ArtifactRef como referência imutável. A [metadata de conhecimento](knowledge-metadata-contract.md) aplica a mesma identidade à ingestão das fontes e unidades do Vault. A consistência conjunta foi verificada na [revisão cruzada](cross-review.md).

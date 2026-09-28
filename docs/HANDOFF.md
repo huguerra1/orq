@@ -17,32 +17,32 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 ## Estado atual
 
 - Somente documentação Markdown. Nenhuma aplicação, schema executável, dependência instalada ou integração real com modelo.
-- Fase 1 em andamento e ainda não concluída.
-- Propostos: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
-- Especificados 82 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 16 de conhecimento. Não são testes executados.
+- Fase 1 concluída como baseline documental v0.1; nenhuma implementação foi iniciada.
+- Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
+- Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - Verificações feitas: links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Realizar a revisão cruzada da Fase 1, ainda sem implementar aplicação, RAG ou MCP:
+Preparar a primeira implementação dos contratos, ainda sem integrar agentes, RAG, MCP ou Jev:
 
-1. Representar uma execução fictícia completa atravessando todos os contratos.
-2. Conferir identidades, hashes, estados, limites, seleção de conhecimento, roteamento, tentativa, artefatos e avaliação ponta a ponta.
-3. Registrar conflitos, lacunas e decisões normativas sem preenchê-los silenciosamente.
-4. Classificar cada contrato como aceito ou ainda aberto.
-5. Atualizar cenários, índices e handoff e publicar outra entrega pequena.
+1. Comparar linguagem e tooling para JSON Schema/fixtures e registrar uma ADR.
+2. Definir serialização canônica e representação de digest/referência antes de criar valores de teste.
+3. Implementar primeiro os schemas comuns, TaskSpec e WorkflowSpec.
+4. Criar fixtures positivas e negativas determinísticas, começando pelo grafo e referências.
+5. Manter Vault, persistência, executores e ranking tipado fora desse primeiro incremento.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
-## O que falta para fechar a Fase 1
+## Fechamento da Fase 1
 
-- Revisão cruzada, cenários completos e definição explícita do que está fechado versus pendente.
+A revisão cruzada está em [phase-1/cross-review.md](phase-1/cross-review.md). Todos os contratos centrais foram aceitos como baseline v0.1; decisões tecnológicas e valores operacionais permanecem gates explícitos para as etapas que dependem deles.
 
-Não iniciar MCP, RAG executável ou SDKs de agentes enquanto essa etapa documental estiver aberta.
+Não iniciar MCP, RAG executável ou SDKs de agentes antes dos schemas e fixtures comuns.
 
-## Decisões propostas a preservar
+## Decisões aceitas no baseline v0.1
 
 - Aplicação modular local, sem microserviços no MVP.
 - Separação entre papel, modelo, provedor, runtime e executor.
@@ -57,6 +57,7 @@ Não iniciar MCP, RAG executável ou SDKs de agentes enquanto essa etapa documen
 - Model Profile contém declarações com procedência, não médias históricas editadas manualmente.
 - Capacidades, permissões e qualidade medida são conceitos diferentes.
 - Fonte de conhecimento e contexto precisam de identidade, revisão e hash; custo desconhecido não é zero.
+- O catálogo de conhecimento é fixo durante o run; revogação append-only pode bloquear despacho, mas revisão nova exige novo run.
 - JSON Schema é o formato canônico proposto, com validação semântica complementar.
 - Stack, primeiro runtime, valores operacionais dos limites e projeto de benchmark ainda precisam ser escolhidos.
 
@@ -65,7 +66,7 @@ Não iniciar MCP, RAG executável ou SDKs de agentes enquanto essa etapa documen
 | Fase | Entrega |
 | --- | --- |
 | 1 | Contratos, estados e cenários de aceitação |
-| 2 | Vault Markdown e recuperação inicial por metadata/busca lexical |
+| 2 | Schemas/fixtures v0.1 e Vault Markdown com recuperação inicial por metadata/busca lexical |
 | 3 | MCP para acesso ao conhecimento |
 | 4 | Task Planner e validação do plano |
 | 5 | Model Router por regras |
@@ -91,6 +92,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Artefatos, patches e relatórios](phase-1/artifact-contract.md).
 - [Registros de execução e avaliação](phase-1/execution-records-contract.md).
 - [Metadata de conhecimento do Vault](phase-1/knowledge-metadata-contract.md).
+- [Revisão cruzada e baseline v0.1](phase-1/cross-review.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
@@ -99,6 +101,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - 2cde742: política de execução, permissões, orçamento e evidências.
 - 921c06d: ArtifactRef e contratos de patch/relatório.
 - 8959bf3: registros de execução, uso, aprovação e avaliação.
+- 4720205: metadata de conhecimento do Vault.
 - Consultar git log para trabalhos posteriores.
 
 ## Git e ambiente

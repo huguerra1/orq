@@ -1,6 +1,6 @@
 # Perfis de papel, modelo e executor
 
-Estado: proposta documental da Fase 1. Não configura provedores nem implementa executores.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não configura provedores nem implementa executores.
 
 ## Problema e alternativas
 
@@ -86,7 +86,7 @@ IDs de capacidade pertencem a um vocabulário controlado, que informa a camada r
 
 Permissão e capacidade são verificadas separadamente: suportar escrita não significa estar autorizado a escrever. A permissão efetiva é a interseção dos limites de sistema/projeto, workflow, papel, executor e tarefa. Um perfil não amplia limites superiores.
 
-permission_ceiling explicita ferramentas autorizáveis, áreas de leitura/escrita e acesso à rede. Lista vazia nega acesso. A gramática e a composição estão propostas em [ExecutionPolicy](execution-policy-contract.md); não serão delegadas a texto livre de prompt. A implementação deverá verificar caminhos resolvidos, inclusive links simbólicos.
+permission_ceiling explicita ferramentas autorizáveis, áreas de leitura/escrita e acesso à rede. Lista vazia nega acesso. A gramática e a composição estão definidas em [ExecutionPolicy](execution-policy-contract.md); não serão delegadas a texto livre de prompt. A implementação deverá verificar caminhos resolvidos, inclusive links simbólicos.
 
 ## ExecutionTarget e elegibilidade
 
@@ -104,7 +104,7 @@ Verificar antes do ranking: referências ativas; task_type; compatibilidade exec
 
 A evidência deve ser válida para a versão e para a política de validade aplicável. Não escolher um prazo de expiração universal neste contrato; a política deverá defini-lo. Provas vencidas ou ausentes não sustentam um requisito obrigatório.
 
-Sem candidatos, retornar no_eligible_target com exclusões. Falta de permissão ou capacidade obrigatória não pode ser compensada por pontuação de qualidade. O Router ordena apenas destinos elegíveis e registra sua política conforme a proposta de [RoutingDecision](routing-context-contract.md).
+Sem candidatos, retornar no_eligible_target com exclusões. Falta de permissão ou capacidade obrigatória não pode ser compensada por pontuação de qualidade. O Router ordena apenas destinos elegíveis e registra sua política conforme [RoutingDecision](routing-context-contract.md).
 
 ## Exemplo conceitual
 
@@ -127,8 +127,8 @@ Riscos principais: perfis desatualizados, permissões confundidas com capacidade
 | P07 | Perfil disabled/deprecated | Consultável no histórico, excluído de nova seleção |
 | P08 | Falta de métricas históricas | Regras explícitas, sem fabricar taxas ou custos |
 
-Esses oito casos complementam os [82 cenários gerais](acceptance-cases.md); ainda não foram executados.
+Esses oito casos complementam os [83 cenários gerais](acceptance-cases.md); ainda não foram executados.
 
 ## Próxima etapa
 
-Revisar os perfis com os [registros de execução e avaliação](execution-records-contract.md) e a [metadata de conhecimento](knowledge-metadata-contract.md) durante a revisão cruzada. Só depois implementar schemas e validadores.
+Os perfis foram verificados com os [registros de execução e avaliação](execution-records-contract.md) e a [metadata de conhecimento](knowledge-metadata-contract.md) na [revisão cruzada](cross-review.md). O próximo passo é implementar schemas e validadores antes de integrar executores.

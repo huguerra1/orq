@@ -1,6 +1,6 @@
 # Metadata de conhecimento do Vault
 
-Estado: proposta documental da Fase 1. Não implementa Vault, parser Markdown, busca, embeddings, RAG ou MCP.
+Estado: baseline normativa v0.1 aceita na revisão cruzada. Não implementa Vault, parser Markdown, busca, embeddings, RAG ou MCP.
 
 ## Problema e alternativas
 
@@ -36,7 +36,6 @@ Cada combinação source_id/revision é imutável. Mudança de conteúdo ou de m
 | schema_version | Texto | Obrigatório; versão do formato |
 | source_id | Identificador | Obrigatório; identidade estável da fonte |
 | revision | Texto de versão | Obrigatório; revisão imutável |
-| status | Enum | `active`, `deprecated` ou `revoked`; somente active entra em nova seleção |
 | title | Texto não vazio | Obrigatório; título editorial |
 | knowledge_kind | Enum | `operational` ou `project` |
 | content_locator | Referência lógica | Localização autorizada no Vault, não identidade suficiente |
@@ -56,6 +55,8 @@ Cada combinação source_id/revision é imutável. Mudança de conteúdo ou de m
 | metadata_provenance | Mapa | Origem e evidência de cada campo efetivo sensível |
 
 `content_digest` cobre os bytes da fonte. Durante o snapshot do run, a revisão é ingerida como ArtifactRef; ContextManifest referencia a unidade, a fonte e o ArtifactRef materializado.
+
+O ciclo de vida fica fora da metadata imutável da revisão. CatalogStatusAssertion é append-only e contém assertion_id, source_id/revision, status (`active`, `deprecated` ou `revoked`), effective_at, issuer_ref, evidence_ref e digest. O catálogo resolve o status vigente em seu cutoff; declarações conflitantes de mesma precedência produzem conflito, não escolha silenciosa.
 
 ### Escopo e autoridade
 
@@ -109,13 +110,15 @@ KnowledgeCatalogSnapshot fecha o universo consultável de um run.
 | catalog_id, version | Identidade versionada | Snapshot imutável |
 | created_at | Data UTC | Momento de fechamento |
 | catalog_policy_ref | Referência com hash | Regras de confiança e herança |
+| status_cutoff | Data UTC | Instante de resolução dos estados das fontes |
+| status_assertion_refs | Lista | Declarações autorizadas usadas para resolver cada status |
 | source_entries | Lista | source_id/revision/digest, status e unidades incluídas |
 | parser_chunker_snapshots | Lista | Ferramentas, versões e configurações |
 | vocabulary_refs | Lista | Tópicos, roles, task_types e authority scopes controlados |
 | exclusions | Lista | Fontes rejeitadas e motivos |
 | catalog_hash | Digest | Representação canônica do snapshot |
 
-Mesmos source_id/revision com digest ou metadata efetiva diferentes são conflito. Fonte inválida, ausente ou revogada aparece em exclusions; não some silenciosamente. RunManifest referencia o catalog_hash utilizado.
+Mesmos source_id/revision com digest ou metadata efetiva diferentes são conflito. Fonte inválida, ausente ou revogada aparece em exclusions; não some silenciosamente. RunManifest referencia o catalog_hash utilizado, que permanece fixo durante o run. Uma nova revisão de fonte exige novo run; retry somente refaz a seleção dentro do mesmo snapshot.
 
 Execution Memory não entra automaticamente no catálogo. Promover um fato histórico exige curadoria, responsável, revisão e nova KnowledgeSource; métricas observadas continuam registros factuais, não frontmatter editorial.
 
@@ -182,7 +185,7 @@ Cada exclusão possui reason_code verificável, como wrong_project, insufficient
 
 ContextManifest adiciona `knowledge_selection_refs`. Cada item de conhecimento registra selection_id, requirement_ids cobertos, source_id/revision, unit_id, source/unit digests, materialized ArtifactRef, transformação e posição final. O bundle_hash cobre a ordem efetivamente enviada.
 
-Retry executa nova seleção quando catálogo, requisito, política, contexto anterior ou orçamento mudam. Reutilização exata é permitida por referência quando todas as entradas e hashes coincidem; cada ContextManifest ainda registra o que foi materializado naquela tentativa.
+Retry executa nova seleção quando requisito, política efetiva, contexto anterior ou orçamento mudam, sempre sobre o catálogo fixado pelo RunManifest. Reutilização exata é permitida por referência quando todas as entradas e hashes coincidem; cada ContextManifest ainda registra o que foi materializado naquela tentativa. Catálogo revisado inicia outro run.
 
 ## Conflitos, validade e revogação
 
@@ -190,7 +193,7 @@ Retry executa nova seleção quando catálogo, requisito, política, contexto an
 
 Contradição relevante é registrada com unidades e campos conflitantes. Para requisito obrigatório, conflito não resolvido produz status conflict. Para conteúdo opcional, a política pode excluir ambos ou selecionar a precedência autorizada, sempre registrando a decisão.
 
-Revogação impede novas seleções e materializações. Runs históricos preservam snapshots e ContextManifests; revogação posterior não reescreve o passado. Se a fonte for revogada antes do despacho, o preflight reprova o contexto e exige nova seleção.
+Revogação impede novas seleções e materializações. Runs históricos preservam snapshots e ContextManifests; revogação posterior não reescreve o passado. Antes do despacho, o preflight resolve novamente as CatalogStatusAssertions vigentes e registra a evidência. Se uma fonte selecionada tiver sido revogada, reprova o contexto e exige nova seleção entre unidades do mesmo catálogo; não pode introduzir revisão nova no run.
 
 `expires_at` vencido, freshness não atendida ou verified_at ausente seguem a exigência/política. Unknown não vira atual. Não existe validade universal igual para todos os tipos de conhecimento.
 
@@ -221,7 +224,7 @@ Essas operações podem ser funções locais. MCP futuramente expõe operações
 9. Truncamento/resumo não substitui silenciosamente unidade obrigatória.
 10. SelectionRecord preserva candidatos, exclusões, política, scores e cobertura.
 11. ContextManifest identifica seleção e bytes/unidades realmente enviados.
-12. Revogação não reescreve runs históricos, mas bloqueia novo despacho quando já vigente.
+12. Revogação append-only não reescreve runs históricos, mas bloqueia novo despacho quando já vigente.
 13. Conteúdo classificado respeita política do destino, rede e contexto.
 14. Execution Memory só vira fonte editorial após promoção explícita e versionada.
 
@@ -255,9 +258,10 @@ Essas operações podem ser funções locais. MCP futuramente expõe operações
 | K11 | Seleção omite conhecimento opcional | partial permitido com lacuna explícita |
 | K12 | Mesmos bytes existem em duas fontes | Bundle pode deduplicar; procedências preservadas |
 | K13 | Fonte é revogada entre seleção e despacho | Preflight rejeita contexto e exige nova seleção |
-| K14 | Retry usa catálogo revisado | Novo SelectionRecord e ContextManifest; anterior preservado |
+| K14 | Retry muda feedback/contexto no mesmo catálogo | Novo SelectionRecord e ContextManifest; anterior preservado |
 | K15 | Markdown contém instrução em exemplo/log | Tratado como dados, sem elevar instruction_scope |
 | K16 | Fato da Execution Memory é inserido automaticamente | Rejeitado sem promoção editorial versionada |
+| K17 | Retry tenta introduzir revisão ausente do catálogo do run | Rejeitado; nova revisão exige novo run |
 
 Esses casos especificam validadores e recuperação futuros; não são testes executados.
 
@@ -270,4 +274,4 @@ Esses casos especificam validadores e recuperação futuros; não são testes ex
 - Tokenizadores e margens por destino.
 - Fluxo editorial de revisão, revogação e promoção da Execution Memory.
 
-O próximo passo é realizar a revisão cruzada da Fase 1: representar uma execução fictícia completa, fechar pendências normativas e classificar cada contrato como aceito ou ainda aberto antes de implementar JSON Schemas e fixtures.
+A revisão cruzada está registrada em [baseline v0.1](cross-review.md). O próximo passo é decidir linguagem/tooling e serialização canônica antes de implementar JSON Schemas e fixtures.

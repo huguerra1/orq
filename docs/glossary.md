@@ -1,6 +1,6 @@
 # Glossário da plataforma
 
-Estado: proposta inicial da Fase 1.
+Estado: baseline normativa v0.1 aceita na revisão cruzada.
 
 | Termo | Definição | Fronteira |
 | --- | --- | --- |
