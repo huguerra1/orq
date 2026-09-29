@@ -28,16 +28,17 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Implementados ContextManifest fechado e bundle JSON canônico separado, com ordem, procedência, digests cruzados e orçamento do destino.
 - Implementadas fixtures reais e CLI atômica de catálogo, seleção e contexto, sem sobrescrita implícita.
 - Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Fase 3 especificada: MCP Python SDK 2.2.0, `stdio`, testes em memória e resources somente leitura para resumo e unidade exata.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Iniciar a Fase 3 pelo contrato mínimo do servidor MCP de conhecimento:
+Implementar o contrato mínimo da Fase 3 já documentado:
 
-1. Definir transporte local, lifecycle, limites e modelo de erro do MCP.
-2. Expor somente operações pequenas de consulta/materialização; seleção e política continuam no núcleo.
-3. Testar o servidor com transporte em memória/stdio antes de qualquer integração com agente.
-4. Só depois iniciar Task Planner e Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
+1. Fixar e instalar `mcp==2.2.0` com lock reproduzível.
+2. Implementar resumo sanitizado e resource de unidade exata sobre o snapshot fixo.
+3. Testar com o Client oficial em memória e smoke test `stdio`.
+4. Fechar a Fase 3 antes do Task Planner e Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -102,6 +103,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [ADR 0001 — tooling e JSON canônico](adr/0001-contract-tooling-and-canonical-json.md).
 - [ADR 0002 — Vault e parsing Markdown](adr/0002-vault-layout-and-markdown-parsing.md).
 - [ADR 0003 — materialização do bundle de contexto](adr/0003-context-bundle-materialization.md).
+- [ADR 0004 — fronteira MCP do conhecimento](adr/0004-mcp-knowledge-boundary.md).
+- [Andamento da Fase 3](phase-3/README.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

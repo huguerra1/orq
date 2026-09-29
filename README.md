@@ -32,6 +32,7 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 12. [Metadata de conhecimento do Vault](docs/phase-1/knowledge-metadata-contract.md).
 13. [Revisão cruzada e fechamento do baseline v0.1](docs/phase-1/cross-review.md).
 14. [Andamento da Fase 2](docs/phase-2/README.md).
+15. [Andamento da Fase 3](docs/phase-3/README.md).
 
 ## Executar os contratos
 
@@ -57,4 +58,4 @@ Para executar a fixture completa do Vault, use três saídas novas:
 
 ## Próxima entrega
 
-Definir e implementar o servidor MCP mínimo de conhecimento sobre as operações locais já testadas. Jev permanece posterior ao Task Planner e ao roteador determinístico.
+Implementar o servidor MCP mínimo já especificado em [Fase 3](docs/phase-3/README.md). Jev permanece posterior ao Task Planner e ao roteador determinístico.
