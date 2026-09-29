@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O baseline documental v0.1 da Fase 1 está concluído. A Fase 2 já possui schemas, validadores, fixtures, CLI e ingestão/chunking seguro do Vault; ainda não há Orchestrator, MCP ou chamadas a provedores.
+O baseline documental v0.1 da Fase 1 está concluído. A Fase 2 já possui schemas, validadores, fixtures, CLI e recuperação lexical segura do Vault; ainda não há Orchestrator, MCP ou chamadas a provedores.
 
 ## Princípios
 
@@ -49,4 +49,4 @@ As dependências resolvidas do ambiente verificado também estão em `requiremen
 
 ## Próxima entrega
 
-Implementar filtros, ranking lexical BM25 e KnowledgeSelectionRecord; depois materializar a seleção para ContextManifest. MCP e Jev permanecem posteriores a esse núcleo.
+Materializar a seleção do Vault para um ContextManifest íntegro e adicionar fixtures/CLI dessa cadeia. MCP e Jev permanecem posteriores a esse núcleo.

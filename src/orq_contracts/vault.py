@@ -14,7 +14,7 @@ import yaml
 from markdown_it import MarkdownIt
 
 from .canonical import canonical_digest
-from .validator import validate_instance
+from .validator import validate_instance, validate_knowledge_source
 
 
 ALLOWED_FRONTMATTER_FIELDS = {"title", "language", "topics", "relationships"}
@@ -301,7 +301,7 @@ def ingest_markdown_source(
 ) -> IngestedSource:
     """Ingere uma revisão exata e deriva unidades sem efeitos fora do Vault."""
 
-    metadata_issues = validate_instance(source_metadata, "knowledge_source")
+    metadata_issues = validate_knowledge_source(source_metadata)
     if metadata_issues:
         issue = metadata_issues[0]
         raise VaultError(issue.code, issue.path, issue.message)
@@ -325,7 +325,7 @@ def ingest_markdown_source(
         max_nodes=max_frontmatter_nodes,
     )
     effective = _effective_metadata(source_metadata, frontmatter)
-    effective_issues = validate_instance(effective, "knowledge_source")
+    effective_issues = validate_knowledge_source(effective)
     if effective_issues:
         issue = effective_issues[0]
         raise VaultError(issue.code, issue.path, issue.message)

@@ -110,6 +110,38 @@ def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
     return _structural_issues(instance, schema_name)
 
 
+def validate_knowledge_source(source: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(source, "knowledge_source")
+    if issues:
+        return issues
+    if source["knowledge_kind"] == "project" and source["project_scope"]["kind"] == "global_operational":
+        issues.append(
+            ValidationIssue(
+                "semantic.project_knowledge_global",
+                "/project_scope",
+                "conhecimento de projeto não pode ter escopo operacional global",
+            )
+        )
+    if source["instruction_scope"] == "operational":
+        if source["knowledge_kind"] != "operational" or source["authority"]["authority_level"] != "platform_authoritative":
+            issues.append(
+                ValidationIssue(
+                    "semantic.invalid_operational_instruction_authority",
+                    "/instruction_scope",
+                    "instrução operacional exige fonte operacional e autoridade de plataforma",
+                )
+            )
+    if source["instruction_scope"] == "project" and source["knowledge_kind"] != "project":
+        issues.append(
+            ValidationIssue(
+                "semantic.invalid_project_instruction_kind",
+                "/instruction_scope",
+                "instrução de projeto exige fonte de projeto",
+            )
+        )
+    return issues
+
+
 def _cycle_issues(tasks: list[dict[str, Any]]) -> list[ValidationIssue]:
     dependencies = {task["task_id"]: task["dependencies"] for task in tasks}
     state: dict[str, int] = {}

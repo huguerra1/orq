@@ -1,6 +1,6 @@
 # Retomada do projeto ORQ
 
-Atualizado em 2026-09-28. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
+Atualizado em 2026-09-29. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
 
 ## Leitura para retomar
 
@@ -16,26 +16,26 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1 concluído; contratos iniciais e ingestão/chunking do Vault são executáveis, mas ainda não há Orchestrator, MCP ou integração real com modelo.
-- Fase 1 concluída como baseline documental v0.1; nenhuma implementação foi iniciada.
+- Baseline documental v0.1 concluído; contratos iniciais e recuperação lexical do Vault são executáveis, mas ainda não há Orchestrator, MCP ou integração real com modelo.
+- Fase 1 concluída como baseline documental v0.1; a Fase 2 está em implementação incremental.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
 - ADR 0001 escolheu Python 3.12, JSON Schema Draft 2020-12, jsonschema/pytest e RFC 8785/JCS.
 - Implementados schemas comuns, TaskSpec/WorkflowSpec e conhecimento, validação semântica, CLI, fixtures e digest SHA-256 canônico.
 - Implementados parsing seguro de frontmatter, paths confinados, ingestão por digest, chunking por headings e snapshot com revogação append-only.
-- Verificações feitas: 33 testes locais aprovados, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Implementados filtros de projeto/autoridade/classificação/validade/applicability, BM25 determinístico por requisito, cobertura obrigatória antes da opcional, orçamento global/local e materialização com nova verificação de digest.
+- Verificações feitas: 42 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Completar seleção do Vault local, ainda sem integrar agentes, MCP ou Jev:
+Completar a materialização de contexto da Fase 2, ainda sem integrar agentes, MCP ou Jev:
 
-1. Filtrar por projeto, tipo, autoridade, classificação, validade e applicability antes do ranking.
-2. Implementar BM25 versionado e desempate estável.
-3. Selecionar cobertura obrigatória antes de opcionais sob orçamento.
-4. Emitir KnowledgeSelectionRecord validado e ligar a futura materialização ao ContextManifest.
-5. Adicionar fixtures/CLI e publicar o incremento antes de iniciar MCP.
+1. Transformar o contrato documental de ContextManifest em schema fechado.
+2. Materializar bytes ordenados com procedência, digests e vínculo à KnowledgeSelectionRecord.
+3. Adicionar fixtures/CLI de catálogo, seleção e contexto.
+4. Fechar os testes da Fase 2 e só depois iniciar MCP.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 

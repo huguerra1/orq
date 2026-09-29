@@ -61,11 +61,26 @@
     },
     "candidate": {
       "type": "object",
-      "required": ["unit_ref", "eligible", "reason_codes", "score", "rank"],
+      "required": ["unit_ref", "eligible", "reason_codes", "requirement_results", "score", "rank"],
       "properties": {
         "unit_ref": {"$ref": "#/$defs/unitRef"},
         "eligible": {"type": "boolean"},
         "reason_codes": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "requirement_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["knowledge_requirement_id", "eligible", "reason_codes", "score", "rank"],
+            "properties": {
+              "knowledge_requirement_id": {"$ref": "common.schema.json#/$defs/identifier"},
+              "eligible": {"type": "boolean"},
+              "reason_codes": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+              "score": {"type": ["number", "null"]},
+              "rank": {"type": ["integer", "null"], "minimum": 1}
+            },
+            "additionalProperties": false
+          }
+        },
         "score": {"type": ["number", "null"]},
         "rank": {"type": ["integer", "null"], "minimum": 1}
       },

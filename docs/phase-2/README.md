@@ -1,6 +1,6 @@
 # Fase 2 — Contratos executáveis e Vault local
 
-Estado: em andamento. Contratos iniciais, ingestão e chunking do Vault estão implementados; seleção/ranking ainda não.
+Estado: em andamento. Contratos iniciais e recuperação lexical do Vault estão implementados; falta materializar o contexto e expor a CLI do Vault.
 
 ## Escopo
 
@@ -28,8 +28,11 @@ Continuam fora desta fase: MCP, chamadas reais a agentes, Jev, scheduler concorr
 | 2B | Frontmatter seguro e metadata sensível exclusiva do catálogo | Testes de YAML hostil e autoelevação |
 | 2B | Chunking determinístico por headings, preservando fences/tabelas | Spans, digests e oversized explícitos |
 | 2B | Snapshot de catálogo com status append-only | Revogação e conflito verificáveis |
+| 2B | Filtros determinísticos antes do ranking BM25 | Projeto, autoridade, classificação, validade e applicability |
+| 2B | Seleção por requisito, cobertura e orçamento global/local | KnowledgeSelectionRecord validado e reproduzível |
+| 2B | Materialização de unidade com nova verificação de digest | Mutação posterior do arquivo é rejeitada |
 
-Resultado atual: 33 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
+Resultado atual: 42 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
 
 ## Interfaces atuais
 
@@ -37,16 +40,15 @@ Resultado atual: 33 testes aprovados. Isso é evidência local dos incrementos e
 - `orq-contracts validate workflow <arquivo.json>`
 - `orq-contracts digest <arquivo.json>`
 - API Python: `validate_task`, `validate_workflow`, `canonicalize` e `canonical_digest`.
-- API Python do Vault: `ingest_markdown_source` e `build_catalog_snapshot`.
+- API Python do Vault: `ingest_markdown_source`, `build_catalog_snapshot`, `select_knowledge` e `materialize_unit`.
 
 Erros retornam `code`, JSON Pointer em `path` e `message`. Validação estrutural ocorre antes da semântica para não interpretar documentos malformados.
 
 ## Próximos incrementos
 
-1. Implementar filtros determinísticos e BM25 versionado sobre as unidades elegíveis.
-2. Produzir KnowledgeSelectionRecord com cobertura obrigatória, exclusões e orçamento.
-3. Materializar seleções com procedência para ContextManifest.
-4. Adicionar fixtures de Vault em disco e CLI de catálogo/seleção.
-5. Só então expor operações pequenas por MCP.
+1. Definir schema executável e materialização íntegra do ContextManifest.
+2. Adicionar fixtures de Vault em disco e CLI de catálogo/seleção/contexto.
+3. Fechar os casos executáveis pendentes da Fase 2.
+4. Só então expor operações pequenas por MCP.
 
 Parser, layout e ranking inicial foram decididos na [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md). Frontmatter não é fonte de autoridade.
