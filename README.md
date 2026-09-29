@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O baseline documental v0.1 da Fase 1 e a Fase 2 executável estão concluídos. Já existem schemas, validadores, fixtures, CLI e recuperação lexical segura do Vault; ainda não há Orchestrator, MCP ou chamadas a provedores.
+O baseline documental v0.1, a Fase 2 executável e o MCP local da Fase 3 estão concluídos. Já existem schemas, validadores, fixtures, CLI, recuperação lexical segura e resources MCP somente leitura; ainda não há Orchestrator executável nem chamadas a provedores.
 
 ## Princípios
 
@@ -58,4 +58,4 @@ Para executar a fixture completa do Vault, use três saídas novas:
 
 ## Próxima entrega
 
-Implementar o servidor MCP mínimo já especificado em [Fase 3](docs/phase-3/README.md). Jev permanece posterior ao Task Planner e ao roteador determinístico.
+Especificar e implementar o Task Planner determinístico da Fase 4. Jev permanece posterior ao planner e ao roteador determinístico.

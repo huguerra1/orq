@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
   "jsonschema==4.26.0",
   "markdown-it-py==4.2.0",
+  "mcp==2.2.0",
   "PyYAML==6.0.3",
   "rfc8785==0.1.4",
 ]
@@ -22,6 +23,7 @@ dev = [
 
 [project.scripts]
 orq-contracts = "orq_contracts.cli:main"
+orq-knowledge-mcp = "orq_contracts.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

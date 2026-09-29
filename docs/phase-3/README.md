@@ -1,6 +1,6 @@
 # Fase 3 — MCP local de conhecimento
 
-Estado: especificação inicial aceita; implementação ainda não iniciada.
+Estado: concluída em 2026-09-29 como servidor MCP local e somente leitura.
 
 ## Problema
 
@@ -19,7 +19,7 @@ O Vault já ingere, seleciona e materializa conhecimento com integridade. A pró
 | URI | Resultado | Limites |
 | --- | --- | --- |
 | `orq://catalog/summary` | Identidade do catálogo e fontes/unidades ativas sem locator físico | JSON canônico, tamanho limitado |
-| `orq://knowledge/{source_id}/{revision}/{unit_id}` | Bytes UTF-8 exatos da unidade com metadata de integridade | Referência exata, digest reconfirmado |
+| `orq://knowledge/{source_id}/{revision}/{unit_id}` | Conteúdo UTF-8 exato e metadata de integridade | Uma URI concreta por unidade do snapshot; digest reconfirmado |
 
 Uma unidade inexistente, fora do snapshot, alterada ou acima do limite retorna erro identificado. Não há fallback por título, revisão próxima ou conteúdo semelhante.
 
@@ -30,6 +30,7 @@ Uma unidade inexistente, fora do snapshot, alterada ou acima do limite retorna e
 - Testes: cliente oficial conectado ao servidor em memória.
 - O catálogo é lido e validado uma vez na criação do servidor. Mudança de revisão ou catálogo inicia outro processo/configuração.
 - Logs e diagnósticos nunca usam stdout durante `stdio`.
+- Respostas JSON são serializadas em RFC 8785/JCS antes de atravessar o protocolo.
 
 ## Erros e segurança
 
@@ -42,7 +43,7 @@ Uma unidade inexistente, fora do snapshot, alterada ou acima do limite retorna e
 
 ## Testes exigidos
 
-1. descoberta lista somente os recursos previstos;
+1. descoberta lista somente o resumo e as unidades concretas do snapshot;
 2. resumo não contém `content_locator`;
 3. leitura exata retorna conteúdo e digests esperados;
 4. IDs desconhecidos não resolvem outra unidade;
@@ -56,6 +57,13 @@ Uma unidade inexistente, fora do snapshot, alterada ou acima do limite retorna e
 - prompts MCP, sampling e elicitation;
 - seleção feita pelo modelo;
 - Task Planner, Model Router, TypeSafe/Jev e executores.
+
+## Resultado
+
+- SDK e dependências fixados em lock reproduzível.
+- Entrypoint `orq-knowledge-mcp` com transporte `stdio`.
+- Testes oficiais com `Client(server)` em memória e smoke test real por subprocesso `stdio`.
+- 58 testes totais aprovados no encerramento da fase.
 
 ## Referências
 

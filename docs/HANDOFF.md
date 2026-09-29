@@ -16,8 +16,8 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1 e Fase 2 executável concluídos; ainda não há Orchestrator, MCP ou integração real com modelo.
-- Fase 1 concluiu os contratos documentais; a Fase 2 entregou schemas iniciais, validadores, fixtures, CLI e Vault local.
+- Baseline documental v0.1, Fase 2 executável e MCP local da Fase 3 concluídos; ainda não há Orchestrator executável nem integração real com modelo.
+- Fase 1 concluiu os contratos documentais; a Fase 2 entregou schemas iniciais, validadores, fixtures, CLI e Vault local; a Fase 3 expôs conhecimento exato e somente leitura por MCP.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
@@ -28,17 +28,18 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Implementados ContextManifest fechado e bundle JSON canônico separado, com ordem, procedência, digests cruzados e orçamento do destino.
 - Implementadas fixtures reais e CLI atômica de catálogo, seleção e contexto, sem sobrescrita implícita.
 - Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
-- Fase 3 especificada: MCP Python SDK 2.2.0, `stdio`, testes em memória e resources somente leitura para resumo e unidade exata.
+- Fase 3 implementada com MCP Python SDK 2.2.0, `stdio`, JSON canônico, testes em memória e resources concretos somente leitura.
+- Verificações atuais: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Implementar o contrato mínimo da Fase 3 já documentado:
+Iniciar a Fase 4 pelo Task Planner determinístico:
 
-1. Fixar e instalar `mcp==2.2.0` com lock reproduzível.
-2. Implementar resumo sanitizado e resource de unidade exata sobre o snapshot fixo.
-3. Testar com o Client oficial em memória e smoke test `stdio`.
-4. Fechar a Fase 3 antes do Task Planner e Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
+1. Definir entrada/saída do planner e separar plano proposto de WorkflowSpec validado.
+2. Começar por planner de fixture/regras, sem chamada a modelo.
+3. Reutilizar `validate_workflow` como gate e registrar erros determinísticos.
+4. Só depois iniciar o Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
