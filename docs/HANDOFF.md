@@ -25,17 +25,18 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Implementados schemas comuns, TaskSpec/WorkflowSpec e conhecimento, validação semântica, CLI, fixtures e digest SHA-256 canônico.
 - Implementados parsing seguro de frontmatter, paths confinados, ingestão por digest, chunking por headings e snapshot com revogação append-only.
 - Implementados filtros de projeto/autoridade/classificação/validade/applicability, BM25 determinístico por requisito, cobertura obrigatória antes da opcional, orçamento global/local e materialização com nova verificação de digest.
-- Verificações feitas: 42 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Implementados ContextManifest fechado e bundle JSON canônico separado, com ordem, procedência, digests cruzados e orçamento do destino.
+- Verificações feitas: 50 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Completar a materialização de contexto da Fase 2, ainda sem integrar agentes, MCP ou Jev:
+Completar as interfaces operacionais da Fase 2, ainda sem integrar agentes, MCP ou Jev:
 
-1. Transformar o contrato documental de ContextManifest em schema fechado.
-2. Materializar bytes ordenados com procedência, digests e vínculo à KnowledgeSelectionRecord.
-3. Adicionar fixtures/CLI de catálogo, seleção e contexto.
-4. Fechar os testes da Fase 2 e só depois iniciar MCP.
+1. Adicionar fixtures reais do Vault em disco.
+2. Expor catálogo, seleção e contexto pela CLI sem permitir caminhos fora das raízes informadas.
+3. Fechar os testes executáveis e o índice da Fase 2.
+4. Só depois iniciar MCP.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -99,6 +100,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 2](phase-2/README.md).
 - [ADR 0001 — tooling e JSON canônico](adr/0001-contract-tooling-and-canonical-json.md).
 - [ADR 0002 — Vault e parsing Markdown](adr/0002-vault-layout-and-markdown-parsing.md).
+- [ADR 0003 — materialização do bundle de contexto](adr/0003-context-bundle-materialization.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

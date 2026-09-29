@@ -49,4 +49,4 @@ As dependências resolvidas do ambiente verificado também estão em `requiremen
 
 ## Próxima entrega
 
-Materializar a seleção do Vault para um ContextManifest íntegro e adicionar fixtures/CLI dessa cadeia. MCP e Jev permanecem posteriores a esse núcleo.
+Adicionar fixtures em disco e CLI para catálogo, seleção e ContextManifest; depois fechar a Fase 2. MCP e Jev permanecem posteriores a esse núcleo.

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/context-manifest.schema.json",
+  "title": "ORQ ContextManifest v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "context_manifest_id", "run_id", "workflow_ref", "task_id",
+    "candidate_attempt_number", "routing_decision_ref", "knowledge_selection_refs",
+    "target_ref", "created_at", "items", "omitted_items", "budget", "bundle_hash",
+    "provider_context_coverage"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "context_manifest_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "workflow_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "task_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "candidate_attempt_number": {"type": "integer", "minimum": 1},
+    "routing_decision_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "knowledge_selection_refs": {
+      "type": "array",
+      "items": {"$ref": "common.schema.json#/$defs/versionedRef"}
+    },
+    "target_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/contextItem"}},
+    "omitted_items": {"type": "array", "items": {"$ref": "#/$defs/omittedItem"}},
+    "budget": {"$ref": "#/$defs/budget"},
+    "bundle_hash": {"$ref": "common.schema.json#/$defs/digest"},
+    "provider_context_coverage": {"enum": ["complete", "platform_only", "unknown"]}
+  },
+  "$defs": {
+    "unitRef": {
+      "type": "object",
+      "required": ["source_id", "revision", "unit_id", "source_digest", "unit_digest"],
+      "properties": {
+        "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "unit_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "source_digest": {"$ref": "common.schema.json#/$defs/digest"},
+        "unit_digest": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "size": {
+      "type": "object",
+      "required": ["bytes", "tokens", "tokenizer_ref", "status"],
+      "properties": {
+        "bytes": {"type": "integer", "minimum": 0},
+        "tokens": {"type": "integer", "minimum": 0},
+        "tokenizer_ref": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "status": {"enum": ["estimated", "measured"]}
+      },
+      "additionalProperties": false
+    },
+    "knowledgeProvenance": {
+      "type": "object",
+      "required": ["selection_id", "requirement_ids", "unit_ref"],
+      "properties": {
+        "selection_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "common.schema.json#/$defs/identifier"}
+        },
+        "unit_ref": {"$ref": "#/$defs/unitRef"}
+      },
+      "additionalProperties": false
+    },
+    "transformation": {
+      "type": "object",
+      "required": ["operation", "tool_ref", "input_digest", "output_digest"],
+      "properties": {
+        "operation": {"$ref": "common.schema.json#/$defs/identifier"},
+        "tool_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "input_digest": {"$ref": "common.schema.json#/$defs/digest"},
+        "output_digest": {"$ref": "common.schema.json#/$defs/digest"}
+      },
+      "additionalProperties": false
+    },
+    "contextItem": {
+      "type": "object",
+      "required": [
+        "sequence", "item_id", "category", "source_ref", "source_revision", "source_hash",
+        "materialized_artifact_ref", "content_hash", "required", "selection_reason", "size",
+        "data_classification", "knowledge_provenance", "transformations"
+      ],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1},
+        "item_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "category": {"enum": [
+          "operational_instructions", "task_spec", "external_input", "accepted_dependency_artifact",
+          "project_knowledge", "previous_attempt_feedback"
+        ]},
+        "source_ref": {"$ref": "common.schema.json#/$defs/identifier"},
+        "source_revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "source_hash": {"$ref": "common.schema.json#/$defs/digest"},
+        "materialized_artifact_ref": {"$ref": "common.schema.json#/$defs/artifactRef"},
+        "content_hash": {"$ref": "common.schema.json#/$defs/digest"},
+        "required": {"type": "boolean"},
+        "selection_reason": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "size": {"$ref": "#/$defs/size"},
+        "data_classification": {"enum": ["public", "internal", "confidential", "restricted", "unknown"]},
+        "knowledge_provenance": {"$ref": "#/$defs/knowledgeProvenance"},
+        "transformations": {"type": "array", "items": {"$ref": "#/$defs/transformation"}}
+      },
+      "additionalProperties": false
+    },
+    "omittedItem": {
+      "type": "object",
+      "required": ["unit_ref", "reason_codes"],
+      "properties": {
+        "unit_ref": {"$ref": "#/$defs/unitRef"},
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "common.schema.json#/$defs/identifier"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "target_context_limit_tokens", "reserved_output_tokens", "available_input_tokens",
+        "materialized_input_tokens", "tokenizer_ref", "margin_tokens", "status"
+      ],
+      "properties": {
+        "target_context_limit_tokens": {"type": "integer", "minimum": 1},
+        "reserved_output_tokens": {"type": "integer", "minimum": 0},
+        "available_input_tokens": {"type": "integer", "minimum": 0},
+        "materialized_input_tokens": {"type": "integer", "minimum": 0},
+        "tokenizer_ref": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "margin_tokens": {"type": "integer", "minimum": 0},
+        "status": {"enum": ["estimated", "measured", "unknown"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

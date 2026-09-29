@@ -6,6 +6,7 @@ from orq_contracts.schemas import load_schemas, validator_for
 def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
     assert set(load_schemas()) == {
         "common",
+        "context_manifest",
         "knowledge_catalog",
         "knowledge_selection",
         "knowledge_source",

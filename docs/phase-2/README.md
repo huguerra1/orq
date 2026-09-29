@@ -11,6 +11,8 @@ Continuam fora desta fase: MCP, chamadas reais a agentes, Jev, scheduler concorr
 ## Decisões fechadas
 
 - [ADR 0001](../adr/0001-contract-tooling-and-canonical-json.md): Python 3.12, JSON Schema Draft 2020-12, `jsonschema`, `pytest`, RFC 8785/JCS e SHA-256.
+- [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md): layout seguro, parsing Markdown estrutural e BM25 inicial.
+- [ADR 0003](../adr/0003-context-bundle-materialization.md): ContextManifest separado de bundle JSON canônico, sem truncamento silencioso.
 - Schemas são o contrato estrutural; relações, ciclos e cobertura usam validação semântica explícita.
 - Schemas remotos não são carregados durante validação normal.
 - Dinheiro permanece decimal textual; números incompatíveis com I-JSON/JCS são rejeitados antes do digest.
@@ -31,8 +33,9 @@ Continuam fora desta fase: MCP, chamadas reais a agentes, Jev, scheduler concorr
 | 2B | Filtros determinísticos antes do ranking BM25 | Projeto, autoridade, classificação, validade e applicability |
 | 2B | Seleção por requisito, cobertura e orçamento global/local | KnowledgeSelectionRecord validado e reproduzível |
 | 2B | Materialização de unidade com nova verificação de digest | Mutação posterior do arquivo é rejeitada |
+| 2B | ContextManifest e bundle ordenado em JSON canônico | Procedência, digests e orçamento validados |
 
-Resultado atual: 42 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
+Resultado atual: 50 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
 
 ## Interfaces atuais
 
@@ -41,14 +44,14 @@ Resultado atual: 42 testes aprovados. Isso é evidência local dos incrementos e
 - `orq-contracts digest <arquivo.json>`
 - API Python: `validate_task`, `validate_workflow`, `canonicalize` e `canonical_digest`.
 - API Python do Vault: `ingest_markdown_source`, `build_catalog_snapshot`, `select_knowledge` e `materialize_unit`.
+- API Python de contexto: `materialize_knowledge_context` e `validate_context_manifest`.
 
 Erros retornam `code`, JSON Pointer em `path` e `message`. Validação estrutural ocorre antes da semântica para não interpretar documentos malformados.
 
 ## Próximos incrementos
 
-1. Definir schema executável e materialização íntegra do ContextManifest.
-2. Adicionar fixtures de Vault em disco e CLI de catálogo/seleção/contexto.
-3. Fechar os casos executáveis pendentes da Fase 2.
-4. Só então expor operações pequenas por MCP.
+1. Adicionar fixtures de Vault em disco e CLI de catálogo/seleção/contexto.
+2. Fechar os casos executáveis pendentes da Fase 2.
+3. Só então expor operações pequenas por MCP.
 
 Parser, layout e ranking inicial foram decididos na [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md). Frontmatter não é fonte de autoridade.

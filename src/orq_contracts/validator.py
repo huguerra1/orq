@@ -142,6 +142,60 @@ def validate_knowledge_source(source: Any) -> list[ValidationIssue]:
     return issues
 
 
+def validate_context_manifest(manifest: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(manifest, "context_manifest")
+    if issues:
+        return issues
+    issues.extend(_duplicate_issues(manifest["items"], "item_id", "/items"))
+    sequences = [item["sequence"] for item in manifest["items"]]
+    if sequences != list(range(1, len(sequences) + 1)):
+        issues.append(
+            ValidationIssue(
+                "semantic.invalid_item_sequence",
+                "/items",
+                "sequence deve ser contígua, ordenada e iniciar em 1",
+            )
+        )
+    for index, item in enumerate(manifest["items"]):
+        unit_ref = item["knowledge_provenance"]["unit_ref"]
+        if item["source_hash"] != unit_ref["source_digest"]:
+            issues.append(
+                ValidationIssue("semantic.source_digest_mismatch", f"/items/{index}/source_hash", "digest diverge")
+            )
+        if item["content_hash"] != unit_ref["unit_digest"]:
+            issues.append(
+                ValidationIssue("semantic.unit_digest_mismatch", f"/items/{index}/content_hash", "digest diverge")
+            )
+        if item["materialized_artifact_ref"]["content_digest"] != item["content_hash"]:
+            issues.append(
+                ValidationIssue(
+                    "semantic.artifact_digest_mismatch",
+                    f"/items/{index}/materialized_artifact_ref/content_digest",
+                    "digest diverge",
+                )
+            )
+    budget = manifest["budget"]
+    if budget["available_input_tokens"] != (
+        budget["target_context_limit_tokens"] - budget["reserved_output_tokens"]
+    ):
+        issues.append(
+            ValidationIssue("semantic.invalid_available_budget", "/budget/available_input_tokens", "cálculo diverge")
+        )
+    if budget["materialized_input_tokens"] != sum(item["size"]["tokens"] for item in manifest["items"]):
+        issues.append(
+            ValidationIssue(
+                "semantic.materialized_token_mismatch",
+                "/budget/materialized_input_tokens",
+                "soma dos itens diverge",
+            )
+        )
+    if budget["materialized_input_tokens"] + budget["margin_tokens"] > budget["available_input_tokens"]:
+        issues.append(
+            ValidationIssue("semantic.context_budget_exceeded", "/budget", "contexto excede limite disponível")
+        )
+    return issues
+
+
 def _cycle_issues(tasks: list[dict[str, Any]]) -> list[ValidationIssue]:
     dependencies = {task["task_id"]: task["dependencies"] for task in tasks}
     state: dict[str, int] = {}
