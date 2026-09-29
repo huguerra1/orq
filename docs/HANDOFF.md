@@ -30,15 +30,16 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Fase 3 implementada com MCP Python SDK 2.2.0, `stdio`, JSON canônico, testes em memória e resources concretos somente leitura.
 - Verificações atuais: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
+- Fase 4 especificada com interface de planner, baseline `fixed_template`, PlanningRequest/PlanningRecord e gate central de WorkflowSpec.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Iniciar a Fase 4 pelo Task Planner determinístico:
+Implementar o baseline da Fase 4 já documentado:
 
-1. Definir entrada/saída do planner e separar plano proposto de WorkflowSpec validado.
-2. Começar por planner de fixture/regras, sem chamada a modelo.
-3. Reutilizar `validate_workflow` como gate e registrar erros determinísticos.
+1. Criar schemas fechados de PlanningRequest e PlanningRecord.
+2. Implementar `FixedTemplatePlanner` e wrapper de validação/digest.
+3. Adicionar fixture aceita e casos de mismatch, digest divergente e workflow inválido.
 4. Só depois iniciar o Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
@@ -106,6 +107,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [ADR 0003 — materialização do bundle de contexto](adr/0003-context-bundle-materialization.md).
 - [ADR 0004 — fronteira MCP do conhecimento](adr/0004-mcp-knowledge-boundary.md).
 - [Andamento da Fase 3](phase-3/README.md).
+- [ADR 0005 — interface do planner e baseline fixo](adr/0005-planner-interface-and-fixed-baseline.md).
+- [Andamento da Fase 4](phase-4/README.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

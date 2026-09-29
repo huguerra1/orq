@@ -33,6 +33,7 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 13. [Revisão cruzada e fechamento do baseline v0.1](docs/phase-1/cross-review.md).
 14. [Andamento da Fase 2](docs/phase-2/README.md).
 15. [Andamento da Fase 3](docs/phase-3/README.md).
+16. [Andamento da Fase 4](docs/phase-4/README.md).
 
 ## Executar os contratos
 
@@ -58,4 +59,4 @@ Para executar a fixture completa do Vault, use três saídas novas:
 
 ## Próxima entrega
 
-Especificar e implementar o Task Planner determinístico da Fase 4. Jev permanece posterior ao planner e ao roteador determinístico.
+Implementar o Task Planner determinístico já especificado na [Fase 4](docs/phase-4/README.md). Jev permanece posterior ao planner e ao roteador determinístico.
