@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/routing-decision.schema.json",
+  "title": "ORQ RoutingDecision v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "routing_decision_id", "run_id", "workflow_ref", "task_id",
+    "candidate_attempt_number", "created_at", "catalog_snapshot_ref",
+    "execution_policy_snapshot_ref", "routing_policy_snapshot", "routing_input",
+    "candidates", "recommendation", "effective_selection", "decision_status",
+    "preflight_checks", "usage_record_refs", "provider_extension", "record_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "routing_decision_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "workflow_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "task_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "candidate_attempt_number": {"type": "integer", "minimum": 1},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "catalog_snapshot_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "execution_policy_snapshot_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "routing_policy_snapshot": {"$ref": "routing-policy.schema.json"},
+    "routing_input": {
+      "type": "object",
+      "required": ["snapshot", "input_hash", "size_bytes", "eligible_target_ids"],
+      "properties": {
+        "snapshot": {"type": "object"},
+        "input_hash": {"$ref": "common.schema.json#/$defs/digest"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "eligible_target_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+      },
+      "additionalProperties": false
+    },
+    "candidates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/candidate"}},
+    "recommendation": {"oneOf": [{"$ref": "#/$defs/recommendation"}, {"type": "null"}]},
+    "effective_selection": {"oneOf": [{"$ref": "#/$defs/selection"}, {"type": "null"}]},
+    "decision_status": {"enum": ["selected", "no_eligible_target", "policy_rejected", "low_confidence", "invalid_response", "provider_error", "preflight_rejected"]},
+    "preflight_checks": {"type": "array", "items": {"$ref": "#/$defs/preflight"}},
+    "usage_record_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+    "provider_extension": {"type": ["object", "null"]},
+    "record_hash": {"$ref": "common.schema.json#/$defs/digest"}
+  },
+  "$defs": {
+    "reason": {
+      "type": "object",
+      "required": ["code", "subject", "evidence_refs"],
+      "properties": {
+        "code": {"$ref": "common.schema.json#/$defs/identifier"},
+        "subject": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "evidence_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}}
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["target_ref", "input_position", "eligible", "reasons", "rank"],
+      "properties": {
+        "target_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "input_position": {"type": "integer", "minimum": 1},
+        "eligible": {"type": "boolean"},
+        "reasons": {"type": "array", "items": {"$ref": "#/$defs/reason"}},
+        "rank": {"type": ["integer", "null"], "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["target_id", "confidence", "scores", "engine_call_id", "requested_model_id", "resolved_model_id"],
+      "properties": {
+        "target_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "confidence": {"type": ["string", "null"], "pattern": "^(0(\\.[0-9]+)?|1(\\.0+)?)$"},
+        "scores": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "pattern": "^(0(\\.[0-9]+)?|1(\\.0+)?)$"}
+        },
+        "engine_call_id": {"type": ["string", "null"], "minLength": 1},
+        "requested_model_id": {"type": ["string", "null"], "minLength": 1},
+        "resolved_model_id": {"type": ["string", "null"], "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "required": ["recommended_target_id", "selected_target_id", "used_fallback", "rule"],
+      "properties": {
+        "recommended_target_id": {"type": ["string", "null"], "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"},
+        "selected_target_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "used_fallback": {"type": "boolean"},
+        "rule": {"$ref": "common.schema.json#/$defs/identifier"}
+      },
+      "additionalProperties": false
+    },
+    "preflight": {
+      "type": "object",
+      "required": ["control", "status", "observed_at", "evidence_refs"],
+      "properties": {
+        "control": {"$ref": "common.schema.json#/$defs/identifier"},
+        "status": {"enum": ["passed", "failed", "unknown"]},
+        "observed_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+        "evidence_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

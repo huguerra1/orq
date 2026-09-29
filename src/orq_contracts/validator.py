@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Iterable
 
 from .schemas import validator_for
+from .canonical import canonical_digest, canonicalize
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,8 +201,6 @@ def validate_planning_record(record: Any) -> list[ValidationIssue]:
     issues = _structural_issues(record, "planning_record")
     if issues:
         return issues
-    from .canonical import canonical_digest
-
     if canonical_digest(record["planning_request_snapshot"]) != record["request_hash"]:
         issues.append(
             ValidationIssue("semantic.request_hash_mismatch", "/request_hash", "digest da solicitação diverge")
@@ -226,6 +225,83 @@ def validate_planning_record(record: Any) -> list[ValidationIssue]:
         issues.append(
             ValidationIssue("semantic.unexpected_proposal", "/proposed_workflow_ref", "status não possui proposta")
         )
+    return issues
+
+
+def validate_routing_target_catalog(catalog: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(catalog, "routing_target_catalog")
+    if issues:
+        return issues
+    issues.extend(_duplicate_issues(catalog["targets"], "target_id", "/targets"))
+    unsigned = {key: value for key, value in catalog.items() if key != "catalog_hash"}
+    if canonical_digest(unsigned) != catalog["catalog_hash"]:
+        issues.append(ValidationIssue("semantic.catalog_hash_mismatch", "/catalog_hash", "digest diverge"))
+    for target_index, target in enumerate(catalog["targets"]):
+        for field in ("capabilities", "controls"):
+            issues.extend(_duplicate_issues(target[field], "id", f"/targets/{target_index}/{field}"))
+    return issues
+
+
+def validate_routing_policy(policy: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(policy, "routing_policy")
+    if issues:
+        return issues
+    mode = policy["mode"]
+    if mode == "fixed" and policy["fixed_target_id"] is None:
+        issues.append(ValidationIssue("semantic.fixed_target_required", "/fixed_target_id", "modo fixed exige alvo"))
+    if mode == "typed_decision":
+        if policy["decision_engine_ref"] is None:
+            issues.append(ValidationIssue("semantic.engine_required", "/decision_engine_ref", "motor tipado ausente"))
+        if policy["confidence_threshold"] is None:
+            issues.append(ValidationIssue("semantic.threshold_required", "/confidence_threshold", "limiar ausente"))
+    uses_fixed_fallback = "fixed_fallback" in {
+        policy["low_confidence_action"],
+        policy["invalid_response_action"],
+        policy["provider_error_action"],
+    }
+    if uses_fixed_fallback and policy["fallback_target_id"] is None:
+        issues.append(
+            ValidationIssue("semantic.fallback_target_required", "/fallback_target_id", "fallback fixo exige alvo")
+        )
+    return issues
+
+
+def validate_routing_decision(decision: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(decision, "routing_decision")
+    if issues:
+        return issues
+    unsigned = {key: value for key, value in decision.items() if key != "record_hash"}
+    if canonical_digest(unsigned) != decision["record_hash"]:
+        issues.append(ValidationIssue("semantic.record_hash_mismatch", "/record_hash", "digest diverge"))
+    routing_input = decision["routing_input"]
+    if canonical_digest(routing_input["snapshot"]) != routing_input["input_hash"]:
+        issues.append(ValidationIssue("semantic.routing_input_hash_mismatch", "/routing_input/input_hash", "digest diverge"))
+    if len(canonicalize(routing_input["snapshot"])) != routing_input["size_bytes"]:
+        issues.append(ValidationIssue("semantic.routing_input_size_mismatch", "/routing_input/size_bytes", "tamanho diverge"))
+    target_ids = [candidate["target_ref"]["id"] for candidate in decision["candidates"]]
+    if len(target_ids) != len(set(target_ids)):
+        issues.append(ValidationIssue("semantic.duplicate_target", "/candidates", "destino duplicado"))
+    eligible = {candidate["target_ref"]["id"] for candidate in decision["candidates"] if candidate["eligible"]}
+    ranked_eligible = sorted(
+        (candidate for candidate in decision["candidates"] if candidate["eligible"]),
+        key=lambda candidate: candidate["rank"],
+    )
+    if routing_input["eligible_target_ids"] != [
+        candidate["target_ref"]["id"] for candidate in ranked_eligible
+    ]:
+        issues.append(ValidationIssue("semantic.routing_input_mismatch", "/routing_input", "opções elegíveis divergem"))
+    if [option.get("target_id") for option in routing_input["snapshot"].get("options", [])] != routing_input["eligible_target_ids"]:
+        issues.append(ValidationIssue("semantic.routing_snapshot_options_mismatch", "/routing_input/snapshot/options", "opções divergem"))
+    selection = decision["effective_selection"]
+    if selection is not None and selection["selected_target_id"] not in eligible:
+        issues.append(ValidationIssue("semantic.ineligible_selection", "/effective_selection", "alvo não elegível"))
+    if decision["decision_status"] == "selected":
+        if selection is None or not decision["preflight_checks"]:
+            issues.append(ValidationIssue("semantic.invalid_selected_decision", "/decision_status", "seleção exige preflight"))
+        elif any(check["status"] != "passed" for check in decision["preflight_checks"]):
+            issues.append(ValidationIssue("semantic.failed_selected_preflight", "/preflight_checks", "preflight não passou"))
+    if decision["decision_status"] == "preflight_rejected" and selection is not None:
+        issues.append(ValidationIssue("semantic.selection_after_failed_preflight", "/effective_selection", "seleção deve ser nula"))
     return issues
 
 

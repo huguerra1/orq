@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/routing-request.schema.json",
+  "title": "ORQ RoutingRequest v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "routing_request_id", "run_id", "workflow_ref", "task_snapshot",
+    "candidate_attempt_number", "catalog_ref", "execution_policy_snapshot_ref",
+    "routing_policy_ref", "estimated_context_input_tokens", "required_output_tokens",
+    "required_classification", "required_permission_ids", "required_control_ids", "created_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "routing_request_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "workflow_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "task_snapshot": {"$ref": "task.schema.json"},
+    "candidate_attempt_number": {"type": "integer", "minimum": 1},
+    "catalog_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "execution_policy_snapshot_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "routing_policy_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "estimated_context_input_tokens": {"type": "integer", "minimum": 0},
+    "required_output_tokens": {"type": "integer", "minimum": 1},
+    "required_classification": {"enum": ["public", "internal", "confidential", "restricted", "unknown"]},
+    "required_permission_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+    "required_control_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"}
+  },
+  "additionalProperties": false
+}

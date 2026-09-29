@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/routing-target-catalog.schema.json",
+  "title": "ORQ RoutingTargetCatalog v0.1",
+  "type": "object",
+  "required": ["schema_version", "catalog_id", "version", "created_at", "targets", "catalog_hash"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "catalog_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "targets": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/target"}},
+    "catalog_hash": {"$ref": "common.schema.json#/$defs/digest"}
+  },
+  "$defs": {
+    "declaration": {
+      "type": "object",
+      "required": ["id", "support", "evidence_refs"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "support": {"enum": ["supported", "unsupported", "unknown"]},
+        "evidence_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/versionedRef"}}
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "target_id", "version", "status", "model_ref", "provider_ref", "runtime_ref",
+        "executor_ref", "execution_config_ref", "supported_role_refs", "supported_task_types",
+        "capabilities", "permission_ids", "controls", "output_contract_refs",
+        "accepted_classifications", "context_limit_tokens", "max_output_tokens", "priority",
+        "routing_description", "specialization_tags"
+      ],
+      "properties": {
+        "target_id": {"$ref": "common.schema.json#/$defs/identifier"},
+        "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "status": {"enum": ["active", "deprecated", "disabled"]},
+        "model_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "provider_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "runtime_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "executor_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "execution_config_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+        "supported_role_refs": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+        "supported_task_types": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "capabilities": {"type": "array", "items": {"$ref": "#/$defs/declaration"}},
+        "permission_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}},
+        "controls": {"type": "array", "items": {"$ref": "#/$defs/declaration"}},
+        "output_contract_refs": {"type": "array", "minItems": 1, "items": {"$ref": "common.schema.json#/$defs/versionedRef"}},
+        "accepted_classifications": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["public", "internal", "confidential", "restricted"]}
+        },
+        "context_limit_tokens": {"type": ["integer", "null"], "minimum": 1},
+        "max_output_tokens": {"type": ["integer", "null"], "minimum": 1},
+        "priority": {"type": "integer", "minimum": 0},
+        "routing_description": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+        "specialization_tags": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O baseline documental v0.1 e as Fases 2–4 estão concluídos. Já existem contratos executáveis, Vault/CLI, MCP somente leitura e Task Planner determinístico; ainda não há runner do Orchestrator nem chamadas a provedores.
+O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis, Vault/CLI, MCP somente leitura, Task Planner determinístico e Model Router com baselines `fixed`/`rules` e adaptador opcional TypeSafe/Jev; ainda não há runner do Orchestrator nem chamadas reais a provedores.
 
 ## Princípios
 
@@ -34,6 +34,7 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 14. [Andamento da Fase 2](docs/phase-2/README.md).
 15. [Andamento da Fase 3](docs/phase-3/README.md).
 16. [Andamento da Fase 4](docs/phase-4/README.md).
+17. [Andamento da Fase 5](docs/phase-5/README.md).
 
 ## Executar os contratos
 
@@ -59,4 +60,4 @@ Para executar a fixture completa do Vault, use três saídas novas:
 
 ## Próxima entrega
 
-Especificar e implementar o Model Router determinístico da Fase 5; depois encaixar TypeSafe/Jev atrás da interface de decisão tipada.
+Especificar a Fase 6 e então implementar o primeiro executor, a persistência mínima e o runner sequencial do DAG.

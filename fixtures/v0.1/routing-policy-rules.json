@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "routing_policy_id": "routing-policy-rules",
+  "version": "1",
+  "mode": "rules",
+  "fixed_target_id": null,
+  "ranking_rule": "priority_then_id",
+  "decision_engine_ref": null,
+  "input_template_ref": {"id": "routing-input", "version": "1", "content_digest": {"algorithm": "sha256", "value": "7777777777777777777777777777777777777777777777777777777777777777"}},
+  "confidence_threshold": null,
+  "low_confidence_action": "rules_fallback",
+  "invalid_response_action": "rules_fallback",
+  "provider_error_action": "rules_fallback",
+  "fallback_target_id": null
+}

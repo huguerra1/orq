@@ -31,7 +31,9 @@ rfc8785==0.1.4
 rpds-py==2026.6.3
 sse-starlette==3.5.0
 starlette==1.7.0
+tenacity==9.1.4
 truststore==0.10.4
+typesafe-sdk==0.7.2
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.54.0

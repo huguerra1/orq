@@ -8,7 +8,7 @@ Leia [AGENTS.md](../AGENTS.md), este resumo e o [índice da Fase 1](phase-1/READ
 
 ## Objetivo e método
 
-Criar uma plataforma experimental de orquestração de agentes baseada em MCP, independente de provedores. Integrações desejadas: Codex, Claude e Antigravity/AGY, sem SDK ou versão concreta escolhidos ainda.
+Criar uma plataforma experimental de orquestração de agentes baseada em MCP, independente de provedores. Integrações de execução desejadas: Codex, Claude e Antigravity/AGY, ainda sem SDK ou versão concreta escolhidos; o SDK TypeSafe 0.7.2 foi escolhido apenas para o Router opcional.
 
 O usuário pediu arquitetura antes de implementação: problema, alternativas, recomendação, interfaces, schemas, riscos e testes. Apoiou o plano incremental. A implementação começa por schemas, validadores e testes após fechar a Fase 1; não construir o sistema inteiro antecipadamente.
 
@@ -16,11 +16,11 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1 e Fases 2–4 concluídos; ainda não há runner do Orchestrator nem integração real com modelo.
+- Baseline documental v0.1 e Fases 2–5 concluídos; ainda não há runner do Orchestrator nem chamada real de modelo.
 - Fase 1 concluiu contratos; Fase 2 entregou contratos/Vault; Fase 3 expôs conhecimento por MCP; Fase 4 entregou planner fixo e admissão central do WorkflowSpec.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
-- TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
+- TypeSafe AI/Jev foi incorporado como adaptador opcional de `DecisionEngine`, atrás de uma interface independente de provedor. O SDK oficial 0.7.2 está fixado; nenhuma credencial foi adicionada nem houve chamada real.
 - ADR 0001 escolheu Python 3.12, JSON Schema Draft 2020-12, jsonschema/pytest e RFC 8785/JCS.
 - Implementados schemas comuns, TaskSpec/WorkflowSpec e conhecimento, validação semântica, CLI, fixtures e digest SHA-256 canônico.
 - Implementados parsing seguro de frontmatter, paths confinados, ingestão por digest, chunking por headings e snapshot com revogação append-only.
@@ -31,17 +31,18 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Fase 3 implementada com MCP Python SDK 2.2.0, `stdio`, JSON canônico, testes em memória e resources concretos somente leitura.
 - Verificações atuais: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
 - Fase 4 implementada com schemas, interface `Planner`, `FixedTemplatePlanner`, PlanningRecord e gate central de WorkflowSpec.
-- Verificações atuais: 67 testes aprovados e dependências consistentes.
+- Fase 5 implementou schemas de roteamento, filtro obrigatório, baselines `fixed`/`rules`, interface tipada, transporte simulado e adaptador opcional Jev.
+- Verificações atuais: 91 testes aprovados, inclusive smoke MCP fora da sandbox; dependências consistentes.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Iniciar a Fase 5 pelo Model Router determinístico e sua interface de ranking:
+Iniciar a especificação da Fase 6 antes de código de execução:
 
-1. Transformar RoutingDecision, catálogo de destinos e RoutingPolicy em schemas executáveis.
-2. Implementar filtro obrigatório e baselines `fixed`/`rules` antes de qualquer motor externo.
-3. Definir a interface `DecisionEngine` tipada e transporte simulado.
-4. Só então criar o adaptador TypeSafe/Jev, sem dar a ele poder de elegibilidade, fallback ou despacho.
+1. Escolher o primeiro executor/runtime e documentar seus controles realmente verificáveis.
+2. Formalizar RunManifest, AttemptRecord, DispatchIntent, EvaluationReport e armazenamento append-only mínimo.
+3. Definir a máquina sequencial do DAG, admissão, timeout, reconciliação e retry sem repetir efeito externo indeterminado.
+4. Implementar um executor simulado antes do adaptador real e provar o fluxo planner → router → contexto → tentativa → avaliação.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -110,6 +111,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 3](phase-3/README.md).
 - [ADR 0005 — interface do planner e baseline fixo](adr/0005-planner-interface-and-fixed-baseline.md).
 - [Andamento da Fase 4](phase-4/README.md).
+- [ADR 0006 — fronteira do Router e decisão tipada](adr/0006-router-boundary-and-typed-decision.md).
+- [Andamento da Fase 5](phase-5/README.md).
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
@@ -133,7 +136,7 @@ A sandbox apresentou falha bwrap antes de executar comandos e patches. Nesta ses
 
 Abrir este repositório no ambiente de trabalho e enviar:
 
-> Leia AGENTS.md e docs/HANDOFF.md. Continue a Fase 1 pelo próximo passo registrado. Responda de forma curta.
+> Leia AGENTS.md e docs/HANDOFF.md. Continue pelo próximo passo registrado. Responda de forma curta.
 
 Para outros ambientes sem leitura automática dessas instruções, fornecer explicitamente esses dois arquivos. Em outro clone, conferir/configurar a identidade Git local: .git/config não é transportado pelo Git.
 

@@ -20,6 +20,9 @@ dependencies = [
 dev = [
   "pytest==9.1.1",
 ]
+jev = [
+  "typesafe-sdk==0.7.2",
+]
 
 [project.scripts]
 orq-contracts = "orq_contracts.cli:main"

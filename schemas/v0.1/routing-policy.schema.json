@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/routing-policy.schema.json",
+  "title": "ORQ RoutingPolicy v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "routing_policy_id", "version", "mode", "fixed_target_id",
+    "ranking_rule", "decision_engine_ref", "input_template_ref", "confidence_threshold",
+    "low_confidence_action", "invalid_response_action", "provider_error_action", "fallback_target_id"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "routing_policy_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "mode": {"enum": ["fixed", "rules", "typed_decision"]},
+    "fixed_target_id": {"type": ["string", "null"], "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"},
+    "ranking_rule": {"enum": ["priority_then_id"]},
+    "decision_engine_ref": {
+      "oneOf": [{"$ref": "common.schema.json#/$defs/versionedRef"}, {"type": "null"}]
+    },
+    "input_template_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "confidence_threshold": {
+      "type": ["string", "null"],
+      "pattern": "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    },
+    "low_confidence_action": {"enum": ["rules_fallback", "fixed_fallback", "no_dispatch"]},
+    "invalid_response_action": {"enum": ["rules_fallback", "fixed_fallback", "no_dispatch"]},
+    "provider_error_action": {"enum": ["rules_fallback", "fixed_fallback", "no_dispatch"]},
+    "fallback_target_id": {"type": ["string", "null"], "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"}
+  },
+  "additionalProperties": false
+}

@@ -12,6 +12,10 @@ def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
         "knowledge_source",
         "planning_record",
         "planning_request",
+        "routing_decision",
+        "routing_policy",
+        "routing_request",
+        "routing_target_catalog",
         "task",
         "workflow",
     }

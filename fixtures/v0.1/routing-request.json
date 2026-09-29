@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1",
+  "routing_request_id": "request-T1-1",
+  "run_id": "run-1",
+  "workflow_ref": {"id": "workflow-report", "version": "1", "content_digest": {"algorithm": "sha256", "value": "8888888888888888888888888888888888888888888888888888888888888888"}},
+  "task_snapshot": {
+    "schema_version": "0.1",
+    "task_id": "T1",
+    "objective": "Produzir um relatório verificável",
+    "task_type": "analysis",
+    "agent_role": {"id": "researcher", "version": "1", "content_digest": {"algorithm": "sha256", "value": "1111111111111111111111111111111111111111111111111111111111111111"}},
+    "requirements": [{"requirement_id": "REQ1", "description": "O relatório deve cobrir o objetivo", "required": true}],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {"max_attempts": 2, "attempt_timeout_ms": 60000},
+    "expected_output": [{
+      "output_id": "report",
+      "artifact_type": "report",
+      "description": "Relatório estruturado",
+      "content_contract_ref": {"id": "report-contract", "version": "1", "content_digest": {"algorithm": "sha256", "value": "2222222222222222222222222222222222222222222222222222222222222222"}}
+    }],
+    "knowledge_requirements": [],
+    "evaluation_criteria": [{
+      "criterion_id": "CRIT1",
+      "requirement_ids": ["REQ1"],
+      "method": "schema_validation",
+      "pass_rule": {"kind": "valid"},
+      "required": true,
+      "verifier_ref": null
+    }]
+  },
+  "candidate_attempt_number": 1,
+  "catalog_ref": {"id": "routing-catalog", "version": "1", "content_digest": {"algorithm": "sha256", "value": "5f1e7569237f476b7e1a11d1c3f79bcb1f2522ef70dad4d9bf711ced245aaa5a"}},
+  "execution_policy_snapshot_ref": {"id": "execution-policy", "version": "1", "content_digest": {"algorithm": "sha256", "value": "6666666666666666666666666666666666666666666666666666666666666666"}},
+  "routing_policy_ref": {"id": "routing-policy-rules", "version": "1", "content_digest": {"algorithm": "sha256", "value": "f78183901a6ab15081544792a310d5f1e086a475f310a1664eb7ff91c327f4d0"}},
+  "estimated_context_input_tokens": 1000,
+  "required_output_tokens": 1000,
+  "required_classification": "internal",
+  "required_permission_ids": ["workspace-read"],
+  "required_control_ids": ["timeout"],
+  "created_at": "2026-09-29T14:00:01Z"
+}

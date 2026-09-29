@@ -20,6 +20,10 @@ SCHEMA_FILES = {
     "knowledge_source": "knowledge-source.schema.json",
     "planning_record": "planning-record.schema.json",
     "planning_request": "planning-request.schema.json",
+    "routing_decision": "routing-decision.schema.json",
+    "routing_policy": "routing-policy.schema.json",
+    "routing_request": "routing-request.schema.json",
+    "routing_target_catalog": "routing-target-catalog.schema.json",
     "task": "task.schema.json",
     "workflow": "workflow.schema.json",
 }
