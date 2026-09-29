@@ -18,6 +18,8 @@ SCHEMA_FILES = {
     "knowledge_catalog": "knowledge-catalog.schema.json",
     "knowledge_selection": "knowledge-selection.schema.json",
     "knowledge_source": "knowledge-source.schema.json",
+    "planning_record": "planning-record.schema.json",
+    "planning_request": "planning-request.schema.json",
     "task": "task.schema.json",
     "workflow": "workflow.schema.json",
 }

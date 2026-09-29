@@ -196,6 +196,39 @@ def validate_context_manifest(manifest: Any) -> list[ValidationIssue]:
     return issues
 
 
+def validate_planning_record(record: Any) -> list[ValidationIssue]:
+    issues = _structural_issues(record, "planning_record")
+    if issues:
+        return issues
+    from .canonical import canonical_digest
+
+    if canonical_digest(record["planning_request_snapshot"]) != record["request_hash"]:
+        issues.append(
+            ValidationIssue("semantic.request_hash_mismatch", "/request_hash", "digest da solicitação diverge")
+        )
+    unsigned = {key: value for key, value in record.items() if key != "record_hash"}
+    if canonical_digest(unsigned) != record["record_hash"]:
+        issues.append(
+            ValidationIssue("semantic.record_hash_mismatch", "/record_hash", "digest do registro diverge")
+        )
+    valid = record["validation_report"]["valid"]
+    proposed = record["proposed_workflow_ref"]
+    status = record["status"]
+    if status == "accepted" and (not valid or proposed is None):
+        issues.append(
+            ValidationIssue("semantic.invalid_accepted_plan", "/status", "plano aceito precisa ser válido e identificado")
+        )
+    if status != "accepted" and valid:
+        issues.append(
+            ValidationIssue("semantic.invalid_planning_status", "/status", "status não aceito não pode ser válido")
+        )
+    if status in {"error", "not_applicable"} and proposed is not None:
+        issues.append(
+            ValidationIssue("semantic.unexpected_proposal", "/proposed_workflow_ref", "status não possui proposta")
+        )
+    return issues
+
+
 def _cycle_issues(tasks: list[dict[str, Any]]) -> list[ValidationIssue]:
     dependencies = {task["task_id"]: task["dependencies"] for task in tasks}
     state: dict[str, int] = {}

@@ -16,8 +16,8 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1, Fase 2 executável e MCP local da Fase 3 concluídos; ainda não há Orchestrator executável nem integração real com modelo.
-- Fase 1 concluiu os contratos documentais; a Fase 2 entregou schemas iniciais, validadores, fixtures, CLI e Vault local; a Fase 3 expôs conhecimento exato e somente leitura por MCP.
+- Baseline documental v0.1 e Fases 2–4 concluídos; ainda não há runner do Orchestrator nem integração real com modelo.
+- Fase 1 concluiu contratos; Fase 2 entregou contratos/Vault; Fase 3 expôs conhecimento por MCP; Fase 4 entregou planner fixo e admissão central do WorkflowSpec.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
@@ -30,17 +30,18 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Fase 3 implementada com MCP Python SDK 2.2.0, `stdio`, JSON canônico, testes em memória e resources concretos somente leitura.
 - Verificações atuais: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
-- Fase 4 especificada com interface de planner, baseline `fixed_template`, PlanningRequest/PlanningRecord e gate central de WorkflowSpec.
+- Fase 4 implementada com schemas, interface `Planner`, `FixedTemplatePlanner`, PlanningRecord e gate central de WorkflowSpec.
+- Verificações atuais: 67 testes aprovados e dependências consistentes.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Implementar o baseline da Fase 4 já documentado:
+Iniciar a Fase 5 pelo Model Router determinístico e sua interface de ranking:
 
-1. Criar schemas fechados de PlanningRequest e PlanningRecord.
-2. Implementar `FixedTemplatePlanner` e wrapper de validação/digest.
-3. Adicionar fixture aceita e casos de mismatch, digest divergente e workflow inválido.
-4. Só depois iniciar o Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
+1. Transformar RoutingDecision, catálogo de destinos e RoutingPolicy em schemas executáveis.
+2. Implementar filtro obrigatório e baselines `fixed`/`rules` antes de qualquer motor externo.
+3. Definir a interface `DecisionEngine` tipada e transporte simulado.
+4. Só então criar o adaptador TypeSafe/Jev, sem dar a ele poder de elegibilidade, fallback ou despacho.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 

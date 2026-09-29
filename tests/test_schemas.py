@@ -10,6 +10,8 @@ def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
         "knowledge_catalog",
         "knowledge_selection",
         "knowledge_source",
+        "planning_record",
+        "planning_request",
         "task",
         "workflow",
     }

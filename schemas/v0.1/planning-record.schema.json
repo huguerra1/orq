@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/planning-record.schema.json",
+  "title": "ORQ PlanningRecord v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "planning_record_id", "run_id", "planning_request_snapshot",
+    "request_hash", "planner_ref", "mode", "template_ref", "proposed_workflow_ref",
+    "validation_report", "usage_record_refs", "status", "started_at", "completed_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "planning_record_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "planning_request_snapshot": {"$ref": "planning-request.schema.json"},
+    "request_hash": {"$ref": "common.schema.json#/$defs/digest"},
+    "planner_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "mode": {"enum": ["fixed_template", "rules", "model"]},
+    "template_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "proposed_workflow_ref": {
+      "oneOf": [
+        {"$ref": "common.schema.json#/$defs/versionedRef"},
+        {"type": "null"}
+      ]
+    },
+    "validation_report": {
+      "type": "object",
+      "required": ["valid", "errors", "warnings"],
+      "properties": {
+        "valid": {"type": "boolean"},
+        "errors": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+        "warnings": {"type": "array", "items": {"$ref": "#/$defs/issue"}}
+      },
+      "additionalProperties": false
+    },
+    "usage_record_refs": {
+      "type": "array",
+      "items": {"$ref": "common.schema.json#/$defs/versionedRef"}
+    },
+    "status": {"enum": ["accepted", "rejected", "not_applicable", "error"]},
+    "started_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "completed_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},
+    "record_hash": {"$ref": "common.schema.json#/$defs/digest"}
+  },
+  "$defs": {
+    "issue": {
+      "type": "object",
+      "required": ["code", "path", "message"],
+      "properties": {
+        "code": {"$ref": "common.schema.json#/$defs/identifier"},
+        "path": {"type": "string"},
+        "message": {"$ref": "common.schema.json#/$defs/nonEmptyText"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,6 @@
 # Fase 4 — Task Planner e admissão do plano
 
-Estado: especificação inicial aceita; implementação ainda não iniciada.
+Estado: concluída em 2026-09-29 com baseline determinístico `fixed_template`.
 
 ## Problema
 
@@ -75,3 +75,12 @@ O wrapper, não o adaptador, aplica `validate_workflow`, calcula hashes e finali
 - escolha de agente/modelo;
 - mutação do DAG durante execução;
 - decomposição concorrente ou scheduling adaptativo.
+
+## Resultado
+
+- Schemas fechados de PlanningRequest e PlanningRecord.
+- `Planner` independente de provedor e `FixedTemplatePlanner` determinístico.
+- Gate central com o validador estrutural/semântico de WorkflowSpec.
+- Hashes canônicos de request, proposta e registro; workflow só é devolvido quando aceito.
+- Fixtures e testes para aceitação, ciclo, incompatibilidade, ausência, digest divergente e adulteração.
+- 67 testes totais aprovados no encerramento da fase.

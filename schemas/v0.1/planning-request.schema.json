@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/planning-request.schema.json",
+  "title": "ORQ PlanningRequest v0.1",
+  "type": "object",
+  "required": [
+    "schema_version", "planning_request_id", "run_id", "project_id", "objective",
+    "workflow_template_ref", "planner_policy_ref", "created_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "planning_request_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "project_id": {"$ref": "common.schema.json#/$defs/identifier"},
+    "objective": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
+    "workflow_template_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "planner_policy_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+    "created_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"}
+  },
+  "additionalProperties": false
+}
