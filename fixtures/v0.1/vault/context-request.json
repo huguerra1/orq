@@ -1,0 +1,16 @@
+{
+  "routing_decision_ref": {
+    "id": "routing-run-fixture-T1-1",
+    "version": "1",
+    "content_digest": {"algorithm": "sha256", "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+  },
+  "target_ref": {
+    "id": "executor-fixture",
+    "version": "1",
+    "content_digest": {"algorithm": "sha256", "value": "1111111111111111111111111111111111111111111111111111111111111111"}
+  },
+  "target_context_limit_tokens": 1024,
+  "reserved_output_tokens": 256,
+  "margin_tokens": 64,
+  "provider_context_coverage": "platform_only"
+}

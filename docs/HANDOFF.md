@@ -16,8 +16,8 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- Baseline documental v0.1 concluído; contratos iniciais e recuperação lexical do Vault são executáveis, mas ainda não há Orchestrator, MCP ou integração real com modelo.
-- Fase 1 concluída como baseline documental v0.1; a Fase 2 está em implementação incremental.
+- Baseline documental v0.1 e Fase 2 executável concluídos; ainda não há Orchestrator, MCP ou integração real com modelo.
+- Fase 1 concluiu os contratos documentais; a Fase 2 entregou schemas iniciais, validadores, fixtures, CLI e Vault local.
 - Aceitos após revisão cruzada: TaskSpec, WorkflowSpec, ciclo, perfis, RoutingDecision, ContextManifest, ExecutionPolicy, artefatos, registros de execução/avaliação e metadata de conhecimento do Vault.
 - Especificados 83 cenários gerais, oito casos de perfis, dez de roteamento/contexto, 12 de política, 14 de artefatos, 16 de registros e 17 de conhecimento. Não são testes executados.
 - TypeSafe AI/Jev foi incorporado apenas como candidato a motor de ranking tipado, atrás de uma interface independente de provedor. Nenhum SDK, credencial ou integração foi adicionado.
@@ -26,17 +26,18 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Implementados parsing seguro de frontmatter, paths confinados, ingestão por digest, chunking por headings e snapshot com revogação append-only.
 - Implementados filtros de projeto/autoridade/classificação/validade/applicability, BM25 determinístico por requisito, cobertura obrigatória antes da opcional, orçamento global/local e materialização com nova verificação de digest.
 - Implementados ContextManifest fechado e bundle JSON canônico separado, com ordem, procedência, digests cruzados e orçamento do destino.
-- Verificações feitas: 50 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Implementadas fixtures reais e CLI atômica de catálogo, seleção e contexto, sem sobrescrita implícita.
+- Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Completar as interfaces operacionais da Fase 2, ainda sem integrar agentes, MCP ou Jev:
+Iniciar a Fase 3 pelo contrato mínimo do servidor MCP de conhecimento:
 
-1. Adicionar fixtures reais do Vault em disco.
-2. Expor catálogo, seleção e contexto pela CLI sem permitir caminhos fora das raízes informadas.
-3. Fechar os testes executáveis e o índice da Fase 2.
-4. Só depois iniciar MCP.
+1. Definir transporte local, lifecycle, limites e modelo de erro do MCP.
+2. Expor somente operações pequenas de consulta/materialização; seleção e política continuam no núcleo.
+3. Testar o servidor com transporte em memória/stdio antes de qualquer integração com agente.
+4. Só depois iniciar Task Planner e Model Router; TypeSafe/Jev continua atrás de `rank_candidates`.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 

@@ -2,7 +2,7 @@
 
 Plataforma experimental de orquestração de agentes de IA com ferramentas e conhecimento acessíveis por MCP.
 
-O baseline documental v0.1 da Fase 1 está concluído. A Fase 2 já possui schemas, validadores, fixtures, CLI e recuperação lexical segura do Vault; ainda não há Orchestrator, MCP ou chamadas a provedores.
+O baseline documental v0.1 da Fase 1 e a Fase 2 executável estão concluídos. Já existem schemas, validadores, fixtures, CLI e recuperação lexical segura do Vault; ainda não há Orchestrator, MCP ou chamadas a provedores.
 
 ## Princípios
 
@@ -47,6 +47,14 @@ python3 -m venv .venv
 
 As dependências resolvidas do ambiente verificado também estão em `requirements.lock`.
 
+Para executar a fixture completa do Vault, use três saídas novas:
+
+```bash
+.venv/bin/orq-contracts vault catalog --root fixtures/v0.1/vault --definition fixtures/v0.1/vault/catalog-definition.json --output /tmp/orq-catalog.json
+.venv/bin/orq-contracts vault select --root fixtures/v0.1/vault --catalog /tmp/orq-catalog.json --request fixtures/v0.1/vault/selection-request.json --output /tmp/orq-selection.json
+.venv/bin/orq-contracts vault context --root fixtures/v0.1/vault --catalog /tmp/orq-catalog.json --selection /tmp/orq-selection.json --request fixtures/v0.1/vault/context-request.json --output-dir /tmp/orq-context
+```
+
 ## Próxima entrega
 
-Adicionar fixtures em disco e CLI para catálogo, seleção e ContextManifest; depois fechar a Fase 2. MCP e Jev permanecem posteriores a esse núcleo.
+Definir e implementar o servidor MCP mínimo de conhecimento sobre as operações locais já testadas. Jev permanece posterior ao Task Planner e ao roteador determinístico.

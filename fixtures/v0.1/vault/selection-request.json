@@ -1,0 +1,44 @@
+{
+  "requirements": [
+    {
+      "knowledge_requirement_id": "K-architecture",
+      "subject": "aplicação modular DAG sequencial",
+      "required": true,
+      "allowed_kinds": ["project"],
+      "required_authority_scopes": ["project_architecture"],
+      "source_refs": [],
+      "applicability_filters": {
+        "topics": ["arquitetura"],
+        "paths": ["src/orq/**"],
+        "domain": "orchestration",
+        "roles": ["software_architect"],
+        "task_types": ["architecture"]
+      },
+      "freshness": null,
+      "coverage_rule": "at_least_one",
+      "max_context_tokens": 256
+    }
+  ],
+  "query": "definir arquitetura modular segura",
+  "run_id": "run-fixture",
+  "workflow_ref": {
+    "id": "workflow-demo",
+    "version": "1",
+    "content_digest": {"algorithm": "sha256", "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}
+  },
+  "task_id": "T1",
+  "candidate_attempt_number": 1,
+  "project_id": "project-demo",
+  "created_at": "2026-09-29T12:00:00Z",
+  "max_tokens": 512,
+  "policy_snapshot_refs": [
+    {
+      "id": "knowledge-selection-policy",
+      "version": "1",
+      "content_digest": {"algorithm": "sha256", "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+    }
+  ],
+  "allowed_collections": [],
+  "max_classification": "internal",
+  "margin_tokens": 32
+}

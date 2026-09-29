@@ -1,6 +1,6 @@
 # Fase 2 — Contratos executáveis e Vault local
 
-Estado: em andamento. Contratos iniciais e recuperação lexical do Vault estão implementados; falta materializar o contexto e expor a CLI do Vault.
+Estado: concluída em 2026-09-29 como baseline executável inicial dos contratos e do Vault local.
 
 ## Escopo
 
@@ -34,24 +34,26 @@ Continuam fora desta fase: MCP, chamadas reais a agentes, Jev, scheduler concorr
 | 2B | Seleção por requisito, cobertura e orçamento global/local | KnowledgeSelectionRecord validado e reproduzível |
 | 2B | Materialização de unidade com nova verificação de digest | Mutação posterior do arquivo é rejeitada |
 | 2B | ContextManifest e bundle ordenado em JSON canônico | Procedência, digests e orçamento validados |
+| 2B | Fixtures reais e CLI de catálogo, seleção e contexto | Cadeia local reproduzível e sem sobrescrita implícita |
 
-Resultado atual: 50 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
+Resultado final: 52 testes aprovados. Isso é evidência local dos incrementos executáveis, não validação de runtime externo.
 
 ## Interfaces atuais
 
 - `orq-contracts validate task <arquivo.json>`
 - `orq-contracts validate workflow <arquivo.json>`
 - `orq-contracts digest <arquivo.json>`
+- `orq-contracts vault catalog --root <vault> --definition <json> --output <json>`
+- `orq-contracts vault select --root <vault> --catalog <json> --request <json> --output <json>`
+- `orq-contracts vault context --root <vault> --catalog <json> --selection <json> --request <json> --output-dir <diretório-novo>`
 - API Python: `validate_task`, `validate_workflow`, `canonicalize` e `canonical_digest`.
 - API Python do Vault: `ingest_markdown_source`, `build_catalog_snapshot`, `select_knowledge` e `materialize_unit`.
 - API Python de contexto: `materialize_knowledge_context` e `validate_context_manifest`.
 
 Erros retornam `code`, JSON Pointer em `path` e `message`. Validação estrutural ocorre antes da semântica para não interpretar documentos malformados.
 
-## Próximos incrementos
+## Encerramento
 
-1. Adicionar fixtures de Vault em disco e CLI de catálogo/seleção/contexto.
-2. Fechar os casos executáveis pendentes da Fase 2.
-3. Só então expor operações pequenas por MCP.
+O gate para MCP está satisfeito: as operações locais têm contratos fechados, fixtures, erros explícitos e testes determinísticos. A Fase 3 deve expor operações pequenas sobre essas funções; MCP não recebe autoridade para alterar catálogo, seleção, política ou estado do Orchestrator.
 
 Parser, layout e ranking inicial foram decididos na [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md). Frontmatter não é fonte de autoridade.
