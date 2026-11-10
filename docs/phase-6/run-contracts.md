@@ -1,6 +1,6 @@
 # Contratos de execução e armazenamento append-only
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas/fixtures do 6A e armazenamento do 6B implementados; projeções e execução permanecem nos incrementos 6C–6E. Resultados verificados no [HANDOFF](../HANDOFF.md). Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas/fixtures do 6A, armazenamento do 6B e projeções/validador do 6C implementados; execução permanece nos incrementos 6D–6E. API e decisões nas [Notas 6C](runner-state-machine.md#notas-de-implementação-6c); resultados no [HANDOFF](../HANDOFF.md). Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
 
 ## Problema
 
