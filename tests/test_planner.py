@@ -18,12 +18,12 @@ COMPLETED_AT = "2026-09-29T13:00:01Z"
 
 @pytest.fixture
 def workflow() -> dict:
-    return json.loads((ROOT / "fixtures" / "v0.1" / "valid" / "workflow-minimal.json").read_text())
+    return json.loads((ROOT / "fixtures" / "v0.1" / "valid" / "workflow-minimal.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture
 def planning_request() -> dict:
-    return json.loads((ROOT / "fixtures" / "v0.1" / "planning-request.json").read_text())
+    return json.loads((ROOT / "fixtures" / "v0.1" / "planning-request.json").read_text(encoding="utf-8"))
 
 
 def planner(workflow: dict) -> FixedTemplatePlanner:

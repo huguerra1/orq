@@ -87,7 +87,7 @@ def test_vault_cli_runs_catalog_selection_and_context_chain(tmp_path, capsys) ->
         ]
     ) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "ok"
-    manifest = json.loads((context / "manifest.json").read_text())
+    manifest = json.loads((context / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["items"][0]["knowledge_provenance"]["selection_id"] == "selection-run-fixture-T1-1"
     assert (context / "bundle.json").read_bytes()
     assert sorted(path.name for path in (context / "items").iterdir()) == [
@@ -114,5 +114,5 @@ def test_vault_cli_does_not_overwrite_output(tmp_path, capsys) -> None:
     )
 
     assert result == 2
-    assert output.read_text() == "preservar"
+    assert output.read_text(encoding="utf-8") == "preservar"
     assert "saída já existe" in json.loads(capsys.readouterr().out)["error"]
