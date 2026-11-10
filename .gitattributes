@@ -1,0 +1,2 @@
+# Os testes verificam digests de fixtures e schemas: os arquivos precisam ter LF em qualquer sistema.
+* text=auto eol=lf

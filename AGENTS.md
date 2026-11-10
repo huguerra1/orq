@@ -40,3 +40,15 @@
 - Conferir diferenças e verificações apropriadas; preservar alterações do usuário.
 - Chaves, tokens e outros segredos não entram no Git.
 - Se o push falhar, relatar claramente o que está apenas local. Respeitar aprovações técnicas exigidas pelo ambiente.
+
+## Regras de autonomia (agentes de IA)
+
+Este repositório faz parte do plano de melhoria contínua do portfólio. O painel geral fica no repositório privado `portfolio-ops`.
+
+1. **Branches:** todo trabalho acontece em `claude/<tema>`, com PRs pequenos e focados. O CI precisa estar verde antes do merge.
+2. **Integração:** os PRs dos agentes entram na branch `dev`. A `main` só muda quando o dono revisar e aprovar o PR `dev → main`.
+3. **Backlog:** o arquivo `ROADMAP.md` é a fonte da verdade. Atualize o status ao final de cada execução.
+4. **Nunca:** apagar o repositório, mudar a visibilidade, commitar segredos (use `.env` + `.env.example`), reescrever o histórico da `main`, fazer force-push em branches que não são suas, ou adicionar serviços e dependências pagas. Esses pontos sempre voltam para o dono.
+5. **Pronto:** quando o checklist de "pronto" do `ROADMAP.md` estiver completo, marque o status como **PRONTO PARA REVISÃO** e passe para o próximo repositório da fila no `portfolio-ops`.
+6. **Commits:** mensagens em português, no imperativo, curtas e descritivas (nada de "atualização").
+7. **Modo autônomo × regras acima:** quando não houver um humano na conversa, a explicação de alternativas e riscos exigida antes de implementar vai para a descrição do PR e para o HANDOFF. Decisões arquiteturais abertas viram uma proposta em `docs/` e não são implementadas até a revisão do dono.

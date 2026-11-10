@@ -23,7 +23,7 @@ def anyio_backend():
 
 @pytest.fixture
 def catalog() -> dict:
-    definition = json.loads((VAULT / "catalog-definition.json").read_text())
+    definition = json.loads((VAULT / "catalog-definition.json").read_text(encoding="utf-8"))
     return build_catalog_snapshot(VAULT, definition)
 
 

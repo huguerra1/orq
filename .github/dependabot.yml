@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Dependências Python (pyproject.toml e requirements.lock).
+  - package-ecosystem: pip
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  # Versões das actions usadas no CI.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
