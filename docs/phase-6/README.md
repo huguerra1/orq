@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incremento 6A implementado (schemas, fixtures e testes); próximo passo: 6B. Runner, executor e CLI ainda não implementados.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incrementos 6A (schemas/fixtures) e 6B (journal/artefatos) implementados, com achados 1–19 da revisão do 6B corrigidos; próximo passo: 6C. Runner, executor e CLI ainda não implementados.
 
 ## Problema
 
@@ -71,24 +71,26 @@ Estas lacunas das fases anteriores têm soluções aceitas na ADR 0007; o 6A for
 | Incremento | Entrega | Gate |
 | --- | --- | --- |
 | 6A — implementado | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis em `tests/test_phase6_schemas.py`; [escolhas de implementação](run-contracts.md#notas-de-implementação-6a) |
-| 6B | Journal append-only e armazenamento de artefatos | Cadeia de digests, sequência contígua, cauda truncada, conflito de idempotência |
+| 6B — implementado | Journal append-only e armazenamento de artefatos | Antes desta correção: suíte completa com 432 aprovados e 1 ignorado; após correções, 119 aprovados e 3 ignorados nos testes de armazenamento; decisões nas [notas do 6B](run-contracts.md#notas-de-implementação-6b) |
 | 6C | Projeções e máquina de estados (validador de transições) | Toda transição da tabela coberta; saltos inválidos rejeitados |
 | 6D | Executor simulado e avaliador determinístico | Roteiros dos cenários S01–S63 executáveis sem rede |
 | 6E | Runner ponta a ponta e CLI aceita `orq run simulate` | Cenário completo reproduzível com o mesmo digest final do journal |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
 
-Revisão do 6A: 276 testes aprovados, oito schemas e 22 fixtures. A matriz do journal cobre os 41 pares agregado/evento permitidos e os 79 proibidos. `validate_instance` acrescenta a verificação local de igualdade de output IDs dos critérios globais, em relatórios e intenções de avaliação; os demais vínculos e transições seguem no 6C. Estes testes não executam os 63 cenários do runner. O resultado da suíte completa e eventuais limitações de ambiente ficam no [HANDOFF](../HANDOFF.md). Nesta sessão não há commit/push, por instrução do usuário.
+Revisão do 6A: 276 testes próprios aprovados, oito schemas e 22 fixtures; suíte completa **366 aprovados e 1 ignorado**, CI verde no PR #8. O orquestrador verificou 6A e 6B antes desta correção com `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`; no 6B, foram **432 aprovados e 1 ignorado**. A matriz do journal cobre os 41 pares agregado/evento permitidos e os 79 proibidos. `validate_instance` acrescenta a verificação local de igualdade de output IDs dos critérios globais, em relatórios e intenções de avaliação; os demais vínculos e transições seguem no 6C. Estes testes não executam os 63 cenários do runner. Resultados no [HANDOFF](../HANDOFF.md). Nesta sessão não há commit/push, por instrução do usuário.
 
 ## Lock órfão (procedimento manual)
 
 Um run só tem um escritor, garantido pelo `run.lock` criado com exclusividade. Se o processo morrer, o lock fica no diretório do run e o runner recusa continuar (`run_locked`). Para retomar:
 
-1. Confirme que nenhum processo `orq` está rodando sobre esse run.
+1. Leia PID, host, horário UTC e UUID em `run.lock` e confirme, no host indicado, que nenhum processo `orq` está rodando sobre esse run.
 2. Apague `runs/<run_id>/run.lock` à mão.
-3. Rode o comando de novo. A abertura verifica a cadeia do journal e descarta, com registro, uma cauda truncada.
+3. Rode o comando de novo. A abertura verifica e sincroniza a cadeia; só descarta cauda sem LF após evento válido, com registro. Linha inválida com LF ou journal só com cauda é erro de integridade.
 
 O runner nunca remove o lock sozinho.
+
+O fechamento normal só libera o lock se o token ainda for o mesmo. Se a persistência ficar indeterminada (escrita parcial ou falha de flush/fsync), o escritor do 6B recusa novos appends e deixa o lock para o procedimento manual acima. Uma linha completa de escrita com falha pode reaparecer confirmada na reabertura; o 6C precisa reconciliar a intenção de despacho sem efeito comprovado. `.pending-*` em `discarded/` ou no armazenamento de artefatos gera `storage_pending_files`, com preservação para inspeção manual.
 
 ## Documentos
 

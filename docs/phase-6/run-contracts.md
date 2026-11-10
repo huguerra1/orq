@@ -1,6 +1,6 @@
 # Contratos de execução e armazenamento append-only
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas e fixtures do incremento 6A implementados; armazenamento e execução permanecem nos incrementos 6B–6E. Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas/fixtures do 6A e armazenamento do 6B implementados; projeções e execução permanecem nos incrementos 6C–6E. Resultados verificados no [HANDOFF](../HANDOFF.md). Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
 
 ## Problema
 
@@ -421,7 +421,7 @@ Uma intenção cuja gravação falhou não gera efeito. É assim que o runner cu
 
 ### Artefatos
 
-Bytes são gravados em arquivo temporário no mesmo diretório, sincronizados e renomeados para `artifacts/sha256/<hex>`. Se o destino já existe, o runner relê e confirma o digest em vez de sobrescrever. `locator` do ArtifactRef é `orq-store:sha256/<hex>`. O evento `artifact_ingested` só é gravado depois do rename.
+Bytes são gravados em arquivo temporário no mesmo diretório e sincronizados. A publicação para `artifacts/sha256/<hex>` usa `os.link` seguido de unlink do temporário no POSIX e rename sem substituição no Windows; depois sincroniza o diretório. Se o destino já existe, sincroniza arquivo e diretório antes de reler e confirmar o digest. `locator` do ArtifactRef é `orq-store:sha256/<hex>`. O evento `artifact_ingested` só é gravado depois da publicação durável.
 
 ### Ordenação
 
@@ -431,16 +431,18 @@ Bytes são gravados em arquivo temporário no mesmo diretório, sincronizados e 
 
 ### Integridade e abertura
 
-Ao abrir um run, o leitor verifica, linha a linha: JSON válido, bytes iguais à forma JCS, schema do envelope e do payload, `event_hash`, `previous_event_hash`, `global_sequence` contíguo e `aggregate_sequence` contíguo.
+Ao abrir um run, o leitor verifica, linha a linha: JSON válido, bytes iguais à forma JCS, schema do envelope e do payload, `event_hash`, `previous_event_hash`, `global_sequence` contíguo e `aggregate_sequence` contíguo. Depois da verificação, sincroniza o journal e o diretório antes de aceitar o estado.
 
-- **Cauda truncada:** se apenas a última linha estiver incompleta (sem `\n` final ou JSON inválido), ela nunca foi confirmada por `fsync` e portanto nenhum efeito dependeu dela. Os bytes são movidos para `discarded/` e o primeiro evento novo é `journal_tail_discarded` com o digest desses bytes.
+- **Decisão do orquestrador em 2026-11-10 — cauda truncada:** somente a última linha **sem `\n` final** pode ser descartada, desde que exista evento anterior válido. Os bytes são preservados e sincronizados em `discarded/` antes do truncate sincronizado; o primeiro evento novo é `journal_tail_discarded` com o digest desses bytes. Um journal só com cauda é recusado com `journal_integrity_error`, sem truncar nem criar auditoria antes do RunIntent.
+- **Linha com LF:** conteúdo inválido com `\n` final, mesmo na última linha, é `journal_integrity_error` e nunca é descartado. Isso inclui JSON inválido, UTF-8 inválido e constantes fora do JSON.
+- **Escrita com falha:** uma linha completa cujo append não retornou sucesso pode reaparecer confirmada após a sincronização na reabertura. Sua presença comprova a intenção, sem comprovar o efeito. O 6C deve reconciliar despachos nessa situação, sem novo despacho da mesma intenção.
 - **Qualquer outra divergência:** `journal_integrity_error`. O runner recusa continuar e não tenta reparo automático.
 - **Digest final:** o `event_hash` da última linha identifica o journal inteiro. Dois runs simulados com mesmo roteiro, fixtures e relógio devem produzir o mesmo digest final.
 
 ### Idempotência
 
-- Mesmo `idempotency_key` com mesmo `payload` (comparado por digest JCS): o append devolve o evento existente e não grava outro.
-- Mesmo `idempotency_key` com `payload` diferente: `idempotency_conflict`, registrado como ErrorRecord no agregado `run`, e o run vai para `stopping`.
+- Mesmo `idempotency_key` com mesmo `payload` (comparado por digest JCS), `event_type`, `aggregate_type` e `aggregate_id`: o append devolve o evento existente e não grava outro.
+- Mesmo `idempotency_key` com divergência em qualquer desses quatro campos: `idempotency_conflict`, registrado pelo consumidor do 6C como ErrorRecord no agregado `run`, e o run vai para `stopping`.
 - A `dispatch_idempotency_key` é reutilizada **no payload** de `reconciliation_requested`; nunca gera outro `dispatch_requested`. O envelope usa outra chave, por exemplo `<run_id>/<dispatch_intent_id>/reconcile/<n>`, estável na repetição da mesma requisição e diferente a cada nova requisição de reconciliação. Usar a chave do despacho no envelope de reconciliação causaria `idempotency_conflict` por payload diferente.
 
 ## Relação com os contratos existentes
@@ -481,6 +483,22 @@ Todas as decisões abertas desta especificação foram aceitas em 2026-11-10; a 
 - JSONL encadeado em vez de SQLite: aceito.
 - Linha do journal: no máximo 1 MiB (`journal_line_too_large`). Artefato simulado: no máximo 8 MiB (`artifact_too_large`).
 - Lock: o run com `run.lock` existente é recusado (`run_locked`); a remoção de lock órfão é manual.
+
+## Notas de implementação 6B
+
+Decisões e correções da revisão independente (achados 1–19), aceitas pelo orquestrador em **2026-11-10**:
+
+- `RunJournal.create/open` recebem `store_root`, `run_id`, `clock()` (timestamp UTC textual) e `event_id_factory(sequence)` opcionais. O ID deve ser exatamente `event-<global_sequence>`, validado tanto no append quanto na leitura; a fábrica injetada deve obedecer ao mesmo contrato. `append` exige a **próxima** `expected_aggregate_sequence`, começando em 1. O agregado é o par `(aggregate_type, aggregate_id)`; em `run`, o ID deve ser o `run_id`. `events` e `final_digest` retornam cópias; journal vazio tem digest `None`. A repetição compara payload, tipo de evento e identidade do agregado antes da sequência/relógio/ID, inclusive após reabertura.
+- `run.lock` contém token com PID, host, horário UTC e UUID. `close` relê o token e só remove o próprio lock; appends e operações de artefatos recusam perda da posse. Escrita parcial ou falha de flush/fsync bloqueia novos appends e preserva o lock para inspeção manual. Falha na aquisição limpa apenas o arquivo que aquela chamada criou; falha de criação desfaz seu journal e diretório vazio. Um run ausente ou sem journal gera `run_not_found` ou `run_incomplete`. Falhas de contrato usam `JournalError`/`ArtifactStoreError` com `.code`; falhas de I/O propagam a exceção do sistema.
+- **Achado 1, decisão de 2026-11-10:** somente a cauda sem LF final admite descarte; linha inválida com LF é corrupção, inclusive no fim. Journal só com cauda, inclusive preservada sem evento anterior, é recusado. Hash, schema, bytes JCS, sequências, run, IDs, chaves JSON duplicadas ou causa inválida também bloqueiam abertura. Bytes descartados são publicados em `discarded/<offset de 20 dígitos>-<sha256>.tail` antes do truncate sincronizado. Arquivos preservados sem auditoria são sincronizados e auditados na próxima abertura. O namespace interno `orq/journal-tail/<nome>` é reservado ao armazenamento.
+- **Achado 3:** depois de verificar a cadeia, a abertura faz fsync do journal e do diretório. O índice em memória de um append só avança depois do fsync; ainda assim, **o último evento de uma escrita com falha pode reaparecer confirmado na reabertura**. O 6C deve tratá-lo como **intenção sem efeito comprovado**; para despacho, deve seguir para **reconciliação**, sem executar novo despacho.
+- `ArtifactStore(journal_aberto).put(bytes)` exige `RunJournal` aberto e dono do lock em cada operação, inclusive `read(locator)`. Retorna `orq-store:sha256/<hex>` após publicação durável e conferência. Temporário e destino têm o mesmo diretório; POSIX usa `os.link` + unlink e Windows mantém rename sem substituição. Destino existente, inclusive em corrida de publicação, recebe fsync do arquivo e do diretório antes da releitura. Arquivo ausente é `artifact_not_found`; bytes reais acima de 8 MiB são `artifact_too_large`, inclusive na leitura. Descritores e eventos `artifact_ingested` serão gravados pelo runner após `put`.
+- Caminhos são confinados à raiz resolvida, inclusive através de symlinks/junctions, com erro `storage_path_escape`. O diretório de run exige a parte portável dos identifiers: sem `:`, ponto final ou nomes reservados do Windows (`invalid_run_id`). Colisão apenas por caixa é recusada por `run_id_case_collision`, em criação e abertura, em qualquer plataforma; os schemas não mudam. `.pending-*` em `discarded/` é reportado na abertura; em `artifacts/sha256/`, na construção/uso do store. Ambos geram `storage_pending_files`, preservando os bytes para inspeção manual.
+- Diretórios usam `fsync` no POSIX e `CreateFileW`/`FlushFileBuffers` com `GENERIC_WRITE` no Windows, sem suprimir erros. O fsync de arquivos existentes também abre handle gravável, exigido pelo CRT Windows. Testes observam sincronização de diretórios e propagação de falhas na criação, publicação, abertura e fechamento; exercitam corrida de publicação POSIX, symlinks/junctions, corrupção interna/final, recuperação interrompida após preservação/truncate/durante auditoria, reabertura após escrita parcial e falha de fsync. Sem dependências novas ou mudanças nos schemas/testes antigos. ErrorRecord/stopping, vínculos entre registros e transições ficam para 6C/6E; envelope e payload usam `validate_instance`.
+
+Histórico verificado pelo orquestrador em 2026-11-10 com `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`: **6A: 366 aprovados e 1 ignorado**, CI verde no PR #8; **6B antes desta revisão: 432 aprovados e 1 ignorado** (66 casos novos). Estes resultados e os testes de armazenamento não implementam nem executam os cenários do runner do 6C–6E.
+
+Após as correções, execução complementar dos três arquivos novos de teste (122 casos, fixture temporária herdando ACLs da worktree): **119 aprovados e 3 ignorados**. Os skips são symlinks sem privilégio no Windows; os três testes de junction passaram. Testes antigos e suas fixtures não foram alterados.
 
 ## Notas de implementação 6A
 
