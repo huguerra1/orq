@@ -5,14 +5,14 @@
 O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este arquivo acompanha o checklist de portfólio.
 
 ## Checklist de "pronto"
-- [ ] CI no GitHub Actions (pytest + validação dos schemas) verde
+- [x] CI no GitHub Actions (pytest em Python 3.12 e 3.13; os testes incluem a validação dos schemas)
 - [x] Testes automatizados (77 testes)
 - [x] Licença (MIT)
 - [ ] README com diagrama da arquitetura (planner → router → contexto → tentativa → avaliação) e exemplo ponta a ponta
 - [ ] Fase 6: runner sequencial do Orchestrator com executor simulado
 - [ ] Primeiro adaptador real de executor/provedor
-- [ ] Dependabot ativo (pip + GitHub Actions)
-- [ ] Descrição e tópicos no repositório (depende do `gh`)
+- [x] Dependabot ativo (pip + GitHub Actions; PRs semanais na `dev`)
+- [x] Descrição e tópicos no repositório
 
 ## Backlog
 1. Workflow de CI: instalar com `requirements.lock`, rodar `pytest` em Python 3.12 e 3.13
@@ -23,3 +23,4 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 
 ## Log
 - 2026-11-10 — Fase 1: licença MIT, CLAUDE.md, regras de autonomia, roadmap.
+- 2026-11-10 — CI (pytest 3.12/3.13) e Dependabot; descrição e tópicos aplicados.
