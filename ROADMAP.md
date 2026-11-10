@@ -6,9 +6,9 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 
 ## Checklist de "pronto"
 - [x] CI no GitHub Actions (pytest em Python 3.12 e 3.13; os testes incluem a validação dos schemas)
-- [x] Testes automatizados (77 testes)
+- [x] Testes automatizados (91 testes)
 - [x] Licença (MIT)
-- [ ] README com diagrama da arquitetura (planner → router → contexto → tentativa → avaliação) e exemplo ponta a ponta
+- [x] README com diagrama da arquitetura (Mermaid) e exemplo ponta a ponta da CLI (validação, digest e cadeia do Vault)
 - [ ] Fase 6: runner sequencial do Orchestrator com executor simulado
 - [ ] Primeiro adaptador real de executor/provedor
 - [x] Dependabot ativo (pip + GitHub Actions; PRs semanais na `dev`)
@@ -24,3 +24,4 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 ## Log
 - 2026-11-10 — Fase 1: licença MIT, CLAUDE.md, regras de autonomia, roadmap.
 - 2026-11-10 — CI (pytest 3.12/3.13) e Dependabot; descrição e tópicos aplicados.
+- 2026-11-10 — README de vitrine: diagrama Mermaid, estado por fase e exemplos reais da CLI (todos conferidos rodando).
