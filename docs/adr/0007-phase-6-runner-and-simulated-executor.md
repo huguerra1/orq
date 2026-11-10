@@ -1,6 +1,6 @@
 # ADR 0007 — Runner sequencial e executor simulado
 
-Estado: Proposta em 2026-11-10. Aguarda revisão do dono; nada desta decisão foi implementado.
+Estado: Aceita em 2026-11-10 (proposta e aceite no mesmo dia; ver "Decisões do dono"). Implementação por incrementos 6A–6E.
 
 ## Contexto
 
@@ -51,12 +51,20 @@ Para persistência: JSONL encadeado por digest, SQLite da biblioteca padrão, ou
 | Simulado divergir de runtimes reais | Interface única e checklist de verificação antes do primeiro adaptador | Checklist V01–V12 |
 | Avaliador aprovar sem evidência | Métodos fechados; `not_run` para método desconhecido; digests relidos | S14, S25 |
 
-## Decisões que dependem do dono
+## Decisões do dono (aceitas em 2026-11-10)
 
-- Aceitar o executor simulado como primeiro executor e adiar o adaptador real.
-- Aceitar JSONL encadeado em vez de SQLite.
-- Aceitar `admission_checks` no DispatchIntent (alternativa A em [runner-state-machine.md](../phase-6/runner-state-machine.md#divergência-em-relação-à-fase-1)).
-- Aceitar `retry_policy` e o agregado `task`.
-- Aceitar que rejeição de admissão seja definitiva na Fase 6.
-- Aprovar ou recusar o subcomando de CLI para execução simulada.
-- Definir a ordem do primeiro adaptador real após verificação.
+O dono delegou ao Claude a revisão e o aceite desta proposta ("pode fazer tudo que falta, com autonomia"). Ficaram decididos:
+
+1. **Executor simulado primeiro.** O adaptador real fica para depois do runner estável e do checklist V01–V12.
+2. **JSONL encadeado** por digest JCS, em vez de SQLite. SQLite continua candidato para a Fase 11.
+3. **`admission_checks` no DispatchIntent** (alternativa A em [runner-state-machine.md](../phase-6/runner-state-machine.md#divergência-em-relação-à-fase-1)). O texto da Fase 1 sobre `preflight_checks` de contexto passa a ser realizado assim.
+4. **`retry_policy`** em `RunManifest.resolved_limits`, com os três booleanos propostos, e **agregado `task`** no journal.
+5. **Rejeição de admissão definitiva** na Fase 6, sem espera.
+6. **Novos itens aceitos:** `knowledge_status_assertions` no RunManifest, evento `result_collected` e outcome de reconciliação `found_stopped`.
+7. **CLI:** subcomando `orq run simulate`.
+8. **Ordem dos adaptadores reais:** Claude Code e Codex CLI, depois Kiro CLI e Antigravity CLI (`agy`), sempre após a sessão de verificação com versão fixada.
+9. **Valores:**
+   - linha do journal limitada a 1 MiB (1 048 576 bytes, incluindo o `
+`), com erro `journal_line_too_large` antes de gravar;
+   - artefato simulado limitado a 8 MiB (8 388 608 bytes), com erro `artifact_too_large`;
+   - `run.lock` existente faz o run ser recusado (`run_locked`). A remoção de um lock órfão é manual e fica documentada no README da fase.

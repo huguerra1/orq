@@ -457,13 +457,15 @@ Ao abrir um run, o leitor verifica, linha a linha: JSON válido, bytes iguais à
 9. O journal só cresce; nenhuma linha confirmada é alterada ou removida.
 10. Toda transição de estado tem `from` igual ao estado projetado imediatamente antes.
 
-## Decisões abertas
+## Decisões tomadas
 
-- `retry_policy` dentro de `resolved_limits`.
-- `knowledge_status_assertions` no RunManifest como fonte do check `knowledge_status`.
-- Evento `result_collected` para o modelo resolvido, e outcome `found_stopped` na reconciliação.
-- Agregado `task` no journal.
-- Registro dos checks dependentes do bundle no DispatchIntent em vez da RoutingDecision.
-- JSONL encadeado em vez de SQLite.
-- Tamanho máximo de uma linha do journal e de um artefato simulado.
-- Política de lock: o MVP recusa run com `run.lock` existente; remoção de lock órfão é ação manual documentada.
+Todas as decisões abertas desta especificação foram aceitas em 2026-11-10; a lista completa, com os valores escolhidos, está na [ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md#decisões-do-dono-aceitas-em-2026-11-10). Em resumo:
+
+- `retry_policy` dentro de `resolved_limits`: aceito.
+- `knowledge_status_assertions` no RunManifest como fonte do check `knowledge_status`: aceito.
+- Evento `result_collected` e outcome `found_stopped` na reconciliação: aceitos.
+- Agregado `task` no journal: aceito.
+- Checks dependentes do bundle no DispatchIntent (`admission_checks`): aceito.
+- JSONL encadeado em vez de SQLite: aceito.
+- Linha do journal: no máximo 1 MiB (`journal_line_too_large`). Artefato simulado: no máximo 8 MiB (`artifact_too_large`).
+- Lock: o run com `run.lock` existente é recusado (`run_locked`); a remoção de lock órfão é manual.

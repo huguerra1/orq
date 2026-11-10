@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação proposta em 2026-11-10, aguardando revisão do dono. Nenhum código, schema executável ou fixture desta fase foi implementado. A decisão correspondente está na [ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), com status Proposta.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). A implementação segue os incrementos 6A–6E abaixo.
 
 ## Problema
 
@@ -34,7 +34,7 @@ Especificar e, após o aceite, implementar:
 | Executor simulado | Comportamento roteirizado por `(task_id, attempt_number)`, relógio injetado, sem rede |
 | Avaliador | Métodos determinísticos fechados; método desconhecido produz `not_run` |
 | Interface de adaptador real | Operações, dados trocados e checklist de verificação dos controles |
-| CLI | Proposta de subcomando para execução simulada ponta a ponta (sujeita a aprovação) |
+| CLI | Subcomando `orq run simulate` para execução simulada ponta a ponta |
 
 ### Fica fora
 
@@ -77,6 +77,16 @@ Estas lacunas não invalidam as fases anteriores, mas exigem decisão nesta fase
 | 6E | Runner ponta a ponta e CLI proposta | Cenário completo reproduzível com o mesmo digest final do journal |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
+
+## Lock órfão (procedimento manual)
+
+Um run só tem um escritor, garantido pelo `run.lock` criado com exclusividade. Se o processo morrer, o lock fica no diretório do run e o runner recusa continuar (`run_locked`). Para retomar:
+
+1. Confirme que nenhum processo `orq` está rodando sobre esse run.
+2. Apague `runs/<run_id>/run.lock` à mão.
+3. Rode o comando de novo. A abertura verifica a cadeia do journal e descarta, com registro, uma cauda truncada.
+
+O runner nunca remove o lock sozinho.
 
 ## Documentos
 
