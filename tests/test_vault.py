@@ -178,7 +178,10 @@ def test_symlink_escape_is_rejected(tmp_path) -> None:
     outside.write_bytes(raw)
     link = vault / "content" / "projects" / "demo" / "guide.md"
     link.parent.mkdir(parents=True)
-    link.symlink_to(outside)
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        pytest.skip("o sistema não permite criar links simbólicos (Windows sem modo de desenvolvedor)")
 
     with pytest.raises(VaultError, match="locator_escape"):
         ingest_markdown_source(vault, source_metadata(raw))
