@@ -1,0 +1,677 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/evaluation-report.schema.json",
+  "title": "ORQ EvaluationReport v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evaluation_id",
+    "evaluation_number",
+    "run_id",
+    "scope",
+    "subject_bindings",
+    "patch_application_refs",
+    "criteria_snapshot",
+    "evaluator_snapshot",
+    "context_manifest_ref",
+    "started_at",
+    "completed_at",
+    "execution_status",
+    "criterion_results",
+    "verdict",
+    "evidence_refs",
+    "usage_record_ids",
+    "error_record_ids",
+    "limitations",
+    "unknowns",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "evaluation_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "evaluation_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "subject_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/outputBinding"
+      },
+      "minItems": 1
+    },
+    "patch_application_refs": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "criteria_snapshot": {
+      "$ref": "#/$defs/criteriaSnapshot"
+    },
+    "evaluator_snapshot": {
+      "$ref": "#/$defs/evaluatorSnapshot"
+    },
+    "context_manifest_ref": {
+      "type": "null"
+    },
+    "started_at": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "execution_status": {
+      "enum": [
+        "completed",
+        "failed",
+        "timed_out",
+        "cancelled",
+        "indeterminate"
+      ]
+    },
+    "criterion_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/criterionResult"
+      },
+      "minItems": 1
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive",
+        "not_run"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceRef"
+      }
+    },
+    "usage_record_ids": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "error_record_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "uniqueItems": true
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyText",
+        "maxLength": 4096
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyText",
+        "maxLength": 4096
+      }
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "evidenceRef": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/artifactRef"
+        },
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "object",
+          "required": [
+            "event_id"
+          ],
+          "properties": {
+            "event_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "scope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "task_id",
+            "attempt_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "task_attempt"
+            },
+            "task_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "attempt_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "workflow"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "outputBinding": {
+      "type": "object",
+      "required": [
+        "output_id",
+        "artifact"
+      ],
+      "properties": {
+        "output_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "artifact": {
+          "$ref": "common.schema.json#/$defs/artifactRef"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluatorSnapshot": {
+      "type": "object",
+      "required": [
+        "kind",
+        "evaluator_ref",
+        "version",
+        "supported_methods"
+      ],
+      "properties": {
+        "kind": {
+          "const": "deterministic"
+        },
+        "evaluator_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "version": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "supported_methods": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "output_binding_present",
+              "digest_matches",
+              "content_contract_valid",
+              "simulated_verdict"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "criteriaSnapshot": {
+      "type": "object",
+      "required": [
+        "criteria",
+        "criteria_hash"
+      ],
+      "properties": {
+        "criteria": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "task.schema.json#/$defs/evaluationCriterion"
+              },
+              {
+                "$ref": "workflow.schema.json#/$defs/workflowCriterion"
+              }
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "output_binding_present"
+                    }
+                  },
+                  "required": [
+                    "method"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "pass_rule": {
+                      "type": "object",
+                      "required": [
+                        "output_ids"
+                      ],
+                      "properties": {
+                        "output_ids": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "common.schema.json#/$defs/identifier"
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "digest_matches"
+                    }
+                  },
+                  "required": [
+                    "method"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "pass_rule": {
+                      "type": "object",
+                      "required": [
+                        "output_ids"
+                      ],
+                      "properties": {
+                        "output_ids": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "common.schema.json#/$defs/identifier"
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "content_contract_valid"
+                    }
+                  },
+                  "required": [
+                    "method"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "pass_rule": {
+                      "type": "object",
+                      "required": [
+                        "output_ids"
+                      ],
+                      "properties": {
+                        "output_ids": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "common.schema.json#/$defs/identifier"
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "simulated_verdict"
+                    }
+                  },
+                  "required": [
+                    "method"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "pass_rule": {
+                      "type": "object",
+                      "required": [
+                        "script_key"
+                      ],
+                      "properties": {
+                        "script_key": {
+                          "$ref": "common.schema.json#/$defs/nonEmptyText",
+                          "maxLength": 4096
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "minItems": 1,
+          "contains": {
+            "properties": {
+              "required": {
+                "const": true
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        },
+        "criteria_hash": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "criterionResult": {
+      "type": "object",
+      "required": [
+        "criterion_id",
+        "required",
+        "requirement_ids",
+        "method",
+        "status",
+        "evidence_refs",
+        "observations",
+        "error_record_ids"
+      ],
+      "properties": {
+        "criterion_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "requirement_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "method": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "not_run"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/nonEmptyText",
+            "maxLength": 4096
+          }
+        },
+        "error_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "not": {
+                  "enum": [
+                    "output_binding_present",
+                    "digest_matches",
+                    "content_contract_valid",
+                    "simulated_verdict"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "const": "not_run"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution_status": {
+            "const": "completed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "criterion_results": {
+            "items": {
+              "if": {
+                "properties": {
+                  "required": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "required"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "status": {
+                    "const": "pass"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "execution_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "started_at": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp"
+          },
+          "completed_at": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": {
+              "kind": "workflow"
+            }
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluation_number": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "properties": {
+              "kind": {
+                "const": "task_attempt"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "criteria_snapshot": {
+            "properties": {
+              "criteria": {
+                "items": {
+                  "$ref": "task.schema.json#/$defs/evaluationCriterion"
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "criteria_snapshot": {
+            "properties": {
+              "criteria": {
+                "items": {
+                  "$ref": "workflow.schema.json#/$defs/workflowCriterion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_status": {
+            "not": {
+              "const": "completed"
+            }
+          }
+        },
+        "required": [
+          "execution_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "enum": [
+              "inconclusive",
+              "not_run"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

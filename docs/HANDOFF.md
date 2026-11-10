@@ -27,24 +27,29 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Implementados filtros de projeto/autoridade/classificação/validade/applicability, BM25 determinístico por requisito, cobertura obrigatória antes da opcional, orçamento global/local e materialização com nova verificação de digest.
 - Implementados ContextManifest fechado e bundle JSON canônico separado, com ordem, procedência, digests cruzados e orçamento do destino.
 - Implementadas fixtures reais e CLI atômica de catálogo, seleção e contexto, sem sobrescrita implícita.
-- Verificações feitas: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
+- Histórico da Fase 2: 52 testes locais aprovados, dependências íntegras, links locais, formatação Git, sequência dos IDs dos cenários e soma do exemplo financeiro fictício.
 - Fase 3 implementada com MCP Python SDK 2.2.0, `stdio`, JSON canônico, testes em memória e resources concretos somente leitura.
-- Verificações atuais: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
+- Histórico da Fase 3: 58 testes aprovados; o smoke `stdio` precisou rodar fora da sandbox porque o pool de threads do AnyIO é bloqueado nela, e passou no ambiente local irrestrito.
 - Fase 4 implementada com schemas, interface `Planner`, `FixedTemplatePlanner`, PlanningRecord e gate central de WorkflowSpec.
 - Fase 5 implementou schemas de roteamento, filtro obrigatório, baselines `fixed`/`rules`, interface tipada, transporte simulado e adaptador opcional Jev.
-- Verificações atuais: 91 testes aprovados, inclusive smoke MCP fora da sandbox; dependências consistentes.
-- Fase 6 especificada em 2026-11-10 em [phase-6/README.md](phase-6/README.md), aguardando revisão do dono: escolha do executor, contratos de execução e journal append-only, máquina de estados e 63 cenários S01–S63 (S52–S63 acrescentados após a revisão cruzada do Gemini). A [ADR 0007](adr/0007-phase-6-runner-and-simulated-executor.md) foi aceita em 2026-11-10. Nenhum código, schema executável ou fixture da Fase 6 existe; os cenários não são testes executados.
+- Histórico da Fase 5: 91 testes aprovados, inclusive smoke MCP fora da sandbox; dependências consistentes. O resultado atual está abaixo, no fechamento do 6A.
+- Fase 6 especificada e aceita em 2026-11-10 ([phase-6/README.md](phase-6/README.md), [ADR 0007](adr/0007-phase-6-runner-and-simulated-executor.md)): escolha do executor, contratos, máquina de estados e 63 cenários S01–S63. O incremento 6A entrega oito schemas fechados, registrados em `load_schemas`/`validator_for`, 14 fixtures válidas, oito inválidas e testes estruturais/digests. Os cenários do runner ainda não são testes executados; não há implementação de journal, runner, executor ou CLI da Fase 6.
 - A especificação recomenda executor simulado primeiro e só a interface do adaptador real. Os controles das CLIs candidatas (Claude Code, Codex CLI, Antigravity CLI, Kiro CLI) estão todos marcados a verificar; a web estava indisponível na redação e nenhuma CLI foi executada.
-- Lacuna encontrada no código: `route_and_finalize` exige `preflight_checks` antes de finalizar e `materialize_knowledge_context` exige a decisão já finalizada. A proposta registra os checks dependentes do bundle no DispatchIntent; precisa de aprovação por ajustar o texto da Fase 1.
+- A lacuna entre `route_and_finalize` e `materialize_knowledge_context` tem solução aceita na ADR 0007: checks dependentes do bundle ficam no DispatchIntent. O 6A fecha `admission_checks`, incluindo os seis controles mínimos, todos `passed`.
+- Escolhas do 6A e da revisão independente estão em [Notas de implementação 6A](phase-6/run-contracts.md#notas-de-implementação-6a). Corrigidos os achados 1–10 e 12–16: reservas mantêm `amount: null`/`status: unavailable` sem estimativa, agregados de artefatos/erros correspondem à origem, criação é implícita nos eventos iniciais, resumo contém só tarefas terminais e não inventa moeda. Fixtures têm referências e hashes consistentes; códigos/motivos são enums e textos livres do 6A têm limite de 4096 caracteres. Execução de avaliação não concluída só admite `inconclusive`/`not_run`.
+- Achado 10: o baseline exige `pass_rule` não vazio. Mantida a forma existente; `validate_instance` passou a exigir igualdade de `output_ids` do critério global e pass rule, após validação estrutural, em EvaluationReport e payloads de `evaluation_requested`/`evaluation_report_recorded`. Consumidores do journal em 6B/6C precisam usar essa API; `validator_for` continua estrutural. Outros vínculos e agregação completa seguem no 6C. Não há novo serviço/dependência.
+- Achados 14–15: chave do despacho só é reutilizada no payload de reconciliação, com chave própria por requisição no envelope; a reserva da avaliação local é liberada após término confirmado, sem UsageRecord fictício. Término indeterminado mantém a reserva pendente.
+- Verificação atual: **276 testes do 6A aprovados**, com 41 pares agregado/evento permitidos, 79 proibidos, estados por agregado, limites de texto, oito fixtures negativas com hashes corretos e 14 hashes válidos fixados. A suíte completa tem **367 casos**. O comando solicitado `PYTHONPATH=src /c/dev/orq/.venv/Scripts/python -m pytest -q -p no:cacheprovider --basetemp=.pytest-tmp` foi executado com a sintaxe equivalente do PowerShell. O Python é **3.13.3**. Na verificação final com os mesmos argumentos e observador passivo de resultados: **337 aprovados e 30 erros de setup**, todos por `PermissionError: [WinError 5]` em `.pytest-tmp`; nenhuma falha de asserção. O smoke MCP ficou bloqueado no setup, portanto não foi revalidado. **A suíte integral não está verde.** Não foram alterados testes antigos nem permissões para contornar a sandbox; nenhum script de diagnóstico foi salvo no projeto.
+- A tentativa de remover `.pytest-tmp`, após conferir o destino absoluto dentro desta worktree, foi rejeitada pela revisão automática de aprovação (`blocked by policy`). A pasta permanece para limpeza em ambiente autorizado. As pastas de compatibilidade mencionadas na sessão anterior não estavam presentes no início desta revisão. Trabalho local em `claude/fase6-6a`; sem commit nem push, conforme pedido desta sessão.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
 A especificação da Fase 6 foi aceita em 2026-11-10 ([ADR 0007](adr/0007-phase-6-runner-and-simulated-executor.md), "Decisões do dono"; o dono delegou o aceite ao Claude).
 
-1. Implementar o incremento 6A: schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport e UsageRecord/ErrorRecord mínimos, com fixtures válidas e inválidas.
-2. Em seguida, 6B (journal append-only e armazenamento de artefatos), 6C (projeções e validador de transições) e 6D (executor simulado e avaliador determinístico), cada um com testes e commit próprios.
-3. 6E prova o fluxo planner → router → contexto → tentativa → avaliação ponta a ponta com o executor simulado e o subcomando `orq run simulate`.
+1. Antes de declarar esta revisão integralmente validada, limpar `.pytest-tmp` e repetir o comando completo em ambiente com temporários e pipes autorizados. Depois retomar pelo **6B**: journal append-only e armazenamento de artefatos, consumindo os schemas e `validate_instance` do 6A. Verificar hash/serialização JCS, sequências, idempotência (chaves distintas de despacho/reconciliação), cauda truncada, lock exclusivo e limites de 1 MiB por linha (incluindo `\n`) e 8 MiB por artefato.
+2. Em seguida, 6C (projeções e validador de transições) e 6D (executor simulado e avaliador determinístico), cada um com testes próprios.
+3. 6E prova o fluxo planner → router → contexto → tentativa → avaliação ponta a ponta com o executor simulado e o subcomando `orq run simulate`. **Pendência do achado 11 (somente 6E):** criar template próprio com os quatro métodos conhecidos (`output_binding_present`, `digest_matches`, `content_contract_valid`, `simulated_verdict`) para o caminho feliz S01; manter um método desconhecido para S25. As fixtures antigas `workflow-minimal.json`, `task-minimal.json` e `routing-request.json` continuam intactas com `schema_validation`, que no avaliador do 6D produz `not_run` e não deve aprovar S01.
 
 O adaptador real fica para depois do runner simulado e de uma sessão de verificação com versão fixada (checklist V01–V12 em [phase-6/executor-choice.md](phase-6/executor-choice.md)).
 
@@ -117,8 +122,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 4](phase-4/README.md).
 - [ADR 0006 — fronteira do Router e decisão tipada](adr/0006-router-boundary-and-typed-decision.md).
 - [Andamento da Fase 5](phase-5/README.md).
-- [Especificação da Fase 6 — runner sequencial e executor simulado](phase-6/README.md), proposta.
-- [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), proposta.
+- [Fase 6 — runner sequencial e executor simulado](phase-6/README.md), especificação aceita e 6A implementado.
+- [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), aceita.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.

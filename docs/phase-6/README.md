@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). A implementação segue os incrementos 6A–6E abaixo.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incremento 6A implementado (schemas, fixtures e testes); próximo passo: 6B. Runner, executor e CLI ainda não implementados.
 
 ## Problema
 
@@ -56,13 +56,13 @@ Especificar e, após o aceite, implementar:
 | 4 | `plan_and_validate(planner, request, completed_at=...)` → `PlanningResult(record, workflow)` | Implementado; PlanningRequest exige `run_id` já registrado por RunIntent, que ainda não existe |
 | 5 | `route_and_finalize(request, catalog, policy, preflight_checks=..., decision_engine=...)` → RoutingDecision com `record_hash` | Implementado; não despacha nem consome tentativa |
 
-### Lacunas encontradas no código atual
+### Lacunas identificadas e soluções aceitas
 
-Estas lacunas não invalidam as fases anteriores, mas exigem decisão nesta fase:
+Estas lacunas das fases anteriores têm soluções aceitas na ADR 0007; o 6A formaliza seus contratos e 6B–6E os executarão:
 
-1. **Ordem entre roteamento e contexto.** O contrato da Fase 1 prevê preflight de contexto registrado na RoutingDecision antes de finalizá-la. No código, `route_and_finalize` exige `preflight_checks` já resolvidos e `materialize_knowledge_context` exige `routing_decision_ref` com `content_digest`, isto é, uma decisão já finalizada. A proposta é registrar os checks dependentes do bundle no DispatchIntent (`admission_checks`), mantendo na RoutingDecision apenas os checks disponíveis antes da materialização. Ver [runner-state-machine.md](runner-state-machine.md#pipeline-de-admissão).
-2. **RunIntent inexistente.** PlanningRequest referencia um `run_id` "já registrado"; a Fase 6 cria o primeiro registro do run.
-3. **ExecutionPolicy sem schema.** RoutingRequest só carrega `execution_policy_snapshot_ref`. O runner precisa de valores finitos; a proposta é um objeto `resolved_limits` fechado no RunManifest.
+1. **Ordem entre roteamento e contexto.** O contrato da Fase 1 prevê preflight de contexto registrado na RoutingDecision antes de finalizá-la. No código, `route_and_finalize` exige `preflight_checks` já resolvidos e `materialize_knowledge_context` exige `routing_decision_ref` com `content_digest`, isto é, uma decisão já finalizada. A solução aceita registra os checks dependentes do bundle no DispatchIntent (`admission_checks`), mantendo na RoutingDecision apenas os checks disponíveis antes da materialização. O schema do 6A já exige esses controles. Ver [runner-state-machine.md](runner-state-machine.md#pipeline-de-admissão).
+2. **Registro inicial do run.** PlanningRequest referencia um `run_id` "já registrado"; RunIntent tem schema no 6A e será persistido antes do planejamento pelo runner.
+3. **ExecutionPolicy sem schema completo.** RoutingRequest só carrega `execution_policy_snapshot_ref`. O runner usará o objeto `resolved_limits` fechado no RunManifest, já formalizado no 6A.
 4. **ArtifactRef mínimo.** `common.schema.json#/$defs/artifactRef` contém apenas `artifact_id` e `content_digest`. O descritor completo da Fase 1 passa a ser o payload do evento `artifact_ingested`; as referências continuam mínimas.
 5. **ContextManifest sem hash próprio.** O schema não tem campo `record_hash`; a referência ao manifesto usa `canonical_digest` do documento inteiro, calculado por quem o referencia.
 
@@ -70,13 +70,15 @@ Estas lacunas não invalidam as fases anteriores, mas exigem decisão nesta fase
 
 | Incremento | Entrega | Gate |
 | --- | --- | --- |
-| 6A | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis |
+| 6A — implementado | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis em `tests/test_phase6_schemas.py`; [escolhas de implementação](run-contracts.md#notas-de-implementação-6a) |
 | 6B | Journal append-only e armazenamento de artefatos | Cadeia de digests, sequência contígua, cauda truncada, conflito de idempotência |
 | 6C | Projeções e máquina de estados (validador de transições) | Toda transição da tabela coberta; saltos inválidos rejeitados |
 | 6D | Executor simulado e avaliador determinístico | Roteiros dos cenários S01–S63 executáveis sem rede |
-| 6E | Runner ponta a ponta e CLI proposta | Cenário completo reproduzível com o mesmo digest final do journal |
+| 6E | Runner ponta a ponta e CLI aceita `orq run simulate` | Cenário completo reproduzível com o mesmo digest final do journal |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
+
+Revisão do 6A: 276 testes aprovados, oito schemas e 22 fixtures. A matriz do journal cobre os 41 pares agregado/evento permitidos e os 79 proibidos. `validate_instance` acrescenta a verificação local de igualdade de output IDs dos critérios globais, em relatórios e intenções de avaliação; os demais vínculos e transições seguem no 6C. Estes testes não executam os 63 cenários do runner. O resultado da suíte completa e eventuais limitações de ambiente ficam no [HANDOFF](../HANDOFF.md). Nesta sessão não há commit/push, por instrução do usuário.
 
 ## Lock órfão (procedimento manual)
 

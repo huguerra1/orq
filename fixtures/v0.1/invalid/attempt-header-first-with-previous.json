@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1",
+  "attempt_id": "attempt-T3-1",
+  "run_id": "run-demo-001",
+  "task_id": "T3",
+  "workflow_ref": {
+    "id": "workflow-feature",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "1688d51cb2decc79d2c2d21d78c57a76c7ed3e9bd2a2e245da0c35e213c857a9"
+    }
+  },
+  "attempt_number": 1,
+  "routing_decision_ref": {
+    "id": "routing-T3-1",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "392cdb9ca0248136c042ade7ed6452bda16fb8c67ac2311f7e56e57557b0d934"
+    }
+  },
+  "context_manifest_ref": {
+    "id": "context-T3-1",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "74f289f843716d0b7ab4fb97f139efd620ffc5e1bca72ffddc3b28035e32efa0"
+    }
+  },
+  "workspace_base_ref": {
+    "artifact_id": "workspace-empty",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "fed01601ef843ee7806c260b3611b6f6822854ac7de132a6b593d2d239e8144c"
+    }
+  },
+  "input_bindings": [
+    {
+      "input_id": "spec",
+      "artifact": {
+        "artifact_id": "accepted-spec",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "3649e1df09d91f8b5bfe37d422390c8a8a43ddd97855401f70279ec603339f03"
+        }
+      },
+      "basis": {
+        "kind": "outputs_accepted",
+        "event_id": "event-45"
+      }
+    }
+  ],
+  "budget_reservation_ids": [
+    "reservation-attempt-T3-1"
+  ],
+  "dispatch_intent_id": "dispatch-T3-1",
+  "dispatch_idempotency_key": "run-demo-001/dispatch-T3-1",
+  "deadline_at": "2026-11-10T12:05:00Z",
+  "created_at": "2026-11-10T12:04:00Z",
+  "previous_attempt_id": "attempt-T3-0",
+  "effective_policy_snapshot_ref": {
+    "id": "effective-policy-T3-1",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "4d5a3532d6a637fec904682736bfdb8a00052dd75973d0592fe9a15d487feed4"
+    }
+  },
+  "execution_target_snapshot": {
+    "target_ref": {
+      "id": "target-sim-a",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "813bedefa622757a3e65d65df3c892fcfab42f33e48a338aae720da8c174a1b7"
+      }
+    },
+    "model_ref": {
+      "id": "sim-model-1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "517649352a6ee7ce4d13003654ba27d51344770d29fb22be38f5ee9fda32cd2b"
+      }
+    },
+    "provider_ref": {
+      "id": "sim-provider",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "706627ac77fb03d32f9b1f993eb955965735afd660238f53e556d731a3be516e"
+      }
+    },
+    "runtime_ref": {
+      "id": "sim-runtime",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "56e1b1b517f18d27ca216b9a40af373eccc3f631e001399e979bb56e0c537977"
+      }
+    },
+    "executor_ref": {
+      "id": "executor-simulated",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "589c4ea34f08a60294cd9fcf697449dff0ab15427c0c801aa8270721860b908c"
+      }
+    },
+    "execution_config_ref": {
+      "id": "sim-config",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "eb6d8032e8edb466e2e1da14cb7c508565be8c6049b242c1af37dfd715a47ed9"
+      }
+    }
+  },
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "d9859d1d1999e3a884282355ba7cd25f95e760ef216c88c725e75fc786ae395d"
+  }
+}

@@ -1,0 +1,2023 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/journal-event.schema.json",
+  "title": "ORQ JournalEvent v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "global_sequence",
+    "aggregate_type",
+    "aggregate_id",
+    "aggregate_sequence",
+    "event_type",
+    "recorded_at",
+    "occurred_at",
+    "actor",
+    "correlation_id",
+    "causation_event_id",
+    "idempotency_key",
+    "payload",
+    "previous_event_hash",
+    "event_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "event_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "global_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "aggregate_type": {
+      "enum": [
+        "run",
+        "task",
+        "attempt",
+        "evaluation"
+      ]
+    },
+    "aggregate_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "aggregate_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_type": {
+      "enum": [
+        "admission_rejected",
+        "artifact_ingested",
+        "budget_released",
+        "budget_reserved",
+        "budget_settled",
+        "cancel_requested",
+        "context_manifest_recorded",
+        "deadline_exceeded",
+        "dispatch_acknowledged",
+        "dispatch_requested",
+        "error_attached",
+        "evaluation_report_recorded",
+        "evaluation_requested",
+        "execution_started",
+        "journal_tail_discarded",
+        "knowledge_selection_recorded",
+        "late_observation",
+        "output_bound",
+        "outputs_accepted",
+        "planning_recorded",
+        "reconciliation_observed",
+        "reconciliation_requested",
+        "result_collected",
+        "routing_decision_recorded",
+        "run_closed",
+        "run_intent_recorded",
+        "run_manifest_closed",
+        "state_transition",
+        "termination_confirmed",
+        "usage_attached"
+      ]
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "occurred_at": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "orchestrator",
+            "executor",
+            "evaluator",
+            "clock",
+            "human"
+          ]
+        },
+        "ref": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        }
+      },
+      "additionalProperties": false
+    },
+    "correlation_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "causation_event_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "idempotency_key": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "payload": {
+      "type": "object"
+    },
+    "previous_event_hash": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "event_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "run_intent_recorded": {
+      "$ref": "run-intent.schema.json"
+    },
+    "planning_recorded": {
+      "$ref": "planning-record.schema.json"
+    },
+    "run_manifest_closed": {
+      "$ref": "run-manifest.schema.json"
+    },
+    "cancel_requested": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false
+    },
+    "deadline_exceeded": {
+      "type": "object",
+      "required": [
+        "deadline_at",
+        "observed_at"
+      ],
+      "properties": {
+        "deadline_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget_reserved": {
+      "type": "object",
+      "required": [
+        "reservation_id",
+        "scope_type",
+        "scope_ref",
+        "amount",
+        "currency",
+        "method",
+        "status"
+      ],
+      "properties": {
+        "reservation_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "scope_type": {
+          "enum": [
+            "attempt",
+            "evaluation"
+          ]
+        },
+        "scope_ref": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "amount": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "method": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unavailable"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "amount": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "amount": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "budget_settled": {
+      "type": "object",
+      "required": [
+        "reservation_id",
+        "usage_ids"
+      ],
+      "properties": {
+        "reservation_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "usage_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget_released": {
+      "type": "object",
+      "required": [
+        "reservation_id",
+        "reason"
+      ],
+      "properties": {
+        "reservation_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false
+    },
+    "usage_attached": {
+      "$ref": "usage-record.schema.json"
+    },
+    "error_attached": {
+      "$ref": "error-record.schema.json"
+    },
+    "journal_tail_discarded": {
+      "type": "object",
+      "required": [
+        "discarded_bytes",
+        "discarded_digest"
+      ],
+      "properties": {
+        "discarded_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "discarded_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "run_closed": {
+      "type": "object",
+      "required": [
+        "as_of_global_sequence",
+        "event_hash",
+        "run_summary",
+        "summary_hash"
+      ],
+      "properties": {
+        "as_of_global_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event_hash": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "run_summary": {
+          "type": "object",
+          "required": [
+            "state",
+            "tasks",
+            "output_bindings",
+            "usage_record_ids",
+            "error_record_ids",
+            "cost_summary",
+            "limitations",
+            "unknowns"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "succeeded",
+                "failed",
+                "cancelled",
+                "indeterminate"
+              ]
+            },
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "task_id",
+                  "state"
+                ],
+                "properties": {
+                  "task_id": {
+                    "$ref": "common.schema.json#/$defs/identifier"
+                  },
+                  "state": {
+                    "enum": [
+                      "succeeded",
+                      "failed",
+                      "blocked",
+                      "cancelled",
+                      "indeterminate"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "output_bindings": {
+              "type": "array",
+              "items": {
+                "$ref": "evaluation-report.schema.json#/$defs/outputBinding"
+              }
+            },
+            "usage_record_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "uniqueItems": true
+            },
+            "error_record_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "uniqueItems": true
+            },
+            "cost_summary": {
+              "type": "object",
+              "required": [
+                "currency",
+                "reported",
+                "estimated",
+                "unavailable_count",
+                "total_cost_exact"
+              ],
+              "properties": {
+                "currency": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Z]{3}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reported": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "estimated": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "unavailable_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total_cost_exact": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "total_cost_exact": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "total_cost_exact"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "unavailable_count": {
+                        "const": 0
+                      },
+                      "estimated": {
+                        "type": "string",
+                        "pattern": "^0(\\.0+)?$"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/nonEmptyText",
+                "maxLength": 4096
+              }
+            },
+            "unknowns": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/nonEmptyText",
+                "maxLength": 4096
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "summary_hash": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "knowledge_selection_recorded": {
+      "$ref": "knowledge-selection.schema.json"
+    },
+    "routing_decision_recorded": {
+      "$ref": "routing-decision.schema.json"
+    },
+    "context_manifest_recorded": {
+      "$ref": "context-manifest.schema.json"
+    },
+    "admission_rejected": {
+      "type": "object",
+      "required": [
+        "reason",
+        "error_record_ids"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "attempts_exhausted",
+            "run_deadline",
+            "inputs_unavailable",
+            "knowledge_unsatisfied",
+            "no_eligible_target",
+            "policy_rejected",
+            "low_confidence",
+            "invalid_response",
+            "provider_error",
+            "preflight_rejected",
+            "context_rejected",
+            "integrity_mismatch",
+            "knowledge_revoked",
+            "budget_unknown",
+            "budget_exceeded"
+          ]
+        },
+        "error_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs_accepted": {
+      "type": "object",
+      "required": [
+        "task_id",
+        "evaluation_id",
+        "output_bindings"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "output_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "evaluation-report.schema.json#/$defs/outputBinding"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "dispatch_requested": {
+      "type": "object",
+      "required": [
+        "attempt_header",
+        "dispatch_intent"
+      ],
+      "properties": {
+        "attempt_header": {
+          "$ref": "attempt-header.schema.json"
+        },
+        "dispatch_intent": {
+          "$ref": "dispatch-intent.schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dispatch_acknowledged": {
+      "type": "object",
+      "required": [
+        "external_call_id"
+      ],
+      "properties": {
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "execution_started": {
+      "type": "object",
+      "required": [
+        "observed_at"
+      ],
+      "properties": {
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "termination_confirmed": {
+      "type": "object",
+      "required": [
+        "cause",
+        "observed_at"
+      ],
+      "properties": {
+        "cause": {
+          "enum": [
+            "finished",
+            "failed",
+            "timeout",
+            "cancel"
+          ]
+        },
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "reconciliation_requested": {
+      "type": "object",
+      "required": [
+        "dispatch_idempotency_key",
+        "external_call_id",
+        "deadline_at"
+      ],
+      "properties": {
+        "dispatch_idempotency_key": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deadline_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "reconciliation_observed": {
+      "type": "object",
+      "required": [
+        "outcome",
+        "external_call_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "found_running",
+            "found_finished",
+            "found_failed",
+            "found_stopped",
+            "not_found",
+            "unknown"
+          ]
+        },
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "evaluation-report.schema.json#/$defs/evidenceRef"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "result_collected": {
+      "type": "object",
+      "required": [
+        "requested_model_id",
+        "resolved_model_id",
+        "provider_context_coverage"
+      ],
+      "properties": {
+        "requested_model_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_model_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_context_coverage": {
+          "enum": [
+            "complete",
+            "platform_only",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifact_ingested": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "artifact_id",
+        "artifact_type",
+        "media_type",
+        "content_contract_ref",
+        "content_digest",
+        "size_bytes",
+        "locator",
+        "created_at",
+        "producer",
+        "derived_from",
+        "data_classification"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1"
+        },
+        "artifact_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "artifact_type": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "media_type": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "content_contract_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "content_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8388608
+        },
+        "locator": {
+          "type": "string",
+          "pattern": "^orq-store:sha256/[a-f0-9]{64}$"
+        },
+        "created_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "producer": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "run_id",
+                "input_id",
+                "source_ref"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "external_input"
+                },
+                "run_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "input_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "source_ref": {
+                  "$ref": "common.schema.json#/$defs/versionedRef"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "run_id",
+                "task_id",
+                "attempt_id"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "attempt_output"
+                },
+                "run_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "task_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "attempt_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "evaluation_id",
+                "purpose"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "evaluation_output"
+                },
+                "evaluation_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "purpose": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "operation"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "orchestrator_materialization"
+                },
+                "operation": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "source_ref"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "imported_history"
+                },
+                "source_ref": {
+                  "$ref": "common.schema.json#/$defs/versionedRef"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/artifactRef"
+          }
+        },
+        "data_classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted",
+            "unknown"
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "required": [],
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "output_bound": {
+      "type": "object",
+      "required": [
+        "output_id",
+        "artifact"
+      ],
+      "properties": {
+        "output_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "artifact": {
+          "$ref": "common.schema.json#/$defs/artifactRef"
+        }
+      },
+      "additionalProperties": false
+    },
+    "late_observation": {
+      "type": "object",
+      "required": [
+        "observation_type",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "properties": {
+        "observation_type": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "evaluation-report.schema.json#/$defs/evidenceRef"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluation_requested": {
+      "type": "object",
+      "required": [
+        "evaluation_id",
+        "evaluation_number",
+        "scope",
+        "subject_bindings",
+        "criteria_snapshot",
+        "evaluator_snapshot",
+        "deadline_at",
+        "budget_reservation_ids"
+      ],
+      "properties": {
+        "evaluation_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "evaluation_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scope": {
+          "$ref": "evaluation-report.schema.json#/$defs/scope"
+        },
+        "subject_bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "evaluation-report.schema.json#/$defs/outputBinding"
+          },
+          "minItems": 1
+        },
+        "criteria_snapshot": {
+          "$ref": "evaluation-report.schema.json#/$defs/criteriaSnapshot"
+        },
+        "evaluator_snapshot": {
+          "$ref": "evaluation-report.schema.json#/$defs/evaluatorSnapshot"
+        },
+        "deadline_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "budget_reservation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "properties": {
+                  "kind": {
+                    "const": "workflow"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evaluation_number": {
+                "const": 1
+              },
+              "criteria_snapshot": {
+                "properties": {
+                  "criteria": {
+                    "items": {
+                      "$ref": "workflow.schema.json#/$defs/workflowCriterion"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "criteria_snapshot": {
+                "properties": {
+                  "criteria": {
+                    "items": {
+                      "$ref": "task.schema.json#/$defs/evaluationCriterion"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "evaluation_report_recorded": {
+      "$ref": "evaluation-report.schema.json"
+    },
+    "runStateTransition": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "reason",
+        "evidence_event_ids"
+      ],
+      "properties": {
+        "from": {
+          "enum": [
+            "created",
+            "running",
+            "stopping",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "indeterminate"
+          ]
+        },
+        "to": {
+          "enum": [
+            "created",
+            "running",
+            "stopping",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "indeterminate"
+          ]
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "evidence_event_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "taskStateTransition": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "reason",
+        "evidence_event_ids"
+      ],
+      "properties": {
+        "from": {
+          "enum": [
+            "pending",
+            "ready",
+            "running",
+            "evaluating",
+            "waiting_evaluation",
+            "retry_wait",
+            "reconciling",
+            "succeeded",
+            "failed",
+            "blocked",
+            "cancelled",
+            "indeterminate"
+          ]
+        },
+        "to": {
+          "enum": [
+            "pending",
+            "ready",
+            "running",
+            "evaluating",
+            "waiting_evaluation",
+            "retry_wait",
+            "reconciling",
+            "succeeded",
+            "failed",
+            "blocked",
+            "cancelled",
+            "indeterminate"
+          ]
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "evidence_event_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "attemptStateTransition": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "reason",
+        "evidence_event_ids"
+      ],
+      "properties": {
+        "from": {
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "timed_out",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "to": {
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "timed_out",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "evidence_event_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "run"
+          }
+        },
+        "required": [
+          "aggregate_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "run_intent_recorded",
+              "planning_recorded",
+              "run_manifest_closed",
+              "state_transition",
+              "cancel_requested",
+              "deadline_exceeded",
+              "budget_reserved",
+              "budget_settled",
+              "budget_released",
+              "usage_attached",
+              "error_attached",
+              "journal_tail_discarded",
+              "run_closed",
+              "artifact_ingested"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "task"
+          }
+        },
+        "required": [
+          "aggregate_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "state_transition",
+              "knowledge_selection_recorded",
+              "routing_decision_recorded",
+              "context_manifest_recorded",
+              "admission_rejected",
+              "outputs_accepted",
+              "error_attached"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "attempt"
+          }
+        },
+        "required": [
+          "aggregate_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "dispatch_requested",
+              "dispatch_acknowledged",
+              "execution_started",
+              "deadline_exceeded",
+              "cancel_requested",
+              "termination_confirmed",
+              "reconciliation_requested",
+              "reconciliation_observed",
+              "result_collected",
+              "artifact_ingested",
+              "output_bound",
+              "usage_attached",
+              "error_attached",
+              "state_transition",
+              "late_observation"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "evaluation"
+          }
+        },
+        "required": [
+          "aggregate_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "evaluation_requested",
+              "evaluation_report_recorded",
+              "late_observation",
+              "artifact_ingested",
+              "error_attached"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "run_intent_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/run_intent_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "planning_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/planning_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "run_manifest_closed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/run_manifest_closed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "cancel_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/cancel_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "deadline_exceeded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/deadline_exceeded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "budget_reserved"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/budget_reserved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "budget_settled"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/budget_settled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "budget_released"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/budget_released"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "usage_attached"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/usage_attached"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "error_attached"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/error_attached"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "journal_tail_discarded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/journal_tail_discarded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "run_closed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/run_closed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "knowledge_selection_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/knowledge_selection_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "routing_decision_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/routing_decision_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "context_manifest_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/context_manifest_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "admission_rejected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/admission_rejected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "outputs_accepted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/outputs_accepted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "dispatch_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/dispatch_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "dispatch_acknowledged"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/dispatch_acknowledged"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "execution_started"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/execution_started"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "termination_confirmed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/termination_confirmed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "reconciliation_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/reconciliation_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "reconciliation_observed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/reconciliation_observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "result_collected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/result_collected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "artifact_ingested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/artifact_ingested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "output_bound"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/output_bound"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "late_observation"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/late_observation"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluation_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluation_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluation_report_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluation_report_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "run"
+          },
+          "event_type": {
+            "const": "state_transition"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/runStateTransition"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "task"
+          },
+          "event_type": {
+            "const": "state_transition"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/taskStateTransition"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "attempt"
+          },
+          "event_type": {
+            "const": "state_transition"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/attemptStateTransition"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "global_sequence": {
+            "const": 1
+          }
+        },
+        "required": [
+          "global_sequence"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_event_hash": {
+            "type": "null"
+          },
+          "causation_event_id": {
+            "type": "null"
+          },
+          "aggregate_sequence": {
+            "const": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "previous_event_hash": {
+            "$ref": "common.schema.json#/$defs/digest"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "actor": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "executor",
+                  "evaluator",
+                  "human"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "actor"
+        ]
+      },
+      "then": {
+        "properties": {
+          "idempotency_key": {
+            "$ref": "common.schema.json#/$defs/nonEmptyText",
+            "maxLength": 4096
+          }
+        }
+      }
+    }
+  ]
+}

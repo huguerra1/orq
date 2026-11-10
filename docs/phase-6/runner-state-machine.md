@@ -1,6 +1,8 @@
 # Máquina de estados sequencial do runner
 
-Estado: proposta da Fase 6, aguardando revisão. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) aceito na Fase 1 para concorrência igual a um e executor simulado. Nenhum código foi implementado.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). O 6A implementa schemas, fixtures e validação local de critérios globais; journal, projeções, runner e executor seguem nos incrementos 6B–6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda são especificação, não testes do runner executados.
+
+Verificação atual: 276 testes do 6A aprovados. Na suíte completa (367 casos), 337 passaram e 30 tiveram erro de setup por permissão em `.pytest-tmp`; ver [HANDOFF](../HANDOFF.md). Os schemas validam estados por agregado; o validador de transições ainda será implementado no 6C.
 
 ## Problema
 
@@ -50,6 +52,8 @@ parar():
   gravar run_closed com cutoff
 ```
 
+`run_closed` só aceita tarefas terminais no resumo. Se a preparação não resolveu orçamento (`planning_failed`/`cancelled_before_ready`), a moeda pode ser null, sem valor inventado.
+
 ## Pipeline de admissão
 
 Passos executados para cada tentativa candidata, na ordem abaixo. Falha em qualquer passo antes do passo 8 **não cria tentativa e não consome `max_attempts`**, mas os registros produzidos (seleção, decisão, uso, erro) permanecem no journal.
@@ -67,6 +71,8 @@ Passos executados para cada tentativa candidata, na ordem abaixo. Falha em qualq
 | 9 | Transição da tarefa `ready → running` | `state_transition` | |
 | 10 | Se houver `cancel_requested` do run gravado depois de `dispatch_requested`: run → `stopping`, AT04 e TK09, sem chamar o executor. Senão, `executor.dispatch(intent, bundle, workspace)` | `dispatch_acknowledged` ou `error_attached` | Ver ciclo da tentativa |
 
+Entradas externas têm descritor `artifact_ingested` no agregado `run` antes do manifesto `ready`. Erros da admissão usam `error_attached` na tarefa. As reservas aceitam `status: unavailable` com `amount: null` quando a política admite sem estimativa e sem teto obrigatório; não se inventa zero. Os motivos de rejeição são o enum de [run-contracts.md](run-contracts.md#errorrecord); erro de validação do RoutingRequest usa `policy_rejected`.
+
 ### Divergência em relação à Fase 1
 
 O [contrato de roteamento e contexto](../phase-1/routing-context-contract.md) prevê que o check de integridade do contexto seja registrado nos `preflight_checks` da RoutingDecision antes de finalizá-la, usando o ID do manifesto em rascunho. O código da Fase 5 exige `preflight_checks` como entrada de `route_and_finalize`, e o materializador da Fase 2 exige uma `routing_decision_ref` com digest. Os dois não podem ser satisfeitos ao mesmo tempo sem alterar código já entregue.
@@ -77,7 +83,7 @@ O [contrato de roteamento e contexto](../phase-1/routing-context-contract.md) pr
 | B. Alterar `route_and_finalize` para finalizar em duas etapas | Fiel ao texto da Fase 1 | Muda contrato executável aceito e seus testes |
 | C. Materializar contexto com referência provisória e regravar | Nenhuma | Viola imutabilidade do manifesto |
 
-Recomendação: **A**. Uma RoutingDecision com `effective_selection` preenchido continua sem autoridade de despacho (como a Fase 5 já afirma); a autoridade é o DispatchIntent com todos os `admission_checks` aprovados. Precisa de aprovação do dono porque ajusta o texto da Fase 1.
+Decisão aceita: **A**, conforme ADR 0007. Uma RoutingDecision com `effective_selection` preenchido continua sem autoridade de despacho (como a Fase 5 já afirma); a autoridade é o DispatchIntent com todos os `admission_checks` aprovados. O schema do 6A exige os seis controles mínimos exatamente uma vez, todos `passed`.
 
 ### Rejeição de admissão
 
@@ -191,7 +197,7 @@ stateDiagram-v2
 
 ## Tabelas de transição
 
-Cada transição gera um evento `state_transition` com `from`, `to`, `reason` e `evidence_event_ids`. A coluna "Evidência" lista os eventos que precisam existir antes.
+Cada mudança entre estados existentes gera `state_transition` com `from`, `to`, `reason` e `evidence_event_ids`. A coluna "Evidência" lista os eventos que precisam existir antes. Criação é implícita: RN01 nasce em `run_intent_recorded`, AT01 em `dispatch_requested`, e tarefas `pending` em `run_manifest_closed` com manifesto `ready`. Esses casos não emitem `state_transition` nem usam `from: null`.
 
 ### Tentativa (AT)
 
@@ -272,7 +278,7 @@ O prazo do run (`max_run_duration_ms`) é verificado antes de cada admissão e l
 
 ## Reconciliação
 
-1. Gravar `reconciliation_requested` com a mesma `dispatch_idempotency_key`, o `external_call_id` conhecido e o prazo `min(agora + reconciliation_timeout_ms, fim do run)`.
+1. Gravar `reconciliation_requested` com a mesma `dispatch_idempotency_key` **no payload**, o `external_call_id` conhecido e o prazo `min(agora + reconciliation_timeout_ms, fim do run)`. O envelope usa chave própria por requisição, por exemplo `<run_id>/<dispatch_intent_id>/reconcile/<n>`, estável ao repetir essa requisição; nunca reutiliza a chave do envelope do despacho com payload diferente.
 2. Chamar `reconcile`. Gravar cada resposta como `reconciliation_observed`.
 3. Aplicar AT11–AT15 conforme o `outcome`. `found_stopped` significa que o executor encontrou a execução parada sem resultado utilizável; ele só vira `timed_out` ou `cancelled` se houver pedido de parada anterior (`deadline_exceeded` ou `cancel_requested`), senão vira `failed` (AT13).
 4. `not_found` só conta como prova de não execução se o executor declarar o controle `reconcile_not_found_authoritative` com evidência. O simulado declara; adaptadores reais começam como `unknown`, e para eles `not_found` é tratado como `unknown`.
@@ -281,6 +287,8 @@ O prazo do run (`max_run_duration_ms`) é verificado antes de cada admissão e l
 Reconciliação nunca grava novo `dispatch_requested` e não conta como tentativa.
 
 Término incerto do avaliador (TK21) segue a mesma regra de prazo: a tarefa fica em `reconciling` aguardando o relatório daquele `evaluation_id` até `min(agora + reconciliation_timeout_ms, fim do run)`. O avaliador determinístico local não tem operação de reconciliação; no simulado, `unknown_termination` nunca produz relatório, então o prazo leva a TK15.
+
+Erros e diagnósticos do avaliador são `error_attached` e `artifact_ingested` em `evaluation`. Execução diferente de `completed` só permite veredicto `inconclusive` ou `not_run` (S40). A reserva local é liberada por `budget_released` depois de término confirmado; sem UsageRecord real não se liquida reserva nem se afirma custo zero. Sem confirmação de término, a reserva permanece pendente.
 
 ## Retry
 

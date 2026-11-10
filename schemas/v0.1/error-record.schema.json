@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/error-record.schema.json",
+  "title": "ORQ ErrorRecord (minimum) v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "error_id",
+    "run_id",
+    "scope_type",
+    "scope_ref",
+    "phase",
+    "category",
+    "code",
+    "message",
+    "occurred_at",
+    "recorded_at",
+    "retryability",
+    "termination_certainty",
+    "external_call_ref",
+    "cause_error_refs",
+    "diagnostic_artifact_refs",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "error_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "scope_type": {
+      "enum": [
+        "run",
+        "task",
+        "planning",
+        "routing",
+        "attempt",
+        "call",
+        "patch",
+        "evaluation"
+      ]
+    },
+    "scope_ref": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "phase": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "category": {
+      "enum": [
+        "validation",
+        "policy",
+        "integrity",
+        "transport",
+        "provider",
+        "timeout",
+        "cancellation",
+        "evaluation",
+        "internal"
+      ]
+    },
+    "code": {
+      "enum": [
+        "dispatch_failed",
+        "dispatch_not_executed",
+        "execution_failed",
+        "timeout",
+        "cancelled",
+        "output_missing",
+        "output_contract_mismatch",
+        "integrity_mismatch",
+        "evaluator_failed",
+        "budget_unknown",
+        "budget_exceeded",
+        "no_eligible_target",
+        "context_rejected",
+        "knowledge_revoked",
+        "idempotency_conflict",
+        "journal_integrity_error",
+        "journal_line_too_large",
+        "artifact_too_large",
+        "run_locked",
+        "run_exists"
+      ]
+    },
+    "message": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 4096
+    },
+    "occurred_at": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "retryability": {
+      "enum": [
+        "retryable",
+        "non_retryable",
+        "unknown"
+      ]
+    },
+    "termination_certainty": {
+      "enum": [
+        "confirmed",
+        "not_terminated",
+        "unknown"
+      ]
+    },
+    "external_call_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cause_error_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "diagnostic_artifact_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactRef"
+      }
+    },
+    "provider_extension": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": false
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false
+}

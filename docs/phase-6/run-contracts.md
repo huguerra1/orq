@@ -1,6 +1,6 @@
 # Contratos de execução e armazenamento append-only
 
-Estado: proposta da Fase 6, aguardando revisão. Concretiza, para o runner sequencial e o executor simulado, os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md). Nenhum schema executável foi escrito.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas e fixtures do incremento 6A implementados; armazenamento e execução permanecem nos incrementos 6B–6E. Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
 
 ## Problema
 
@@ -29,7 +29,7 @@ O contrato da Fase 1 define campos conceituais, invariantes e ordem de persistê
 | Reserva | `reservation-<scope_id>` | `reservation-attempt-T3-2` |
 | Evento | `event-<global_sequence>` | `event-42` |
 
-IDs nunca são reutilizados dentro do run. A `dispatch_idempotency_key` é `<run_id>/<dispatch_intent_id>` e não muda durante reconciliação.
+IDs nunca são reutilizados dentro do run. A `dispatch_idempotency_key` é `<run_id>/<dispatch_intent_id>` e não muda durante reconciliação. Ela identifica o despacho lógico no payload; a chave de idempotência do envelope de cada reconciliação é distinta (ver [Idempotência](#idempotência)).
 
 ## RunIntent
 
@@ -97,7 +97,7 @@ Subconjunto finito de LimitsPolicy necessário ao runner. Todos os campos são o
 | retry_policy | Novo, objeto com três booleanos: `on_evaluation_fail`, `on_retryable_error`, `on_confirmed_timeout` |
 | sources | Lista `{field, origin_ref}` com a camada de onde veio cada valor |
 
-`retry_policy` não existe na Fase 1, que fala apenas em "retry autorizado". Ele torna explícita a autorização e precisa de aprovação.
+`retry_policy` não existe na Fase 1, que fala apenas em "retry autorizado". A autorização explícita foi aceita na ADR 0007.
 
 ### BudgetSnapshot
 
@@ -261,11 +261,13 @@ Mesmos campos da Fase 1, com restrições desta fase:
 | method | pass_rule | Resultado |
 | --- | --- | --- |
 | `output_binding_present` | `{"output_ids": [...]}` | `pass` se todos estão vinculados; senão `fail` |
-| `digest_matches` | `{"output_ids": [...]}` | Bytes relidos do armazenamento têm o digest do binding; divergência é `fail` e gera ErrorRecord `integrity` |
+| `digest_matches` | `{"output_ids": [...]}` | Bytes relidos do armazenamento têm o digest do binding; divergência é `fail` e gera ErrorRecord `integrity_mismatch` |
 | `content_contract_valid` | `{"output_ids": [...]}` | JSON do artefato valida contra o schema local registrado para `content_contract_ref`; contrato não registrado é `not_run` |
 | `simulated_verdict` | `{"script_key": "..."}` | Lê do roteiro (`verifier` da tentativa ou `workflow_verifier`) o veredicto indexado por esse `script_key` e pelo `evaluation_number`; serve aos testes de reprovação e inconclusão |
 
 Método fora desta lista produz `not_run` para o critério. Se o critério for obrigatório, o veredicto global é no máximo `inconclusive`, nunca `pass`.
+
+Nos três métodos baseados em outputs, o escopo workflow exige igualdade entre `pass_rule.output_ids` e `output_ids` do critério, inclusive ordem. `validate_instance` confere isso após o schema, tanto em EvaluationReport quanto nos payloads de `evaluation_requested`/`evaluation_report_recorded`; divergência retorna `semantic.criterion_output_ids_mismatch`. Mantém-se o baseline, que exige `pass_rule` não vazio. `simulated_verdict` mantém `script_key` nos dois escopos. Execução diferente de `completed` só admite veredicto `inconclusive` ou `not_run`.
 
 ### Exemplo de relatório reprovado
 
@@ -318,11 +320,19 @@ Planner `fixed_template` e Router `fixed`/`rules` não chamam provedores e não 
 
 ### ErrorRecord
 
-Campos da Fase 1, com `category`, `code`, `message` sanitizada, `retryability` (`retryable`, `non_retryable`, `unknown`) e `termination_certainty` (`confirmed`, `not_terminated`, `unknown`). Códigos iniciais do runner: `dispatch_failed`, `dispatch_not_executed`, `execution_failed`, `timeout`, `cancelled`, `output_missing`, `output_contract_mismatch`, `integrity_mismatch`, `evaluator_failed`, `budget_unknown`, `budget_exceeded`, `no_eligible_target`, `context_rejected`, `knowledge_revoked`, `idempotency_conflict`, `journal_integrity_error`.
+Campos da Fase 1, com `category`, `code`, `message` sanitizada, `retryability` (`retryable`, `non_retryable`, `unknown`) e `termination_certainty` (`confirmed`, `not_terminated`, `unknown`). Códigos iniciais do runner: `dispatch_failed`, `dispatch_not_executed`, `execution_failed`, `timeout`, `cancelled`, `output_missing`, `output_contract_mismatch`, `integrity_mismatch`, `evaluator_failed`, `budget_unknown`, `budget_exceeded`, `no_eligible_target`, `context_rejected`, `knowledge_revoked`, `idempotency_conflict`, `journal_integrity_error`, `journal_line_too_large`, `artifact_too_large`, `run_locked`, `run_exists`.
+
+Motivos de rejeição de admissão: `attempts_exhausted`, `run_deadline`, `inputs_unavailable`, `knowledge_unsatisfied`, `no_eligible_target`, `policy_rejected`, `low_confidence`, `invalid_response`, `provider_error`, `preflight_rejected`, `context_rejected`, `integrity_mismatch`, `knowledge_revoked`, `budget_unknown`, `budget_exceeded`.
+
+As duas listas são enums fechados no 6A. `scope_type` inclui `task`: falhas de admissão podem ser anexadas à tarefa, e falhas de avaliação ao agregado `evaluation`, com `scope_ref` do respectivo agregado. Escopos `planning`, `routing`, `call` e `patch` preservam a origem específica, com anexação ao agregado que os contém; compatibilidade de IDs é validação semântica do 6C.
 
 ### Reservas
 
-Eventos do agregado `run`: `budget_reserved` (`reservation_id`, escopo, `amount`, `currency`, `method`), `budget_settled` (`reservation_id`, `usage_ids`) e `budget_released` (`reservation_id`, motivo). Reserva de tentativa e da sua avaliação obrigatória são gravadas antes de `dispatch_requested`. Liquidação substitui a reserva; não soma.
+Eventos do agregado `run`: `budget_reserved` (`reservation_id`, escopo, `amount`, `status`, `currency`, `method`), `budget_settled` (`reservation_id`, `usage_ids`) e `budget_released` (`reservation_id`, motivo). Reserva de tentativa e da sua avaliação obrigatória são gravadas antes de `dispatch_requested`. Liquidação substitui a reserva; não soma.
+
+`status: estimated` exige decimal não negativo; `status: unavailable` exige `amount: null`. Sem teto obrigatório nem estimativa, uma operação admitida mantém sua reserva identificada com valor indisponível, nunca zero. O gate `budget` recusa esse caso quando o teto é obrigatório. A correlação com BudgetSnapshot pertence ao 6C, pois o evento isolado não contém a política.
+
+O avaliador determinístico local não produz UsageRecord de custo. Sua reserva termina em `budget_released` após término confirmado, inclusive falha ou cancelamento; não há `budget_settled` sem UsageRecord real. Se o término é indeterminado, a reserva permanece pendente e a lacuna é registrada. A liberação não afirma custo reportado zero. Os escopos de uso/ reserva `evaluation` permanecem representáveis para avaliadores futuros.
 
 ## JournalEvent
 
@@ -348,16 +358,18 @@ Envelope único de todos os fatos e intenções do run.
 | previous_event_hash | digest ou null | Sim | `event_hash` da linha anterior; `null` só em `global_sequence` 1 |
 | event_hash | digest | Sim | `canonical_digest` do evento sem `event_hash` |
 
-O agregado `task` não aparece na lista da Fase 1 (`run`, `attempt`, `evaluation`, `approval`). Ele é proposto aqui porque as transições da tarefa precisam de sequência própria. `approval` fica reservado e sem uso nesta fase.
+O agregado `task` não aparece na lista da Fase 1 (`run`, `attempt`, `evaluation`, `approval`). Foi aceito na ADR 0007 para dar sequência própria às transições da tarefa. `approval` fica reservado e sem uso nesta fase.
 
 ### Vocabulário de eventos
 
 | aggregate_type | event_type |
 | --- | --- |
-| run | `run_intent_recorded`, `planning_recorded`, `run_manifest_closed`, `state_transition`, `cancel_requested`, `deadline_exceeded`, `budget_reserved`, `budget_settled`, `budget_released`, `usage_attached`, `error_attached`, `journal_tail_discarded`, `run_closed` |
-| task | `state_transition`, `knowledge_selection_recorded`, `routing_decision_recorded`, `context_manifest_recorded`, `admission_rejected`, `outputs_accepted` |
+| run | `run_intent_recorded`, `planning_recorded`, `run_manifest_closed`, `state_transition`, `cancel_requested`, `deadline_exceeded`, `budget_reserved`, `budget_settled`, `budget_released`, `usage_attached`, `error_attached`, `journal_tail_discarded`, `run_closed`, `artifact_ingested` |
+| task | `state_transition`, `knowledge_selection_recorded`, `routing_decision_recorded`, `context_manifest_recorded`, `admission_rejected`, `outputs_accepted`, `error_attached` |
 | attempt | Tabela da seção [Eventos da tentativa](#eventos-da-tentativa) |
-| evaluation | `evaluation_requested`, `evaluation_report_recorded`, `late_observation` |
+| evaluation | `evaluation_requested`, `evaluation_report_recorded`, `late_observation`, `artifact_ingested`, `error_attached` |
+
+`artifact_ingested` no agregado `run` registra entradas externas antes de `ready`, materializações do Orchestrator e histórico importado. Outputs de tentativa ficam em `attempt`; diagnósticos/artefatos do avaliador ficam em `evaluation`. O descritor não exige uma tentativa inexistente. A correspondência entre `producer`, agregado e IDs será validada no 6C.
 
 O agregado `evaluation` não tem máquina de estados própria na Fase 6: o resultado fica em `EvaluationReport.execution_status` e `verdict`, e as transições correspondentes são da tarefa (TK16–TK22). Por isso ele não recebe `state_transition`, e o Invariante 10 vale para `run`, `task` e `attempt`.
 
@@ -429,7 +441,7 @@ Ao abrir um run, o leitor verifica, linha a linha: JSON válido, bytes iguais à
 
 - Mesmo `idempotency_key` com mesmo `payload` (comparado por digest JCS): o append devolve o evento existente e não grava outro.
 - Mesmo `idempotency_key` com `payload` diferente: `idempotency_conflict`, registrado como ErrorRecord no agregado `run`, e o run vai para `stopping`.
-- A `dispatch_idempotency_key` é reutilizada em `reconciliation_requested`; nunca gera outro `dispatch_requested`.
+- A `dispatch_idempotency_key` é reutilizada **no payload** de `reconciliation_requested`; nunca gera outro `dispatch_requested`. O envelope usa outra chave, por exemplo `<run_id>/<dispatch_intent_id>/reconcile/<n>`, estável na repetição da mesma requisição e diferente a cada nova requisição de reconciliação. Usar a chave do despacho no envelope de reconciliação causaria `idempotency_conflict` por payload diferente.
 
 ## Relação com os contratos existentes
 
@@ -455,7 +467,7 @@ Ao abrir um run, o leitor verifica, linha a linha: JSON válido, bytes iguais à
 7. `outputs_accepted` exige EvaluationReport `pass` com os mesmos bindings.
 8. Custo `unavailable` tem `amount: null` e nunca entra como zero em agregação.
 9. O journal só cresce; nenhuma linha confirmada é alterada ou removida.
-10. Toda transição de estado tem `from` igual ao estado projetado imediatamente antes.
+10. Toda transição de estado tem `from` igual ao estado projetado imediatamente antes. Criação é implícita: RunIntent cria run `created` (RN01), `dispatch_requested` cria tentativa `queued` (AT01), e manifesto `ready` cria tarefas `pending`; esses três casos não geram `state_transition`.
 
 ## Decisões tomadas
 
@@ -469,3 +481,41 @@ Todas as decisões abertas desta especificação foram aceitas em 2026-11-10; a 
 - JSONL encadeado em vez de SQLite: aceito.
 - Linha do journal: no máximo 1 MiB (`journal_line_too_large`). Artefato simulado: no máximo 8 MiB (`artifact_too_large`).
 - Lock: o run com `run.lock` existente é recusado (`run_locked`); a remoção de lock órfão é manual.
+
+## Notas de implementação 6A
+
+Os oito schemas em `schemas/v0.1/` fecham os registros e seus novos objetos com `additionalProperties: false`, reutilizando os tipos comuns e os contratos existentes. As formas antes resumidas ficam assim:
+
+- `experiment_metadata` aceita somente `group` (texto), `seed` (inteiro não negativo) e `tags` (textos únicos), todos opcionais. Atores usam `{kind, ref}`, com `ref` identifier; `scope_ref` em uso, erro e reserva é o ID do escopo. Referências a registros preservados e causas de erro usam `versionedRef`; chamada externa usa texto ou null. Os campos comuns `schema_version` e `run_id`, e o `record_hash`, também são obrigatórios em UsageRecord/ErrorRecord. `provider_extension` e metadata opcional de artefato ficam reservados a `{}` neste subconjunto mínimo.
+- Snapshots: executor `{executor_ref, adapter_version, script_ref}` (roteiro obrigatório no simulado); avaliador `{kind, evaluator_ref, version, supported_methods}` (o exemplo abreviado omitia `version`); orchestrator `{version, config_ref, clock}`. `preparation_coverage` é `{completed, missing, reason}`: listas de identifiers e texto ou null. Em `ready`, nenhum campo resolvido é null, `missing` é vazio e `reason` é null; fora de `ready`, há motivo e pelo menos uma ausência. `planning_failed` não preserva workflow executável. `sources.field` identifica um limite ou `retry_policy`; não se exige uma origem por campo, pois o exemplo registra só `max_attempts`.
+- Dinheiro e quantidades são decimais textuais não negativos, sem expoente; moeda tem três letras maiúsculas. `cap_mandatory: true` exige teto não nulo. UsageRecord tem ao menos uma cost line; custo/quantidade `unavailable` é null e valor conhecido não é null. Medições usam `{metric_id, quantity, unit, status, source_ref}`, com fonte obrigatória para valor conhecido. `coverage` contém listas `reported`, `estimated`, `unavailable` de IDs de métricas, incluindo `cost` quando aplicável. Listas vazias de uso em avaliação continuam sem afirmar custo zero.
+- Cada input binding tem `basis: {kind, event_id}`; também a entrada externa cita o evento do manifesto que a autorizou. Reservas de despacho são uma ou duas, únicas. Os seis controles mínimos de admissão aparecem exatamente uma vez, todos `passed`; controles adicionais identificados são permitidos. Primeira tentativa tem `previous_attempt_id: null`; retries exigem ID anterior.
+- Critérios preservam a forma da TaskSpec ou WorkflowSpec conforme o escopo, incluindo o `pass_rule` extensível já aceito nesses contratos para métodos desconhecidos. Nos métodos de outputs o pass rule exige `output_ids` não vazio e único. No workflow, `validate_instance` exige igualdade com os IDs do critério após validação estrutural (achado 10), sem mudar o baseline que exige pass rule não vazio. O check cobre relatórios e intenções de avaliação no journal; os consumidores do 6B/6C devem chamar `validate_instance`, pois `validator_for` verifica apenas JSON Schema. `simulated_verdict` usa `script_key`. Resultado de método desconhecido só aceita `not_run`. Resultados globais usam `requirement_ids` para os IDs de `workflow_requirement_ids`. O avaliador declara somente métodos suportados; avaliação global tem número 1. `pass` exige execução `completed` e resultados obrigatórios `pass`; execução não concluída só admite `inconclusive`/`not_run` (achado 12). Outros vínculos de IDs e agregação completa continuam validações semânticas posteriores.
+
+Correções da revisão independente, escolhendo o menor ajuste compatível com a especificação:
+
+- **1:** manter as reservas obrigatórias identificadas e acrescentar `status: estimated|unavailable`; valor indisponível é null. Evita omitir a intenção de reserva e não inventa custo; a rejeição com teto obrigatório permanece no gate semântico.
+- **2–3:** ampliar o vocabulário para artefatos em `run`/`evaluation`, erros em `task`/`evaluation` e escopo de erro `task`. Preserva os produtores previstos, sem forçar entradas externas e erros locais a uma tentativa ou run indevidos.
+- **4:** criação implícita nos três eventos iniciais, sem `from: null`; mantém os enums de estados e elimina um evento redundante. As tabelas AT01/RN01 descrevem criação, não emissão de `state_transition`.
+- **5:** resumo só contém tarefas terminais (`succeeded`, `failed`, `blocked`, `cancelled`, `indeterminate`); moeda pode ser null se o orçamento não foi resolvido. Essa condição depende do manifesto e será conferida no 6C.
+- **6:** fixtures usam o mesmo snapshot de avaliador, a mesma referência de roteiro nas estimativas e no executor, e a mesma versão/digest de destino em manifesto, despacho e cabeçalho. A avaliação global usa o output de T3/2 e tem data posterior à sua criação; o relatório local reprovado continua ligado a T3/1. Uso/erro de T3/2 são registrados depois da criação da tentativa. Testes conferem referências cruzadas e essa ordem. Variantes `run-manifest-*` e `usage-record-*` são exemplos alternativos, não registros para anexar simultaneamente ao mesmo run.
+- **7–9:** testar todos os 41 pares agregado/evento permitidos e 79 proibidos, comparar cada agregado com o contrato, rejeitar estados de outros agregados em `from`/`to` e null nas transições. As oito fixtures negativas têm hashes recalculados e apenas o defeito estrutural documentado; IDs da primeira tentativa foram alinhados. Asserções de erro verificam caminho/palavra-chave, null fora de `ready` é validado, chaves são realmente invertidas e o primeiro evento contém exatamente RunIntent.
+- **13:** códigos de erro e motivos de admissão usam os enums acima, incluindo os códigos da ADR 0007. Textos livres declarados diretamente nos oito schemas do 6A têm `maxLength: 4096` caracteres (mensagens, motivos textuais, observações, limitações, objetivos, chaves e referências textuais); tipos comuns e critérios extensíveis anteriores não mudam. O limite total em bytes da linha continua sob responsabilidade do 6B.
+- **14–15:** a chave do despacho fica no payload de reconciliação, com chave própria no envelope; reserva da avaliação local termina por liberação após término confirmado, sem inventar UsageRecord. Regras detalhadas nas seções acima.
+
+No journal, eventos que registram RunIntent, PlanningRecord, RunManifest, KnowledgeSelectionRecord, RoutingDecision, ContextManifest, EvaluationReport, UsageRecord, ErrorRecord ou descritor de artefato carregam o próprio registro como payload, sem wrapper. `dispatch_requested` mantém os dois registros nomeados do exemplo. As demais formas fechadas são:
+
+| Eventos | Payload |
+| --- | --- |
+| `execution_started`; `deadline_exceeded`; `cancel_requested`; `termination_confirmed` | `{observed_at}`; `{deadline_at, observed_at}`; `{reason}`; `{cause, observed_at}` |
+| `dispatch_acknowledged`; `reconciliation_requested`; `reconciliation_observed` | `{external_call_id}`; `{dispatch_idempotency_key, external_call_id, deadline_at}`; `{outcome, external_call_id, evidence_refs}`; chamada externa pode ser null |
+| `result_collected`; `output_bound`; `outputs_accepted` | Os três campos da tabela de eventos; `{output_id, artifact}`; `{task_id, evaluation_id, output_bindings}` |
+| `budget_reserved`; `budget_settled`; `budget_released` | `{reservation_id, scope_type, scope_ref, amount, status, currency, method}`; `{reservation_id, usage_ids}`; `{reservation_id, reason}` |
+| `admission_rejected`; `journal_tail_discarded`; `late_observation` | `{reason, error_record_ids}`; `{discarded_bytes, discarded_digest}`; `{observation_type, observed_at, evidence_refs}` com ao menos uma evidência |
+| `evaluation_requested` | `{evaluation_id, evaluation_number, scope, subject_bindings, criteria_snapshot, evaluator_snapshot, deadline_at, budget_reservation_ids}` |
+| `state_transition` | `{from, to, reason, evidence_event_ids}`, estados limitados ao agregado; evaluation não admite transições |
+| `run_closed` | `{as_of_global_sequence, event_hash, run_summary, summary_hash}`; cutoff anterior ao próprio fechamento, evitando hash autorreferente |
+
+`run_summary` fecha `state`, `tasks` (`task_id`, `state` terminal), `output_bindings`, `usage_record_ids`, `error_record_ids`, `cost_summary`, `limitations` e `unknowns`. `cost_summary` tem `currency` (ou null sem orçamento resolvido), `reported`, `estimated`, `unavailable_count` e `total_cost_exact`; exatidão exige nenhuma lacuna e nenhuma estimativa. Evidências aceitam artifactRef, versionedRef ou `{event_id}`; admission checks mantêm versionedRef como os preflights existentes. As variantes de `producer` e todos os campos do descritor estão fechados no schema do journal; não há payload bruto livre.
+
+Observações de executor, avaliador ou humano exigem idempotency_key. Somente sequência global 1 admite hash anterior null (e exige sequência do agregado 1 e causa null). Hashes excluem somente o campo externo `record_hash`/`event_hash`, preservando hashes embutidos. As fixtures completam os três exemplos abreviados e substituem `H(x)` por digests determinísticos. O schema limita tamanho declarado de artefato a 8 MiB; conferir bytes reais e linha JCS com `\n` de até 1 MiB pertence ao 6B. Continuidade, causalidade, vínculos entre registros, status de conhecimento e transições válidas pertencem aos validadores posteriores; schemas não os executam.

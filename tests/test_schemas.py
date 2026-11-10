@@ -5,8 +5,13 @@ from orq_contracts.schemas import load_schemas, validator_for
 
 def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
     assert set(load_schemas()) == {
+        "attempt_header",
         "common",
         "context_manifest",
+        "dispatch_intent",
+        "error_record",
+        "evaluation_report",
+        "journal_event",
         "knowledge_catalog",
         "knowledge_selection",
         "knowledge_source",
@@ -16,7 +21,10 @@ def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
         "routing_policy",
         "routing_request",
         "routing_target_catalog",
+        "run_intent",
+        "run_manifest",
         "task",
+        "usage_record",
         "workflow",
     }
 
