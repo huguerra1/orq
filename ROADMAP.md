@@ -22,6 +22,8 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 5. Exemplo reproduzível no README (`orq plan` → `orq route` → execução simulada)
 
 ## Log
+- 2026-11-10 — Achados 1–13 da revisão 6C corrigidos: evidências/ordem, prazo fixo de reconciliação, orçamento desconhecido, retomada terminal, causa de RN07 e admissão com erros/reservas liberadas. 217 testes próprios aprovados; suíte integral: 702 aprovados, 4 ignorados. Decisões nas Notas 6C; sem commit/push nesta execução; próximo incremento: 6D.
+- 2026-11-10 — 6C implementado: projeções puras, 49 linhas AT/TK/RN, guardas e retomada sem despacho duplicado; 140 testes novos (suíte: 625 aprovados, 4 ignorados), incluindo RunJournal e falha de fsync. Sem dependências novas; próximo: 6D (executor simulado e avaliador determinístico).
 - 2026-11-10 — Achados 1–19 do 6B corrigidos: integridade estrita com LF, durabilidade na reabertura/reutilização, publicação exclusiva, lock com token e erros tipados. Suíte integral: 485 aprovados e 4 ignorados (symlinks sem privilégio no Windows). Decisões nas Notas 6B; próximo: 6C, com reconciliação de intenção sem efeito comprovado.
 - 2026-11-10 — 6B implementado: journal JCS append-only encadeado por digest e armazenamento de artefatos por SHA-256, sem dependências novas; 66 testes novos (suíte: 432 aprovados, 1 ignorado). Próximo: 6C.
 - 2026-11-10 — Fase 1: licença MIT, CLAUDE.md, regras de autonomia, roadmap.

@@ -1,8 +1,8 @@
 # Máquina de estados sequencial do runner
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). O 6A implementa schemas, fixtures e validação local de critérios globais; journal, projeções, runner e executor seguem nos incrementos 6B–6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda são especificação, não testes do runner executados.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). 6A (schemas), 6B (armazenamento) e 6C (projeções/validador) implementados; executor, avaliador e runner seguem nos incrementos 6D–6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda não são testes do runner executados.
 
-Verificação atual: 276 testes do 6A aprovados. Na suíte completa (367 casos), 337 passaram e 30 tiveram erro de setup por permissão em `.pytest-tmp`; ver [HANDOFF](../HANDOFF.md). Os schemas validam estados por agregado; o validador de transições ainda será implementado no 6C.
+Verificação do 6C após correção dos achados 1–13: 217 testes próprios aprovados, incluindo cada uma das 49 linhas AT/TK/RN, saltos proibidos entre estados, guardas negativas e sequências de eventos locais com RunJournal. A suíte integral pós-revisão cabe ao orquestrador. Histórico dos incrementos no [HANDOFF](../HANDOFF.md); esses testes não executam o runner do 6E.
 
 ## Problema
 
@@ -209,13 +209,13 @@ Cada mudança entre estados existentes gera `state_transition` com `from`, `to`,
 | AT04 | queued | cancelled | `cancel_requested` do run gravado depois de `dispatch_requested` | Run em `stopping`; o runner ainda não chamou `executor.dispatch` no mesmo processo. Após crash nesse ponto não há essa prova: aplica-se AT05 |
 | AT05 | queued | unknown | Exceção no despacho com certeza `unknown`, ou retomada após crash sem `dispatch_acknowledged` | |
 | AT06 | running | completed | `termination_confirmed` (`finished`), `result_collected`, `artifact_ingested` e `output_bound` para todo output declarado | Todos os bytes passaram em tamanho, digest e contrato |
-| AT07 | running | failed | `termination_confirmed` (`failed`), ou término `finished` com output ausente, contrato incompatível ou digest divergente | ErrorRecord com `retryability` explícita |
+| AT07 | running | failed | `termination_confirmed` (`failed`), ou término `finished` com output ausente, contrato incompatível ou digest divergente; ErrorRecord confirmado, citado e posterior ao término | Em `finished`, código `output_missing`, `output_contract_mismatch` ou `integrity_mismatch`; `retryability` explícita |
 | AT08 | running | timed_out | `deadline_exceeded`, `cancel_requested`, `termination_confirmed` (`timeout`) | Confirmação obtida por `cancel` ou `observe` |
 | AT09 | running | cancelled | `cancel_requested`, `termination_confirmed` (`cancel`) | Run em `stopping` |
 | AT10 | running | unknown | Observação `unknown` ou `cancel` sem confirmação | |
 | AT11 | unknown | running | `reconciliation_observed` (`found_running`) | `deadline_at` não atingido e run `running` |
 | AT12 | unknown | completed | `reconciliation_observed` (`found_finished`) + mesmas evidências de AT06 | |
-| AT13 | unknown | failed | `reconciliation_observed` (`found_failed`), ou `not_found` autoritativo com run `running` (código `dispatch_not_executed`, retryable), ou `found_stopped` sem `deadline_exceeded` nem `cancel_requested` anteriores (código `execution_failed`, `retryability: unknown`) | |
+| AT13 | unknown | failed | `reconciliation_observed` (`found_failed`), ou `not_found` autoritativo com run `running` (código `dispatch_not_executed`, retryable), ou `found_stopped` sem `deadline_exceeded` nem `cancel_requested` anteriores (código `execution_failed`, `retryability: unknown`) | ErrorRecord confirmado, citado e posterior à observação |
 | AT14 | unknown | timed_out | `reconciliation_observed` (`found_stopped`) depois de `deadline_exceeded` da tentativa | |
 | AT15 | unknown | cancelled | `reconciliation_observed` (`found_stopped`) depois de `cancel_requested` sem `deadline_exceeded`, ou `not_found` autoritativo | Run em `stopping` |
 
@@ -228,7 +228,7 @@ Cada mudança entre estados existentes gera `state_transition` com `from`, `to`,
 | TK01 | pending | ready | `outputs_accepted` de todas as dependências | Run `running` |
 | TK02 | pending | blocked | Dependência direta ou transitiva em `failed`, `blocked` ou `indeterminate` | Run `stopping`. Dependência `cancelled` só ocorre por cancelamento do run e leva a TK24 |
 | TK03 | ready | running | AT01 | |
-| TK04 | ready | failed | `admission_rejected` | |
+| TK04 | ready | failed | `admission_rejected` com `error_record_ids` não vazio, anexados à tarefa | Reservas do passo 7 liberadas antes da rejeição |
 | TK05 | running | evaluating | AT06 | |
 | TK06 | running | retry_wait | AT03, AT07 ou AT08 | [Retry permitido](#retry) |
 | TK07 | running | failed | AT03, AT07 ou AT08 | Retry não permitido |
@@ -248,7 +248,7 @@ Cada mudança entre estados existentes gera `state_transition` com `from`, `to`,
 | TK21 | evaluating | reconciling | `evaluation_requested` sem término confirmado do verificador | |
 | TK22 | waiting_evaluation | evaluating | Novo `evaluation_requested` | Mesmos `subject_bindings` |
 | TK23 | retry_wait | ready | Nenhuma | Run `running`; tentativa anterior com término confirmado |
-| TK24 | pending, ready, retry_wait, waiting_evaluation ou evaluating | cancelled | Run `stopping`; em `evaluating`, `evaluation_report_recorded` da avaliação em andamento | Motivo `run_cancelled` ou `workflow_failed`; sem trabalho ativo; nenhum `outputs_accepted`, mesmo com relatório `pass` |
+| TK24 | pending, ready, retry_wait, waiting_evaluation ou evaluating | cancelled | Run `stopping`; em `evaluating`, `evaluation_report_recorded` da avaliação em andamento | Motivo `run_cancelled` ou `workflow_failed`; sem trabalho ativo; nenhum `outputs_accepted`, mesmo com relatório `pass`; em `pending`, nenhuma dependência falha (caso contrário, TK02) |
 
 ### Run (RN)
 
@@ -260,9 +260,9 @@ Cada mudança entre estados existentes gera `state_transition` com `from`, `to`,
 | RN04 | running | cancelled | `cancel_requested` antes de `run_manifest_closed`; manifesto `cancelled_before_ready` | Nenhuma tentativa existe |
 | RN05 | running | succeeded | Todas as tarefas `succeeded`, relatório global `pass` | |
 | RN06 | running | failed | Relatório global diferente de `pass` | Uma única avaliação global no MVP |
-| RN07 | running | stopping | Tarefa terminal sem sucesso, `deadline_exceeded`, `cancel_requested` ou `idempotency_conflict` | |
-| RN08 | stopping | failed | Nenhum trabalho ativo ou `unknown`; causa falha, deadline ou conflito | |
-| RN09 | stopping | cancelled | Nenhum trabalho ativo ou `unknown`; causa cancelamento | |
+| RN07 | running | stopping | Tarefa terminal sem sucesso, `deadline_exceeded`, `cancel_requested` ou `idempotency_conflict` | Fixa a causa: cancelamento já pedido → `cancelled`; caso contrário → `failed` |
+| RN08 | stopping | failed | Nenhum trabalho ativo ou `unknown`; causa fixada em RN07 = `failed` | Nenhuma tarefa `indeterminate` |
+| RN09 | stopping | cancelled | Nenhum trabalho ativo ou `unknown`; causa fixada em RN07 = `cancelled` | Nenhuma tarefa `indeterminate` |
 | RN10 | stopping | indeterminate | Alguma tarefa `indeterminate` | |
 
 Toda transição para estado terminal do run é seguida de `run_closed` com o cutoff.
@@ -278,7 +278,7 @@ O prazo do run (`max_run_duration_ms`) é verificado antes de cada admissão e l
 
 ## Reconciliação
 
-1. Gravar `reconciliation_requested` com a mesma `dispatch_idempotency_key` **no payload**, o `external_call_id` conhecido e o prazo `min(agora + reconciliation_timeout_ms, fim do run)`. O envelope usa chave própria por requisição, por exemplo `<run_id>/<dispatch_intent_id>/reconcile/<n>`, estável ao repetir essa requisição; nunca reutiliza a chave do envelope do despacho com payload diferente.
+1. No primeiro `reconciliation_requested` da intenção, fixar e validar `deadline_at = min(recorded_at + reconciliation_timeout_ms, RunIntent.created_at + max_run_duration_ms)`. Pedidos seguintes da mesma intenção preservam exatamente esse prazo, sem antecipação nem prorrogação. Usar a mesma `dispatch_idempotency_key` **no payload** e o `external_call_id` conhecido. O envelope usa chave própria por requisição, por exemplo `<run_id>/<dispatch_intent_id>/reconcile/<n>`, estável ao repetir essa requisição; nunca reutiliza a chave do envelope do despacho com payload diferente.
 2. Chamar `reconcile`. Gravar cada resposta como `reconciliation_observed`.
 3. Aplicar AT11–AT15 conforme o `outcome`. `found_stopped` significa que o executor encontrou a execução parada sem resultado utilizável; ele só vira `timed_out` ou `cancelled` se houver pedido de parada anterior (`deadline_exceeded` ou `cancel_requested`), senão vira `failed` (AT13).
 4. `not_found` só conta como prova de não execução se o executor declarar o controle `reconcile_not_found_authoritative` com evidência. O simulado declara; adaptadores reais começam como `unknown`, e para eles `not_found` é tratado como `unknown`.
@@ -299,7 +299,7 @@ Retry é permitido somente se **todas** as condições valem:
 | Tentativa anterior em `failed`, `timed_out` ou `completed` com relatório `fail` | Projeção da tentativa |
 | `termination_certainty: confirmed` | ErrorRecord, `termination_confirmed` ou `reconciliation_observed` conclusivo (AT13, AT14) |
 | Motivo autorizado por `retry_policy` (`on_retryable_error`, `on_confirmed_timeout` ou `on_evaluation_fail`) | RunManifest |
-| ErrorRecord com `retryability: retryable` quando a causa é técnica | ErrorRecord |
+| ErrorRecord com `retryability: retryable` quando a causa é técnica | Erro confirmado citado na transição de falha; erro antigo ou anexado depois não troca a causa do retry |
 | `attempt_number < max_attempts` | Limites resolvidos |
 | Run em `running` e tempo restante maior que zero | Projeção do run |
 | Orçamento suficiente para nova tentativa e sua avaliação | Admissão (passo 7) |
@@ -329,12 +329,35 @@ Cada retry passa de novo pelo pipeline de admissão inteiro: nova seleção de c
 2. Reconstruir projeções.
 3. Reservas ativas sem `dispatch_requested` correspondente → `budget_released` (motivo `admission_aborted`).
 4. Tentativas em `queued`, `running` ou `unknown` → AT05/AT10 quando necessário e reconciliação pela mesma intenção. Nunca novo despacho.
-5. `evaluation_requested` sem relatório: o avaliador é local, então o crash confirma seu término. Gravar relatório `execution_status: failed`, `verdict: not_run`; nova avaliação só dentro de `max_evaluations_per_attempt`.
+5. `evaluation_requested` sem relatório, com tarefa ainda `evaluating` ou `reconciling`: o avaliador é local, então o crash confirma seu término. Gravar relatório `execution_status: failed`, `verdict: not_run`; nova avaliação só dentro de `max_evaluations_per_attempt`. Tarefa terminal não recebe relatório tardio nem libera sua reserva por retomada; usar `late_observation` para diagnóstico, preservando S59.
 6. Retomar o laço principal. Contadores não são zerados e não se cria outro `run_id`.
 
 ## Avaliação global
 
 Com todas as tarefas `succeeded`, o runner grava `evaluation_requested` (`evaluation-workflow-1`) com `subject_bindings` iguais aos bindings aceitos que alimentam `WorkflowSpec.outputs`, avalia `WorkflowSpec.evaluation_criteria` com o avaliador determinístico e grava o relatório. Há uma única avaliação global no MVP. `pass` → RN05; qualquer outro veredicto → RN06.
+
+## Notas de implementação 6C
+
+- API pura: `project_journal(events, workflow=..., as_of_global_sequence=...)`, `validate_transition(projection, event)` e `recovery_actions(projection)`. O WorkflowSpec é fornecido pelo chamador e conferido por identidade/versão/digest; o journal só contém sua referência. Evita duplicar o snapshot ou adicionar I/O à projeção. `validate_edge` confere apenas a aresta e o `from`; o validador completo também confere guardas e evidências anteriores explicitamente citadas. As tabelas imutáveis preservam todos os IDs, inclusive arestas compartilhadas e os cinco estados de origem de TK24.
+- Replay usa `validate_instance`, confere a cadeia de envelopes e vínculos entre registros, e mantém criação implícita. `ProjectionError` e `StateMachineError` expõem `.code` estável; o primeiro também identifica `.event_id`. Exemplos: `transition_from_mismatch`, `transition_not_allowed`, `transition_evidence_missing`, `transition_guard_failed`, `dispatch_intent_reused`, `attempt_number_not_contiguous`, `attempts_exhausted`, `target_mismatch`, `bundle_hash_mismatch`, `evaluation_bindings_mismatch` e `outputs_without_pass`. Validação antes do append é responsabilidade do runner; o 6C não grava eventos nem transforma exceções de armazenamento em efeitos.
+- Retomada devolve ações de uma etapa, exigindo nova projeção após executá-las. Reserva sem intenção é liberável por `admission_aborted`; despacho sem término comprovado exige reconciliação pela mesma chave, inclusive após falha de fsync e crash entre AT01 e TK03. Evidências conclusivas já gravadas permitem concluir a projeção. Avaliação local interrompida pede relatório `failed/not_run`, sem fabricar resultado de critérios. Tentativa de tarefa `indeterminate` não volta à execução. AT04 continua exigindo prova volátil de que dispatch não foi chamado no mesmo processo: o replay confere as condições observáveis; a retomada nunca oferece essa alternativa.
+- `not_found` é conservador por padrão. O chamador só informa `reconcile_not_found_authoritative=True` após verificar o controle do executor; a observação ainda exige evidência. Bytes dos artefatos/bundle, controles externos e saldo/tempo da futura admissão permanecem gates do runner, não fatos inferidos de uma referência opaca.
+- Custos usam Decimal com precisão suficiente, última correção por cadeia `supersedes` e uma moeda. Reserva liquidada não é somada ao custo conhecido; custo indisponível conserva a reserva estimada contra o teto. Despacho possivelmente executado sem UsageRecord é lacuna, nunca custo exato zero. Avaliador local não gera uso fictício; sua reserva só é liberada após término confirmado. O resumo é conferido contra o prefixo publicado; uso/observação tardios preservam estado e resumo, inclusive se chegarem entre o cutoff e `run_closed`.
+
+Decisões da revisão 6C, registradas em **2026-11-10**:
+
+- **Achados 1–2:** AT07/AT13 exigem erro confirmado explicitamente citado, posterior ao término/observação pertinente. Em `finished`, AT07 só aceita os três códigos de output da tabela. A projeção preserva `failure_error_id` para decidir retry. Deadline e cancelamento de AT13–AT15 são anteriores à observação por `global_sequence`; pedidos posteriores não alteram sua classificação.
+- **Achado 3:** o primeiro pedido da intenção fixa o prazo calculado pelo envelope `recorded_at` e pelo fim do run. Todos os pedidos seguintes preservam o prazo inicial; divergência produz `reconciliation_deadline_mismatch`.
+- **Achado 4:** tarefa `pending` com dependência direta/transitiva `failed`, `blocked` ou `indeterminate` segue TK02; TK24 é recusado.
+- **Achado 5:** retomada ignora avaliações de tarefas terminais. Relatório de tarefa só entra em `evaluating`/`reconciling`; após TK15, a reserva permanece pendente e um relatório tardio é recusado (`evaluation_reconciliation_closed`).
+- **Achado 6:** `budget_unknown` só é lançado com `cap_mandatory: true`. Com teto opcional e lacuna, `budget_committed` retorna `None` e `budget_gaps` identifica os pares `(scope_type, scope_ref)` sem cobertura conservadora. O replay aceita reservas `unavailable` com `amount: null`, mesmo com `max_cost` preenchido; o runner resolve o gate de admissão. Subtotais conhecidos não representam custo total zero.
+- **Achados 8 e 10:** AT05 por crash exige ausência de ack. Se o crash ocorrer após ack e antes de `execution_started`, a ação `reconcile_dispatch` informa `required_error` com certeza `unknown` antes de AT05 por `dispatch_uncertain`. ErrorRecord confirmado só comprova término sozinho no caso AT03 (`queued`, `dispatch_failed`); outros erros exigem término/observação compatível e não impedem conclusão por resultado posteriormente recuperado. AT06/AT12 consideram os erros posteriores à confirmação pertinente. `found_running` e `execution_started` não rebaixam confirmação já registrada (`termination_evidence_conflict`).
+- **Achado 9:** escolheu-se manter a lacuna. AT04 depende de prova volátil e, sozinho, não prova não execução para custo nem permite liberar reserva. Sem UsageRecord real ou prova adicional admitida pelo contrato, `unavailable_count` permanece, `total_cost_exact` é falso e a reserva fica aberta. Erro confirmado `dispatch_failed`/`dispatch_not_executed` só conta quando validado em AT03/AT13, compatível com AT03 ainda em `queued` sem efeito comprovado, ou posterior a `not_found` autoritativo com evidência. Código isolado em outra situação não prova custo zero. AT04 nunca autoriza zero inferido após crash.
+- **Achado 11 — decisão do orquestrador de 2026-11-10:** RN07 fixa `stopping_cause` no replay: se já havia cancelamento pedido, `cancelled`; caso contrário, `failed`. RN08/RN09 usam essa causa preservada, não os estados atuais. Falha confirmada durante parada por cancelamento não troca RN09 por RN08; cancelamento posterior à parada por falha não troca RN08 por RN09. Tarefa `indeterminate` continua exigindo RN10.
+- **Achado 12:** TK04 exige `error_record_ids` não vazio e erros anexados à própria tarefa. Na execução sequencial, reservas ainda não vinculadas a despacho/avaliação representam a admissão incompleta: todas devem ter `budget_released` antes de `admission_rejected`, conforme o passo 7. A rejeição não cria tentativa nem consome contador.
+- **Achados 7 e 13:** regressões negativas cobrem dependências de TK24, escolha RN08/RN09, motivo de TK20, AT04 sem stopping/com ack, ordem de AT14, códigos de AT13, capacidade/tempo/estado de TK19, defesa `attempts_exhausted` e política de retry após timeout confirmado. Testes passam a conferir todos os saltos proibidos entre estados, evidências reais de outra tentativa, S31 `queued → unknown → running`, ação concreta de reconciliação e admissão efetiva da tentativa 2 em S32. São sequências de journal e validação pura, sem execução do runner.
+
+Não há runner, executor, avaliador ou CLI novos, nem mudança de schemas/dependências. As sequências de teste representam os cenários sem executar serviços externos; a execução dos roteiros S01–S63 continua nos gates de 6D/6E.
 
 ## Executor simulado
 
