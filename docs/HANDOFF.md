@@ -1,6 +1,6 @@
 # Retomada do projeto ORQ
 
-Atualizado em 2026-09-29. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
+Atualizado em 2026-11-10. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
 
 ## Leitura para retomar
 
@@ -33,16 +33,21 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 - Fase 4 implementada com schemas, interface `Planner`, `FixedTemplatePlanner`, PlanningRecord e gate central de WorkflowSpec.
 - Fase 5 implementou schemas de roteamento, filtro obrigatório, baselines `fixed`/`rules`, interface tipada, transporte simulado e adaptador opcional Jev.
 - Verificações atuais: 91 testes aprovados, inclusive smoke MCP fora da sandbox; dependências consistentes.
+- Fase 6 especificada em 2026-11-10 em [phase-6/README.md](phase-6/README.md), aguardando revisão do dono: escolha do executor, contratos de execução e journal append-only, máquina de estados e 63 cenários S01–S63 (S52–S63 acrescentados após a revisão cruzada do Gemini). A [ADR 0007](adr/0007-phase-6-runner-and-simulated-executor.md) está como Proposta. Nenhum código, schema executável ou fixture da Fase 6 existe; os cenários não são testes executados.
+- A especificação recomenda executor simulado primeiro e só a interface do adaptador real. Os controles das CLIs candidatas (Claude Code, Codex CLI, Antigravity CLI, Kiro CLI) estão todos marcados a verificar; a web estava indisponível na redação e nenhuma CLI foi executada.
+- Lacuna encontrada no código: `route_and_finalize` exige `preflight_checks` antes de finalizar e `materialize_knowledge_context` exige a decisão já finalizada. A proposta registra os checks dependentes do bundle no DispatchIntent; precisa de aprovação por ajustar o texto da Fase 1.
 - Publicações anteriores confirmadas em main. Sempre conferir o remoto novamente ao retomar.
 
 ## Próximo passo concreto
 
-Iniciar a especificação da Fase 6 antes de código de execução:
+A especificação da Fase 6 está escrita e aguarda revisão do dono. Não implementar antes do aceite.
 
-1. Escolher o primeiro executor/runtime e documentar seus controles realmente verificáveis.
-2. Formalizar RunManifest, AttemptRecord, DispatchIntent, EvaluationReport e armazenamento append-only mínimo.
-3. Definir a máquina sequencial do DAG, admissão, timeout, reconciliação e retry sem repetir efeito externo indeterminado.
-4. Implementar um executor simulado antes do adaptador real e provar o fluxo planner → router → contexto → tentativa → avaliação.
+1. Revisar [phase-6/README.md](phase-6/README.md) e decidir os pontos listados em "Decisões que dependem do dono" da [ADR 0007](adr/0007-phase-6-runner-and-simulated-executor.md).
+2. Após o aceite, mudar a ADR 0007 para aceita e implementar o incremento 6A: schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport e UsageRecord/ErrorRecord mínimos, com fixtures válidas e inválidas.
+3. Em seguida, 6B (journal append-only e armazenamento de artefatos), 6C (projeções e validador de transições) e 6D (executor simulado e avaliador determinístico), cada um com testes e commit próprios.
+4. 6E prova o fluxo planner → router → contexto → tentativa → avaliação ponta a ponta com o executor simulado.
+
+O adaptador real fica para depois do runner simulado e de uma sessão de verificação com versão fixada (checklist V01–V12 em [phase-6/executor-choice.md](phase-6/executor-choice.md)).
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
@@ -113,6 +118,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 4](phase-4/README.md).
 - [ADR 0006 — fronteira do Router e decisão tipada](adr/0006-router-boundary-and-typed-decision.md).
 - [Andamento da Fase 5](phase-5/README.md).
+- [Especificação da Fase 6 — runner sequencial e executor simulado](phase-6/README.md), proposta.
+- [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), proposta.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
