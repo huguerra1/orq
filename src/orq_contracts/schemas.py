@@ -13,8 +13,13 @@ from referencing import Registry, Resource
 
 SCHEMA_DIRECTORY = Path(__file__).resolve().parents[2] / "schemas" / "v0.1"
 SCHEMA_FILES = {
+    "attempt_header": "attempt-header.schema.json",
     "common": "common.schema.json",
     "context_manifest": "context-manifest.schema.json",
+    "dispatch_intent": "dispatch-intent.schema.json",
+    "error_record": "error-record.schema.json",
+    "evaluation_report": "evaluation-report.schema.json",
+    "journal_event": "journal-event.schema.json",
     "knowledge_catalog": "knowledge-catalog.schema.json",
     "knowledge_selection": "knowledge-selection.schema.json",
     "knowledge_source": "knowledge-source.schema.json",
@@ -24,7 +29,10 @@ SCHEMA_FILES = {
     "routing_policy": "routing-policy.schema.json",
     "routing_request": "routing-request.schema.json",
     "routing_target_catalog": "routing-target-catalog.schema.json",
+    "run_intent": "run-intent.schema.json",
+    "run_manifest": "run-manifest.schema.json",
     "task": "task.schema.json",
+    "usage_record": "usage-record.schema.json",
     "workflow": "workflow.schema.json",
 }
 

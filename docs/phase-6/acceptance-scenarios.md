@@ -1,6 +1,6 @@
 # Cenários de aceitação da Fase 6
 
-Estado: especificação proposta, aguardando revisão. Não são testes executados. Cada cenário vira teste automatizado nos incrementos 6B a 6E, usando somente o executor simulado, o avaliador determinístico, relógio injetado e fixtures locais.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Os 63 cenários S01–S63 ainda não são testes do runner executados. O 6A implementa contratos e tem 276 testes aprovados de schemas, fixtures, hashes e igualdade local de critérios globais; a automação dos cenários segue nos incrementos 6B–6E, somente com executor simulado, avaliador determinístico, relógio injetado e fixtures locais.
 
 ## Estratégia
 
@@ -12,6 +12,9 @@ Convenções:
 - Salvo indicação, `max_attempts` = 2, `max_evaluations_per_attempt` = 2, `retry_policy` com os três booleanos `true` e sem teto financeiro obrigatório. Valores fictícios, não defaults.
 - "Sem consumo de tentativa" significa nenhum `dispatch_requested` para aquele `attempt_number`.
 - "Journal íntegro" significa cadeia de `event_hash` válida e sequências contíguas.
+- Criação é implícita em `run_intent_recorded` (run `created`), `dispatch_requested` (tentativa `queued`) e manifesto `ready` (tarefas `pending`); só mudanças posteriores emitem `state_transition`.
+- Entradas externas são `artifact_ingested` em `run` antes de `ready`; artefatos/erros de avaliação ficam em `evaluation`, e erros de admissão podem ficar em `task`.
+- Sem estimativa nem teto obrigatório, a reserva admitida tem `status: unavailable`, `amount: null`; reserva da avaliação local é liberada após término confirmado, sem UsageRecord fictício. Reconciliação reutiliza a chave do despacho no payload e usa chave própria no envelope.
 - Os IDs usam o prefixo S, ainda livre no projeto (C, P, R, E, A, X e K já estão em uso).
 
 ## Caminho feliz
@@ -28,7 +31,7 @@ Convenções:
 
 | ID | Dado | Quando | Então | Base |
 | --- | --- | --- | --- | --- |
-| S06 | PlanningRequest com objetivo diferente do template | O run é iniciado | PlanningRecord `not_applicable`; manifesto `planning_failed`; run `failed`; nenhuma tentativa | C56, X01 |
+| S06 | PlanningRequest com objetivo diferente do template | O run é iniciado | PlanningRecord `not_applicable`; manifesto `planning_failed`; run `failed`; nenhuma tentativa; `cost_summary.currency: null` se não houve orçamento resolvido | C56, X01 |
 | S07 | Nenhum destino elegível para a tarefa | A admissão roda | RoutingDecision `no_eligible_target` gravada; `admission_rejected`; tarefa `failed`; sem consumo de tentativa | C12, R10 |
 | S08 | Conhecimento obrigatório sem candidato | A admissão roda | Seleção gravada com status não admissível; `admission_rejected` (`knowledge_unsatisfied`); sem consumo de tentativa | C29, C75 |
 | S09 | Fonte `active` no `status_cutoff` do catálogo e selecionada; `RunManifest.knowledge_status_assertions` traz asserção `revoked` dessa fonte com `effective_at` posterior ao cutoff e anterior ou igual ao instante do check | O check `knowledge_status` roda | Check `failed` com `knowledge_revoked`; `budget_released`; sem `dispatch_requested`. Com `effective_at` posterior ao instante do check, o check passa | C80 |
@@ -70,7 +73,7 @@ Convenções:
 | ID | Dado | Quando | Então | Base |
 | --- | --- | --- | --- | --- |
 | S27 | Roteiro `hang` com `on_cancel: confirmed` | `deadline_at` passa | `deadline_exceeded`, `cancel_requested`, `termination_confirmed` (`timeout`); tentativa `timed_out`; retry permitido pela `retry_policy` | Ciclo da Fase 1 |
-| S28 | Roteiro `hang` com `on_cancel: unconfirmed` | `deadline_at` passa | Tentativa `unknown`; tarefa `reconciling`; `reconciliation_requested` com a mesma `dispatch_idempotency_key`; nenhum segundo `dispatch_requested` | C19, X08 |
+| S28 | Roteiro `hang` com `on_cancel: unconfirmed` | `deadline_at` passa | Tentativa `unknown`; tarefa `reconciling`; `reconciliation_requested` com a mesma `dispatch_idempotency_key` no payload e chave distinta no envelope; nenhum segundo `dispatch_requested` | C19, X08 |
 | S29 | S28 com `reconcile: found_finished` | A reconciliação roda | Tentativa `unknown → completed` sem novo despacho; tarefa `evaluating` | C20 |
 | S30 | S28 com `reconcile: unknown` até o prazo | `reconciliation_timeout_ms` esgota | Tentativa permanece `unknown`; tarefa e run `indeterminate`; workspace da tentativa não é reutilizado | C21 |
 | S31 | Roteiro `ack_lost`, depois `reconcile: found_running` | O despacho não confirma | Tentativa `queued → unknown → running` na mesma tentativa; um único `dispatch_requested` | C20, C23 |
@@ -87,13 +90,13 @@ Convenções:
 | S37 | Observação externa repetida com mesma `idempotency_key` e mesmo payload | O runner grava | Evento existente devolvido; nenhuma nova linha, transição ou contabilização | C24, C58, X03 |
 | S38 | Mesma `idempotency_key` com payload diferente | O runner grava | `idempotency_conflict`; run `stopping` | C59, X04 |
 | S39 | `state_transition` com `from` diferente do estado projetado | O validador recebe o evento | Evento rejeitado; nada gravado | C60, X05 |
-| S40 | `crash_after: evaluation_requested` | O runner é reiniciado | Relatório `failed`/`not_run` gravado para aquela avaliação; nova avaliação somente se restar limite | Retomada após crash |
+| S40 | `crash_after: evaluation_requested` | O runner é reiniciado | Relatório com `execution_status: failed` e `verdict: not_run` gravado para aquela avaliação; execução não concluída só admite `inconclusive` ou `not_run`; nova avaliação somente se restar limite | Retomada após crash |
 
 ## Custo e orçamento
 
 | ID | Dado | Quando | Então | Base |
 | --- | --- | --- | --- | --- |
-| S41 | Sem teto financeiro; T3/2 com custo `unavailable` | O run termina | UsageRecord com `amount: null`; RunSummary com subtotal conhecido, `unavailable_count` = 1 e `total_cost_exact: false`; nenhum zero inserido | C27 |
+| S41 | Sem teto financeiro nem estimativa; T3/2 com custo `unavailable` | O run termina | `budget_reserved` com `status: unavailable`, `amount: null`; UsageRecord com `amount: null`; RunSummary com subtotal conhecido, `unavailable_count` = 1 e `total_cost_exact: false`; nenhum zero inserido; reserva da avaliação local liberada após término confirmado | C27 |
 | S42 | Teto obrigatório; destino sem entrada em `cost_estimates` | A admissão roda | Check `budget` `failed` com `budget_unknown`; sem consumo de tentativa | C44, E10 |
 | S43 | Teto obrigatório; estimativa conservadora de 0,30; custo real `unavailable` | A tentativa termina | Reserva liquidada com usage `unavailable`; o valor reservado continua contando contra o teto nas próximas admissões; resumo mostra a lacuna | C27, C44 |
 | S44 | Orçamento restante cobre a execução, mas não a avaliação reservada | A admissão roda | Tentativa não admitida | C28, E11 |
@@ -105,7 +108,7 @@ Convenções:
 
 | ID | Dado | Quando | Então | Base |
 | --- | --- | --- | --- | --- |
-| S48 | `cancel_requested` antes de `run_manifest_closed` | O runner processa o pedido | Manifesto `cancelled_before_ready`; run `cancelled`; nenhuma tentativa | Registros da Fase 1 |
+| S48 | `cancel_requested` antes de `run_manifest_closed` | O runner processa o pedido | Manifesto `cancelled_before_ready`; run `cancelled`; nenhuma tentativa; `cost_summary.currency: null` se não houve orçamento resolvido | Registros da Fase 1 |
 | S49 | Cancelamento com tentativa ativa e `on_cancel: confirmed` | O runner processa o pedido | Tentativa e tarefa `cancelled`; tarefas não iniciadas `cancelled` (`run_cancelled`); nenhum retry; run `cancelled` | C22 |
 | S50 | Cancelamento com tentativa ativa e `on_cancel: unconfirmed`, `reconcile: unknown` | O prazo de reconciliação esgota | Tarefa e run `indeterminate` | C21, C22 |
 | S51 | Tempo do run esgotado com tarefas pendentes | O laço verifica o prazo antes de admitir | `deadline_exceeded`; run `stopping` e depois `failed`; nenhuma nova admissão | Ciclo da Fase 1 |
@@ -132,3 +135,5 @@ Cenários acrescentados para cobrir transições que não apareciam em S01–S51
 ## Critério de revisão
 
 Os cenários devem corresponder às tabelas de transição de [runner-state-machine.md](runner-state-machine.md) e aos contratos de [run-contracts.md](run-contracts.md). Toda transição AT, TK e RN precisa aparecer em pelo menos um cenário antes do fim do incremento 6C; transições sem cenário são lacunas a corrigir na especificação, não no código.
+
+O fechamento só inclui tarefas terminais. Códigos de erro e motivos de rejeição seguem os enums de `run-contracts.md`, incluindo os códigos de limites/lock da ADR 0007. A avaliação global usa os artefatos aceitos da tentativa vencedora; nos três métodos de outputs, IDs do critério e do pass rule devem ser iguais, conforme `validate_instance` do 6A.

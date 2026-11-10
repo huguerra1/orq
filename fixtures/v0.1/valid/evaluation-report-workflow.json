@@ -1,0 +1,122 @@
+{
+  "schema_version": "0.1",
+  "evaluation_id": "evaluation-workflow-1",
+  "evaluation_number": 1,
+  "run_id": "run-demo-001",
+  "scope": {
+    "kind": "workflow"
+  },
+  "subject_bindings": [
+    {
+      "output_id": "code_patch",
+      "artifact": {
+        "artifact_id": "artifact-T3-2-code_patch",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "abc5ac4ec94f0b99f1a61ab177add7d2309d3dafb56023c972aa2bdfa2339546"
+        }
+      }
+    }
+  ],
+  "patch_application_refs": [],
+  "criteria_snapshot": {
+    "criteria": [
+      {
+        "criterion_id": "patch-present",
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "code_patch"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null,
+        "workflow_requirement_ids": [
+          "R1"
+        ],
+        "output_ids": [
+          "code_patch"
+        ]
+      },
+      {
+        "criterion_id": "behavior-ok",
+        "method": "simulated_verdict",
+        "pass_rule": {
+          "script_key": "behavior-ok"
+        },
+        "required": true,
+        "verifier_ref": null,
+        "workflow_requirement_ids": [
+          "R2"
+        ],
+        "output_ids": [
+          "code_patch"
+        ]
+      }
+    ],
+    "criteria_hash": {
+      "algorithm": "sha256",
+      "value": "75b8f743602da185dcf13cfae4dcfeaaf8034b77ea9a17de2b095ceda4be31bb"
+    }
+  },
+  "evaluator_snapshot": {
+    "kind": "deterministic",
+    "evaluator_ref": {
+      "id": "evaluator-deterministic",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e92ceddada73caffdd3699fed194572f78c859aaa97f8397c3112f9bd0573a11"
+      }
+    },
+    "version": "0.1",
+    "supported_methods": [
+      "output_binding_present",
+      "digest_matches",
+      "content_contract_valid",
+      "simulated_verdict"
+    ]
+  },
+  "context_manifest_ref": null,
+  "started_at": "2026-11-10T12:06:00Z",
+  "completed_at": "2026-11-10T12:06:00Z",
+  "execution_status": "completed",
+  "criterion_results": [
+    {
+      "criterion_id": "patch-present",
+      "required": true,
+      "requirement_ids": [
+        "R1"
+      ],
+      "method": "output_binding_present",
+      "status": "pass",
+      "evidence_refs": [],
+      "observations": [],
+      "error_record_ids": []
+    },
+    {
+      "criterion_id": "behavior-ok",
+      "required": true,
+      "requirement_ids": [
+        "R2"
+      ],
+      "method": "simulated_verdict",
+      "status": "fail",
+      "evidence_refs": [],
+      "observations": [
+        "roteiro: fail"
+      ],
+      "error_record_ids": []
+    }
+  ],
+  "verdict": "fail",
+  "evidence_refs": [],
+  "usage_record_ids": [],
+  "error_record_ids": [],
+  "limitations": [],
+  "unknowns": [],
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "59dcea5f0e6c8717370e752735d639e5c223d6ba1ac1a322292b48821f7dac79"
+  }
+}

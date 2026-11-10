@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.1",
+  "run_id": "run-demo-001",
+  "run_intent_ref": {
+    "id": "run-demo-001",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "11148c4446bc476f79ea355bbf03b69ed1dc441680f79d693c7137f20326c198"
+    }
+  },
+  "manifest_status": "cancelled_before_ready",
+  "created_at": "2026-11-10T12:00:00Z",
+  "closed_at": "2026-11-10T12:00:01Z",
+  "project_id": "project-demo",
+  "objective_snapshot": {
+    "objective": "Implementar autenticação",
+    "objective_hash": {
+      "algorithm": "sha256",
+      "value": "6192c529afd1a00781ecf373bdeb6fc4e5c3d1d35cdfda6a47013b9000ed886f"
+    }
+  },
+  "planning_record_ref": null,
+  "workflow_snapshot_ref": null,
+  "execution_policy_snapshot_ref": null,
+  "resolved_limits": null,
+  "budget_snapshot": null,
+  "scheduling_policy": null,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "97d6f7b785ce8ffd42f2bbc579666404b0a9ff22f08fdfc9c713eafc786524a9"
+  },
+  "routing_catalog_ref": null,
+  "routing_policy_ref": null,
+  "knowledge_catalog_snapshot_ref": null,
+  "knowledge_status_assertions": [],
+  "external_input_bindings": [],
+  "executor_snapshot": null,
+  "evaluator_snapshot": null,
+  "orchestrator_snapshot": {
+    "version": "0.1",
+    "config_ref": {
+      "id": "runner-config",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "fc9dd6184454e7e05638baaa95fbf5b467ad4d562318195a5266ed5ede315fff"
+      }
+    },
+    "clock": "injected"
+  },
+  "experiment_metadata": {},
+  "preparation_coverage": {
+    "completed": [],
+    "missing": [
+      "planning_record_ref",
+      "workflow_snapshot_ref",
+      "execution_policy_snapshot_ref",
+      "routing_catalog_ref",
+      "routing_policy_ref",
+      "knowledge_catalog_snapshot_ref",
+      "resolved_limits",
+      "budget_snapshot",
+      "executor_snapshot",
+      "evaluator_snapshot",
+      "scheduling_policy"
+    ],
+    "reason": "cancelled_before_ready"
+  },
+  "preparation_usage_refs": [],
+  "preparation_error_refs": []
+}

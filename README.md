@@ -6,7 +6,7 @@
 
 **Plataforma experimental de orquestração de agentes de IA em Python com MCP, projetada para desacoplar papéis, modelos, provedores, runtimes e executores sob contratos verificáveis, contexto auditável e avaliação determinística.**
 
-O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis em JSON Schema, Vault Markdown com CLI atômica, servidor MCP somente leitura, Task Planner determinístico e Model Router com baselines `fixed`/`rules` e adaptador opcional TypeSafe/Jev; ainda não há runner do Orchestrator nem chamadas reais a provedores.
+O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis em JSON Schema, Vault Markdown com CLI atômica, servidor MCP somente leitura, Task Planner determinístico e Model Router com baselines `fixed`/`rules` e adaptador opcional TypeSafe/Jev. A especificação da Fase 6 foi aceita (ADR 0007) e o 6A entrega oito schemas de execução, fixtures e validação local; ainda não há runner do Orchestrator nem chamadas reais a provedores.
 
 ---
 
@@ -31,7 +31,7 @@ Orquestrar múltiplos agentes e modelos de IA em tarefas reais de engenharia de 
 
 ## Arquitetura
 
-O diagrama abaixo representa o fluxo ponta a ponta do ORQ, destacando os módulos **já implementados (Fases 1–5)** e o **runner sequencial da Fase 6 (em especificação, ainda não implementado)**:
+O diagrama abaixo representa os módulos **já implementados (Fases 1–5)** e o **runner sequencial previsto na especificação aceita da Fase 6**. O incremento 6A já implementa os contratos desse runner; execução e armazenamento seguem em 6B–6E:
 
 ```mermaid
 flowchart TD
@@ -50,7 +50,7 @@ flowchart TD
         MCP -.->|"orq://catalog/summary e orq://knowledge/{source}/{rev}/{unit}"| CTX_MAT
     end
 
-    subgraph Fase6["Fase 6 — Em especificação (ainda não implementado)"]
+    subgraph Fase6["Fase 6 — Contratos 6A implementados; runner em 6B–6E"]
         CTX_MAT -->|"Contexto imutável e auditado"| RUNNER["Runner Sequencial do Orchestrator (RunManifest + DispatchIntent)"]
         RUNNER -->|"Despacho controlado"| EXEC["Executor (simulado inicial / adaptadores de CLI)"]
         EXEC -->|"AttemptRecord + ArtifactRef"| EVAL["Evaluator Determinístico (EvaluationReport: pass / fail)"]
@@ -72,7 +72,9 @@ flowchart TD
 | **Fase 3** | Concluída | Servidor MCP local somente leitura (`orq-knowledge-mcp`, SDK oficial `mcp==2.2.0` via `stdio`) expondo resumo sanitizado do catálogo e unidades exatas com verificação de integridade. |
 | **Fase 4** | Concluída | Schemas de planejamento (`PlanningRequest`, `PlanningRecord`), interface `Planner`, baseline `FixedTemplatePlanner` e gate central de admissão (`plan_and_validate`) que impede planos inválidos de avançarem. |
 | **Fase 5** | Concluída | Schemas e núcleo do `Model Router` (`route_and_finalize`) com filtro determinístico de elegibilidade, modos `fixed`/`rules`, interface `DecisionEngine`, motor simulado e adaptador opcional TypeSafe/Jev (`typesafe-sdk==0.7.2`). |
-| **Fase 6** | Em especificação | Escolha do primeiro executor/runtime, formalização de `RunManifest`/`AttemptRecord`/`DispatchIntent`/`EvaluationReport`, armazenamento *append-only* mínimo e máquina sequencial do DAG com executor simulado. |
+| **Fase 6** | Especificação aceita; 6A implementado | Oito schemas fechados, 22 fixtures e 276 testes do 6A aprovados. Próximo: journal e artefatos (6B), projeções (6C), executor/avaliador simulado (6D) e runner com `orq run simulate` (6E). |
+
+Verificação local atual: 367 casos na suíte completa, com 337 aprovados e 30 erros de setup por `WinError 5` em `.pytest-tmp`. Os 276 testes do 6A passaram; a suíte integral precisa ser repetida em ambiente com temporários autorizados. Detalhes em [HANDOFF](docs/HANDOFF.md).
 
 ---
 
@@ -146,10 +148,10 @@ Os subcomandos `vault` operam com escrita exclusiva (não sobrescrevem arquivos 
 ## Estrutura do repositório
 
 - [`src/orq_contracts/`](src/orq_contracts/): pacote Python com canonicalização JCS/SHA-256 (`canonical.py`), registro de schemas (`schemas.py`), validador estrutural e semântico (`validator.py`), ingestão do Vault (`vault.py`), seleção BM25 (`selection.py`), materialização de contexto (`context.py`), servidor MCP (`mcp_server.py`), Task Planner (`planner.py`), Model Router (`router.py`), adaptador TypeSafe/Jev (`jev.py`) e CLI (`cli.py`).
-- [`schemas/v0.1/`](schemas/v0.1/): 13 schemas JSON Schema (Draft 2020-12) fechados para tipos comuns, tarefas, workflows, conhecimento, manifesto de contexto, planejamento e roteamento.
+- [`schemas/v0.1/`](schemas/v0.1/): 21 schemas JSON Schema (Draft 2020-12) para tipos comuns, tarefas, workflows, conhecimento, contexto, planejamento, roteamento e os oito contratos fechados de execução do 6A.
 - [`fixtures/v0.1/`](fixtures/v0.1/): contratos válidos e inválidos, solicitações de planejamento e roteamento, catálogo de destinos e um Vault Markdown de demonstração.
 - [`tests/`](tests/): suíte automatizada em `pytest` cobrindo canonicalização, validadores, Vault, seleção, contexto, CLI, servidor MCP (em memória e subprocesso `stdio`), Planner, Router e adaptador Jev.
-- [`docs/`](docs/): estado operacional (`HANDOFF.md`), glossário normativo, especificações das Fases 1 a 5 e Architecture Decision Records (`docs/adr/`).
+- [`docs/`](docs/): estado operacional (`HANDOFF.md`), glossário normativo, especificações das Fases 1 a 6 e Architecture Decision Records (`docs/adr/`).
 
 ---
 
@@ -172,6 +174,7 @@ Os subcomandos `vault` operam com escrita exclusiva (não sobrescrevem arquivos 
 15. [Andamento da Fase 3 — MCP local de conhecimento](docs/phase-3/README.md).
 16. [Andamento da Fase 4 — Task Planner e admissão do plano](docs/phase-4/README.md).
 17. [Andamento da Fase 5 — Model Router](docs/phase-5/README.md).
+18. [Andamento da Fase 6 — Especificação aceita e contratos 6A](docs/phase-6/README.md).
 
 ---
 
@@ -185,8 +188,8 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 
 Coerentes com o [ROADMAP.md](ROADMAP.md) e o [docs/HANDOFF.md](docs/HANDOFF.md):
 
-1. **Especificação da Fase 6:** formalizar `RunManifest`, `AttemptRecord`, `DispatchIntent`, `EvaluationReport`, armazenamento *append-only* mínimo e a máquina de estados sequencial do DAG (admissão, timeout, reconciliação e retry sem repetir efeitos externos indeterminados).
-2. **Runner sequencial e executor simulado:** implementar o runner do Orchestrator com um executor simulado determinístico, comprovando o fluxo completo `planner → router → contexto → tentativa → avaliação` e expondo-o na CLI.
+1. **6B — Journal e artefatos:** implementar armazenamento append-only com os contratos do 6A, hashes JCS, idempotência, lock e limites de 1 MiB por linha/8 MiB por artefato.
+2. **6C–6E — Runner sequencial e executor simulado:** implementar projeções e transições, executor/avaliador local e o fluxo completo `planner → router → contexto → tentativa → avaliação`, com CLI aceita `orq run simulate`.
 3. **Adaptadores de executor para CLIs de agentes:** integrar adaptadores reais para **Claude Code**, **Codex**, **Gemini / Antigravity** e **Kiro**, mantendo a separação estrita entre papel, modelo, provedor, runtime e executor.
 4. **Fases seguintes do roadmap (Fases 7–12):** segundo provedor/runtime para comparação experimental, Evaluator e Execution Memory ampliados, relatórios de métricas/custos, execução concorrente do DAG e scheduling experimental.
 
