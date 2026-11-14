@@ -19,10 +19,11 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 1. Workflow de CI: instalar com `requirements.lock`, rodar `pytest` em Python 3.12 e 3.13
 2. Especificação da Fase 6 — aceita em 2026-11-10 (ADR 0007 Aceita)
 3. Executor simulado provando o fluxo completo (incrementos 6A–6E)
-4. Adaptadores de executor para CLIs de agentes (Claude Code, Codex, Gemini, Kiro), alinhados à separação papel/modelo/provedor/runtime/executor
+4. Especificação da Fase 7 (ADR 0008 Aceita e `docs/phase-7/`): hub de assinaturas pessoais via CLI (Claude Code, Codex, Gemini/agy, Kiro), roteamento ciente de cota, memória por família em Postgres com RLS e experimento 7F (incrementos 7A–7F depois do 6E na main)
 5. Exemplo reproduzível no README (`orq plan` → `orq route` → execução simulada)
 
 ## Log
+- 2026-11-14 — Proposta da Fase 7 documentada em `docs/phase-7/` e ADR 0008 (Proposta): hub de assinaturas pessoais em modo não interativo, roteamento ciente de cota com fallback entre famílias, memória por família em Postgres com RLS (FTS português + pg_trgm via MCP; BM25 Markdown como modo offline), cenários Q01–Q30 e experimento 7F. Sem código. Aceita no mesmo dia, com as seis decisões do dono registradas na ADR 0008; implementação depois do 6E na main.
 - 2026-11-14 — Revisão 6E: problemas 1–9 corrigidos com regressões; 19 cenários da revisão e outros 27 reforçados, 17 auditados e mantidos. S04 revisado para TK05, preservando o teste após output_bound. Notas e tabela de cobertura atualizadas; 364 testes dos quatro arquivos aprovados, nenhum ignorado; suíte integral verificada pelo orquestrador em 2026-11-14: 1180 aprovados e 4 ignorados (symlinks sem privilégio no Windows).
 - 2026-11-14 — 6E implementado: runner sequencial, CLI exclusiva, checkpoints duráveis e fixture T1–T5. 101 testes novos aprovados, nenhum ignorado; S02 succeeded e S03 idêntico byte a byte; 62 cenários automatizados fielmente. S04 permanece aberto por incompatibilidade do checkpoint output_bound com evaluating (AT06/TK05 ainda não gravadas); teste diagnóstico e cobertura explícita. Sem commit/push por instrução do usuário.
 - 2026-11-14 — Segunda revisão do 6D: achados 1–6 e cinco itens de testes/documentação corrigidos. Reconciliação roteirizada, rollback de persistência, restauração sem leitura de artefatos, integridade/produtor/IDs finais, limites efetivos mínimos e hooks validados. 332 testes de executor/avaliador/schemas aprovados, nenhum ignorado; fixtures/digests inalterados. Suíte integral: 1032 aprovados, 4 ignorados. Próximo incremento: 6E.
