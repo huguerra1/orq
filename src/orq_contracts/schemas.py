@@ -31,6 +31,8 @@ SCHEMA_FILES = {
     "routing_target_catalog": "routing-target-catalog.schema.json",
     "run_intent": "run-intent.schema.json",
     "run_manifest": "run-manifest.schema.json",
+    "simulation_script": "simulation-script.schema.json",
+    "simulated_output": "simulated-output.schema.json",
     "task": "task.schema.json",
     "usage_record": "usage-record.schema.json",
     "workflow": "workflow.schema.json",

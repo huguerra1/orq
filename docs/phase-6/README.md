@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incrementos 6A (schemas/fixtures), 6B (journal/artefatos) e 6C (projeções/validador) implementados; próximo passo: 6D. Runner, executor, avaliador e CLI de execução ainda não implementados.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incrementos 6A (schemas/fixtures), 6B (journal/artefatos), 6C (projeções/validador) e 6D (executor simulado/avaliador, duas revisões corrigidas) implementados; próximo passo: 6E. Runner e CLI de execução ainda não implementados.
 
 ## Problema
 
@@ -73,10 +73,19 @@ Estas lacunas das fases anteriores têm soluções aceitas na ADR 0007; o 6A for
 | 6A — implementado | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis em `tests/test_phase6_schemas.py`; [escolhas de implementação](run-contracts.md#notas-de-implementação-6a) |
 | 6B — implementado | Journal append-only e armazenamento de artefatos | Antes desta correção: suíte completa com 432 aprovados e 1 ignorado; após correções, 119 aprovados e 3 ignorados nos testes de armazenamento; decisões nas [notas do 6B](run-contracts.md#notas-de-implementação-6b) |
 | 6C — implementado; revisão 1–13 corrigida | Projeções e máquina de estados (validador de transições), com ações puras de retomada | 217 testes próprios aprovados após revisão: 49 linhas AT/TK/RN, saltos proibidos, guardas negativas, vínculos/invariantes e integração com RunJournal; suíte integral pós-revisão pelo orquestrador; [decisões e API](runner-state-machine.md#notas-de-implementação-6c) |
-| 6D | Executor simulado e avaliador determinístico | Roteiros dos cenários S01–S63 executáveis sem rede |
-| 6E | Runner ponta a ponta e CLI aceita `orq run simulate` | Cenário completo reproduzível com o mesmo digest final do journal |
+| 6D — implementado; duas revisões corrigidas | Interface de executor, roteiro versionado fechado, executor simulado e avaliador determinístico | Interface, simulado e avaliador completos e roteiros representativos validados (`simulation-script.json` e `simulation-script-recovery.json`, inclusive contra o WorkflowSpec), sem rede. Segunda revisão: 332 testes de executor/avaliador/schemas aprovados, sem ignorados; nova suíte integral com o orquestrador. [Decisões e API](executor-choice.md#notas-de-implementação-6d). A execução dos cenários S01–S63 como testes fica no gate do 6E ([decisão de 2026-11-10](#decisão-do-orquestrador-de-2026-11-10-gate-do-6d)) |
+| 6E | Runner ponta a ponta e CLI aceita `orq run simulate` | Cenário completo reproduzível com o mesmo digest final do journal; cenários S01–S63 executados como testes automatizados |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
+
+### Decisão do orquestrador de 2026-11-10: gate do 6D
+
+O gate original do 6D era "Roteiros dos cenários S01–S63 executáveis sem rede". Ele foi reescrito na entrega do 6D sem decisão registrada (achado 8 da revisão do 6D). O orquestrador decidiu em 2026-11-10:
+
+- O gate do 6D passa a ser: **interface, executor simulado e avaliador completos e roteiros representativos validados**.
+- A execução dos cenários S01–S63 como testes automatizados fica no **gate do 6E**, que já depende do runner para percorrê-los.
+
+Na mesma data, o orquestrador decidiu também, para as correções do 6D: chave desconhecida na reconciliação devolve `unknown` não autoritativo e `not_found` autoritativo exige estado durável reconstruível de um registro persistido pelo chamador; hooks `crash_after`/`cancel_after` têm escopo explícito (run, tarefa/tentativa, workflow) e disparo único controlado pelo harness; o envelope JSON de `from_output_spec` tem schema versionado com digest; o relógio injetado é obrigatório. Detalhes nas [Notas 6D](executor-choice.md#notas-de-implementação-6d).
 
 Revisão do 6A: 276 testes próprios aprovados, oito schemas e 22 fixtures; suíte completa **366 aprovados e 1 ignorado**, CI verde no PR #8. O orquestrador verificou 6A e 6B antes desta correção com `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`; no 6B, foram **432 aprovados e 1 ignorado**. A matriz do journal cobre os 41 pares agregado/evento permitidos e os 79 proibidos. `validate_instance` acrescenta a verificação local de igualdade de output IDs dos critérios globais, em relatórios e intenções de avaliação; o replay do 6C confere vínculos e transições. Estes testes não executam os 63 cenários do runner. Resultados no [HANDOFF](../HANDOFF.md). Nesta sessão não há commit/push, por instrução do usuário.
 

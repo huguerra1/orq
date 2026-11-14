@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1",
+  "script_id": "sim-script-6d",
+  "version": "1",
+  "clock": {
+    "start": "2026-11-10T12:00:00Z",
+    "step_ms": 10
+  },
+  "reconcile_not_found_authoritative": true,
+  "default": {
+    "dispatch": "ack",
+    "execution": "finish",
+    "duration_ms": 1000,
+    "on_cancel": "confirmed",
+    "reconcile": "found_finished",
+    "resolved_model_id": "sim-model-1",
+    "usage": {
+      "cost": {
+        "status": "reported",
+        "amount": "0.10",
+        "currency": "USD"
+      }
+    },
+    "outputs": "from_output_spec",
+    "verifier": {
+      "behavior-ok": "pass"
+    }
+  },
+  "attempts": {
+    "T3": {
+      "1": {
+        "verifier": {
+          "behavior-ok": [
+            "inconclusive",
+            "pass"
+          ]
+        }
+      },
+      "2": {
+        "usage": {
+          "cost": {
+            "status": "unavailable",
+            "amount": null,
+            "currency": "USD"
+          }
+        }
+      }
+    }
+  },
+  "workflow_verifier": {
+    "workflow-behavior-ok": "pass"
+  },
+  "hooks": []
+}

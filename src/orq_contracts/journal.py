@@ -207,6 +207,11 @@ class RunJournal:
         return tuple(copy.deepcopy(self._events))
 
     @property
+    def clock(self) -> Callable[[], str]:
+        """Relógio usado nos eventos; executor/avaliador simulados exigem o mesmo objeto."""
+        return self._clock
+
+    @property
     def final_digest(self) -> dict[str, str] | None:
         return copy.deepcopy(self._events[-1]["event_hash"]) if self._events else None
 

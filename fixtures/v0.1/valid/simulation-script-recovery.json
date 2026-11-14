@@ -1,0 +1,106 @@
+{
+  "schema_version": "0.1",
+  "script_id": "sim-script-6d-recovery",
+  "version": "1",
+  "clock": {
+    "start": "2026-11-10T12:00:00Z",
+    "step_ms": 1000
+  },
+  "reconcile_not_found_authoritative": true,
+  "default": {
+    "dispatch": "ack",
+    "execution": "finish",
+    "duration_ms": 1000,
+    "on_cancel": "confirmed",
+    "reconcile": "found_finished",
+    "resolved_model_id": "sim-model-1",
+    "usage": {
+      "cost": {
+        "status": "reported",
+        "amount": "0.10",
+        "currency": "USD"
+      }
+    },
+    "outputs": "from_output_spec",
+    "verifier": {
+      "behavior-ok": "pass"
+    }
+  },
+  "attempts": {
+    "T1": {
+      "1": {
+        "execution": "hang",
+        "on_cancel": "unconfirmed",
+        "reconcile": "found_stopped",
+        "verifier": {
+          "behavior-ok": [
+            "inconclusive",
+            "pass"
+          ]
+        }
+      },
+      "2": {
+        "dispatch": "ack_lost",
+        "reconcile": "found_finished",
+        "outputs": {
+          "report": "declared_digest_mismatch"
+        },
+        "usage": {
+          "cost": {
+            "status": "estimated",
+            "amount": "0.20",
+            "currency": "USD"
+          }
+        }
+      }
+    },
+    "T2": {
+      "1": {
+        "dispatch": "reject_confirmed",
+        "reconcile": "unknown"
+      },
+      "2": {
+        "dispatch": "not_executed",
+        "reconcile": "not_found",
+        "usage": {
+          "cost": {
+            "status": "unavailable",
+            "amount": null,
+            "currency": "USD"
+          }
+        }
+      }
+    }
+  },
+  "workflow_verifier": {
+    "workflow-behavior-ok": "fail"
+  },
+  "hooks": [
+    {
+      "hook_id": "crash-after-first-reservation",
+      "action": "crash_after",
+      "event_type": "budget_reserved",
+      "scope": {
+        "kind": "run"
+      }
+    },
+    {
+      "hook_id": "cancel-after-dispatch-T1-1",
+      "action": "cancel_after",
+      "event_type": "dispatch_requested",
+      "scope": {
+        "kind": "task_attempt",
+        "task_id": "T1",
+        "attempt_number": 1
+      }
+    },
+    {
+      "hook_id": "crash-after-global-evaluation-request",
+      "action": "crash_after",
+      "event_type": "evaluation_requested",
+      "scope": {
+        "kind": "workflow"
+      }
+    }
+  ]
+}
