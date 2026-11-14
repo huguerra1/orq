@@ -6,7 +6,7 @@ Substitui parcialmente a [ADR 0002](0002-vault-layout-and-markdown-parsing.md) (
 
 ## Contexto
 
-As Fases 1 a 5 fecharam contratos, Vault Markdown local, servidor MCP somente leitura, Planner e Router. A Fase 6 especificou o runner sequencial e implementou os incrementos 6A a 6D (schemas, journal JCS encadeado, máquina de estados e `ExecutorAdapter` com executor simulado e avaliador determinístico), restando o incremento 6E para fechar a execução simulada ponta a ponta.
+As Fases 1 a 5 fecharam contratos, Vault Markdown local, servidor MCP somente leitura, Planner e Router. A Fase 6 especificou o runner sequencial e implementou os incrementos 6A a 6E (schemas, journal JCS encadeado, máquina de estados, `ExecutorAdapter` com executor simulado e avaliador determinístico, e o runner sequencial com `orq run simulate`). A Fase 6 foi concluída em 2026-11-14.
 
 O roadmap original previa na Fase 7 a conexão com provedores reais. Na prática do projeto, o autor dispõe de quatro **assinaturas pessoais** ativas — **Kiro Power** (Kiro CLI), **ChatGPT Plus** (Codex CLI), **Claude Enterprise** (Claude Code) e **Gemini** (Gemini CLI/`agy`) — todas confirmadas pelo dono como permitidas para uso em projetos pessoais. Usar APIs cobradas por token criaria custo recorrente desnecessário, e exigir LLMs locais inviabilizaria a execução na máquina de trabalho ou reduziria a capacidade dos agentes.
 

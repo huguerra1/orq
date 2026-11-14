@@ -72,10 +72,10 @@ A especificação da Fase 6 foi aceita em 2026-11-10 ([ADR 0007](adr/0007-phase-
 
 O adaptador real fica para depois do runner simulado e de uma sessão de verificação com versão fixada (checklist V01–V12 em [phase-6/executor-choice.md](phase-6/executor-choice.md)).
 
-### Fase 7 — Aceita, implementação depois do 6E na main
+### Fase 7 — Aceita; implementação a partir do 7A
 
 - Proposta documental escrita em 2026-11-14 ([ADR 0008](adr/0008-phase-7-subscription-hub-and-family-memory.md) e [phase-7/README.md](phase-7/README.md)), sem código, schemas executáveis ou fixtures.
-- Escopo proposto para depois do 6E: hub das quatro assinaturas pessoais via CLIs oficiais em modo não interativo (Claude Code, Codex CLI, Gemini CLI/`agy`, Kiro CLI; sem API paga, sem LLM local, sem extrair tokens nem automatizar web), roteamento ciente de cota com fallback entre famílias e custo monetário `unavailable` (`amount: null`), memória por família em Postgres configurável via Docker com Row-Level Security (FTS em português + `pg_trgm`, escolha final pelo agente via MCP, consolidando `ContextManifest` com digests; BM25 em Markdown preservado como modo offline) e experimento reproduzível 7F (cenários Q01–Q30).
+- Escopo: hub das quatro assinaturas pessoais via CLIs oficiais em modo não interativo (Claude Code, Codex CLI, Gemini CLI/`agy`, Kiro CLI; sem API paga, sem LLM local, sem extrair tokens nem automatizar web), roteamento ciente de cota com fallback entre famílias e custo monetário `unavailable` (`amount: null`), memória por família em Postgres configurável via Docker com Row-Level Security (FTS em português + `pg_trgm`, escolha final pelo agente via MCP, consolidando `ContextManifest` com digests; BM25 em Markdown preservado como modo offline) e experimento reproduzível 7F (cenários Q01–Q30).
 - ADR 0008 aceita em 2026-11-14 com as seis decisões do dono ([Decisões do dono](adr/0008-phase-7-subscription-hub-and-family-memory.md#decisões-do-dono-aceitas-em-2026-11-14)): famílias em dois eixos (assinatura e papel), cooldown de 60 minutos com sondagem leve, prioridades do baseline `rules` por tipo de tarefa, escolha da memória pelo agente durante a execução com auditoria do runner, workspaces do Kiro em `C:\dev` (vistos como `/mnt/c`) e experimento 7F com 10 tarefas × 3 repetições × 2 condições. O 7A só começa depois que o 6E estiver na `main`.
 
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
@@ -149,7 +149,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 5](phase-5/README.md).
 - [Fase 6 — runner sequencial e executor simulado](phase-6/README.md), 6A–6E implementados; concluída; 63 cenários automatizados.
 - [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), aceita.
-- [Fase 7 — hub de assinaturas pessoais, roteamento por cota e memória por família](phase-7/README.md), aceita; implementação depois do 6E.
+- [Fase 7 — hub de assinaturas pessoais, roteamento por cota e memória por família](phase-7/README.md), aceita; implementação a partir do 7A.
 - [ADR 0008 — hub de assinaturas pessoais, roteamento por cota e memória por família em Postgres](adr/0008-phase-7-subscription-hub-and-family-memory.md), aceita.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.

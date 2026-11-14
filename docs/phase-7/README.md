@@ -4,7 +4,7 @@ Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-an
 
 ## Problema
 
-As Fases 1 a 6 definem os contratos da plataforma, o Vault Markdown local com busca lexical BM25, o servidor MCP somente leitura, o Planner, o Router e o runner sequencial com executor simulado (incrementos 6A a 6D implementados; 6E pendente para fechar a simulação ponta a ponta). Contudo, a plataforma ainda não executa tarefas em agentes reais nem particiona o conhecimento entre diferentes famílias de agentes.
+As Fases 1 a 6 definem os contratos da plataforma, o Vault Markdown local com busca lexical BM25, o servidor MCP somente leitura, o Planner, o Router e o runner sequencial com executor simulado (Fase 6 concluída em 2026-11-14, com `orq run simulate`). Contudo, a plataforma ainda não executa tarefas em agentes reais nem particiona o conhecimento entre diferentes famílias de agentes.
 
 Conectar agentes reais por meio de APIs pagas por token geraria custo financeiro contínuo, enquanto usar LLMs locais limitaria a qualidade ou exigiria hardware dedicado. O autor dispõe de quatro **assinaturas pessoais** — **Kiro Power** (Kiro CLI), **ChatGPT Plus** (Codex CLI), **Claude Enterprise** (Claude Code) e **Gemini** (Gemini CLI/`agy`) — todas confirmadas para uso em projetos pessoais. Para utilizá-las com segurança e rigor experimental, o ORQ precisa resolver três problemas:
 
@@ -56,7 +56,7 @@ Especificar e, após a conclusão do 6E e o aceite da [ADR 0008](../adr/0008-pha
 | 3 | Servidor `orq-knowledge-mcp` (`mcp==2.2.0`, transporte `stdio`, somente leitura) | Implementado; será estendido com tools escopadas por família em `7E` |
 | 4 | `FixedTemplatePlanner`, `PlanningRecord` e validação central de `WorkflowSpec` | Implementado e testado |
 | 5 | `route_and_finalize`, baselines `fixed` e `rules`, `RoutingTargetCatalog` e checks de preflight | Implementado; receberá filtro/check de disponibilidade de cota |
-| 6 | Journal JCS encadeado (`6B`), projeções e máquina de estados (`6C`), protocolo `ExecutorAdapter`, checklist V01–V12 e `DeterministicEvaluator` (`6D`), e runner sequencial ponta a ponta (`6E`) | `6A`–`6D` implementados; **`6E` é pré-requisito obrigatório antes de iniciar `7A`** |
+| 6 | Journal JCS encadeado (`6B`), projeções e máquina de estados (`6C`), protocolo `ExecutorAdapter`, checklist V01–V12 e `DeterministicEvaluator` (`6D`), e runner sequencial ponta a ponta (`6E`) | `6A`–`6E` implementados (Fase 6 concluída em 2026-11-14) |
 
 ## Incrementos de implementação (após 6E e aceite)
 
