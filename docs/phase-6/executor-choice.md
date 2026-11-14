@@ -1,6 +1,6 @@
 # Escolha do primeiro executor/runtime
 
-Estado: proposta da Fase 6, aguardando revisão. Nenhum adaptador foi implementado e nenhuma CLI de agente foi executada pelo ORQ.
+Estado: especificação aceita na ADR 0007. O incremento 6D implementa a interface e o executor simulado; nenhum adaptador real ou CLI de agente foi executado pelo ORQ.
 
 ## Problema
 
@@ -154,8 +154,10 @@ ExecutorAdapter
       retorna external_call_id ou null; nunca bloqueia além do prazo de despacho
 
   observe(intent, until: instante UTC) -> ExecutionObservation
-      status observado: running | finished | failed | unknown
+      status observado: running | finished | failed | stopped | unknown
+      stopped: parada confirmada sem resultado utilizável (sempre com certeza confirmed)
       termination_certainty: confirmed | not_terminated | unknown
+      until já vencido: observação no instante atual, sem avançar o relógio
 
   cancel(intent, reason) -> CancelObservation
       termination_certainty após a tentativa de parada
@@ -165,7 +167,8 @@ ExecutorAdapter
       found_stopped: execução encontrada parada, sem resultado utilizável; o runner
       decide entre timed_out, cancelled e failed pelo pedido de parada anterior
       not_found só é conclusivo se o adaptador declarar o controle
-      reconcile_not_found_authoritative com evidência
+      reconcile_not_found_authoritative com evidência e mantiver estado durável;
+      chave desconhecida sem estado durável é unknown, nunca not_found
 
   collect(intent) -> ExecutorResult
       produced_files (bytes + output_id declarado), usage, errors,
@@ -200,3 +203,43 @@ Cada item produz um ArtifactRef de evidência (comando, versão, saída limitada
 | V12 | Contexto adicional do runtime é identificável | Lista de arquivos de instrução e memória carregados |
 
 Itens não verificados permanecem `unknown`; o Router já exclui destinos com controle obrigatório `unknown` (`control_unknown`).
+
+## Notas de implementação 6D
+
+- `ExecutorAdapter` é um `Protocol` síncrono com dataclasses para as seis operações. `WorkspaceHandle` fornece OutputSpecs, base e modelo solicitado do cabeçalho, sem acesso a caminhos. O simulado verifica os digests de intenção/bundle, devolve observações e só publica bytes por `ArtifactStore`; não grava eventos nem decide retry.
+- `SimulationScript(document, expected_digest=...)` valida o schema fechado `simulation-script.schema.json` e SHA-256 do documento JCS inteiro; `reference` identifica a fixture versionada. `ScriptError.code` diferencia estrutura, digest, chave ausente e lista esgotada. Overrides substituem campos completos; `verifier` mescla por chave.
+- `DeterministicClock` usa `clock.start/step_ms`: `now()` não avança, chamada ao relógio avança um passo e `observe(until)` avança até término/prazo sem espera real. Despacho e coleta repetidos devolvem cópias do resultado original, sem novo efeito/avanço; mesma chave com entradas diferentes gera conflito. IDs externos vêm da chave.
+- Cada output contém JSON JCS com `schema_version`, `task_id`, `attempt_number`, `output_id`, `artifact_type`, `content_contract_ref`, `input_bindings` e `bundle_hash`. As variantes omitem o output, alteram o contrato declarado ou divergem o digest declarado; locator sempre usa os bytes reais. UsageRecord preserva custo roteirizado e `unavailable/null`; modelo resolvido pode ser null.
+- `DeterministicEvaluator.evaluate` recebe IDs/escopo/critérios/bindings já alocados pelo chamador, descritores `ArtifactEvidence` e número da tentativa. `ContentContractRegistry` confere digest do schema local e resolve referências sem rede. Desconhecidos e contratos não registrados ficam `not_run`. Agregação preserva critérios opcionais; avaliação global usa IDs finais. `unknown_termination` retorna `report=None`, sem fabricar término ou custo. O avaliador não cria UsageRecord.
+
+### Correções da revisão do 6D (achados 1–14, decisões do orquestrador de 2026-11-10)
+
+| Achado | Decisão e implementação |
+| --- | --- |
+| 1. Negação sem estado | **Decisão do orquestrador:** chave desconhecida na reconciliação devolve `unknown` não autoritativo. `not_found` autoritativo só existe quando o estado do executor é durável **e** o roteiro declara `reconcile_not_found_authoritative`. O simulado recebe juntos `state` (registro de `SimulatedExecutor.initial_state` ou `export_state`) e `persist`; o construtor persiste o registro antes de disponibilizar a instância durável. O registro é JSON serializável, com `state_hash` JCS, `run_id` e `script_ref`; a restauração confere hash, run, roteiro, intenções, fingerprints e invariantes das chamadas, sem reler artefatos. Falha de `persist` reverte as mutações da operação, levanta `executor_state_unavailable` e desliga a durabilidade. `describe()` só declara o controle `supported` com estado durável. Teste com instância nova reconstruída do registro persistido. |
+| 2. Veredicto sobre bytes não verificados | Antes de qualquer critério, o avaliador relê **todos** os `subject_bindings` e confere descritor, locator, digest, `size_bytes` e produtor (run e, no escopo de tentativa, tarefa/tentativa). Qualquer divergência ou ausência gera um ErrorRecord `integrity_mismatch` por output, e todos os critérios de método suportado (inclusive `output_binding_present` e `simulated_verdict`) ficam `fail` com esses IDs. Métodos desconhecidos continuam `not_run`, então o veredicto nunca é `pass`. |
+| 3. Hooks | **Decisão do orquestrador:** escopo explícito e disparo único controlado pelo harness. Os campos `crash_after`/`cancel_after` por comportamento e na raiz foram removidos. O roteiro tem `hooks` (obrigatório, pode ser vazio): `{hook_id, action, event_type, scope}`, com `scope` `run`, `task_attempt` (`task_id` + `attempt_number`) ou `workflow`. `hook_id` e o par (escopo, evento) são únicos. `HookController(script, fired=...)` devolve em `due(event_type, scope)` o hook ainda não disparado e marca o disparo; o harness grava `fired` de forma durável antes de simular o crash e o repassa na retomada (S35 sem laço). Executor e journal não leem hooks. |
+| 4. Controles | `describe()` usa `{id, support, evidence_refs}`, validado contra `routing-target-catalog.schema.json#/$defs/declaration`. IDs: `non_interactive`, `sandbox`, `timeout`, `cancellation`, `structured_output`, `usage_reporting`, `model_identification`, `call_identification` e `reconcile_not_found_authoritative`, compatíveis com `required_control_ids` do Router. |
+| 5. Prazo vencido | `observe` com `until` anterior ao relógio devolve a observação no instante atual, sem avançar e sem exceção. |
+| 6. Contrato do envelope | **Decisão do orquestrador:** schema versionado `schemas/v0.1/simulated-output.schema.json`. `simulated_output_contract()` devolve a referência `{id: simulated-output, version: 0.1, content_digest}` (SHA-256 JCS do schema) e o schema. O simulado só aceita OutputSpecs com essa referência (`unsupported_content_contract` antes do efeito) e valida o envelope antes de gravar. Os testes usam essa referência no OutputSpec e no descritor ingerido, sem trocar o contrato. |
+| 7. Roteiro contraditório | A carga recusa (`invalid_script`) despacho não executado com `found_*`, despacho executado com `not_found`, `found_finished` com falha roteirizada e `found_failed` com `finish`, em `default` e em cada tentativa; a reconciliação não corrige mais em silêncio. `validate_against_workflow(workflow)` roda antes da admissão, após validação estrutural e semântica do WorkflowSpec: tarefas e tentativas existentes, outputs alterados declarados, envelope nos OutputSpecs, escopo dos hooks e `script_key` de cada critério `simulated_verdict`. Limites efetivos são o mínimo dos valores presentes na TaskSpec e no WorkflowSpec. Listas por tentativa cobrem `max_evaluations_per_attempt` efetivo; listas em `workflow_verifier` exigem somente tamanho >= 1, pois a avaliação global é única. Limite necessário ausente em ambos gera `script_limits_unknown`. |
+| 8. Gate | Ver a decisão registrada no [README da Fase 6](README.md#decisão-do-orquestrador-de-2026-11-10-gate-do-6d). |
+| 9. Cancelamento tardio | `observe`, `cancel` e `collect` aplicam o término roteirizado quando a duração já passou; o cancelamento então confirma `finished`/`failed`, não `stopped`. `reconcile` respeita o comportamento roteirizado independentemente do tempo decorrido e só dá precedência a término já confirmado por operação anterior. |
+| 10. Observação ambígua | `ExecutionObservation.status` ganhou `stopped`, sempre com certeza `confirmed`; `unknown` fica para despacho não executado. |
+| 11. Artefato ausente | Ausência de bytes vinculados no store imutável é `fail` com `integrity_mismatch` (achado 2), não `not_run`. Descritor ausente é erro de integração (`artifact_descriptor_missing`), levantado antes de consumir o relógio. |
+| 12. Determinismo e procedência do contrato | `ContentContractRegistry` não usa `FormatChecker`: `format` é anotação, igual em qualquer máquina. `ArtifactEvidence` agora é o payload `artifact_ingested` validado; o contrato vem desse descritor, cujo `artifact_id`, digest e locator são conferidos com o binding. |
+| 13. Relógio | **Decisão do orquestrador:** relógio injetado obrigatório. `SimulatedExecutor` e `DeterministicEvaluator` exigem `clock=` (`DeterministicClock`) e recusam com `clock_mismatch` um relógio diferente de `store.journal.clock`. |
+| 14. Testes | Digests da fixture, da fixture de recuperação e do schema do envelope ficam fixados em `PINNED_DIGESTS` (como `GOLDEN_HASHES`); o bloqueio de rede cobre `create_connection`, `getaddrinfo`, `gethostbyname*` e `socket.connect/connect_ex/send*`; hooks são testados por disparo, escopo e retomada; o caso global separa `workflow_verifier` (com verificador da tarefa oposto) dos métodos de output com ID final. |
+
+- Roteiros representativos versionados: `fixtures/v0.1/valid/simulation-script.json` (caminho feliz, S24 em T3) e `fixtures/v0.1/valid/simulation-script-recovery.json` (hang com cancelamento não confirmado e `found_stopped`, ack perdido com `found_finished`, rejeição, não execução com `not_found`, custos estimado/indisponível, digest declarado divergente e os três escopos de hook). Ambos passam por `validate_against_workflow`.
+- Verificação: digests de `PINNED_DIGESTS` fixados pelo orquestrador; suíte integral com 932 aprovados e 4 ignorados. Sem dependências novas. Runner, cenários ponta a ponta e CLI ficam no **6E**.
+
+### Segunda revisão independente do 6D (2026-11-14)
+
+- Corrigidos os achados 1–6 e os cinco itens de testes/documentação de `.revisao-6d-2.md`, preservando estado durável reconstruível, autoridade condicionada à durabilidade, hooks com escopo/disparo único e relógio compartilhado.
+- Persistência: além do despacho, `observe`, `cancel`, `reconcile` e `collect` fazem rollback de término, falha e resultado quando a operação falha. O relógio compartilhado permanece monotônico. Bytes já publicados por `ArtifactStore` continuam imutáveis; uma falha de persistência não deixa resultado em cache confirmado. A instância perde a durabilidade e deixa de declarar autoridade para negar uma execução; a retomada durável usa o registro preservado pelo chamador.
+- Restauração: timestamps, acknowledgement, execução, término, falha e metadados de resultado precisam ser consistentes. Os bytes de resultados coletados só são relidos se houver nova chamada a `collect`; ausência/corrupção nessa leitura gera `executor_state_artifact_unavailable`. A restauração, a reconciliação e o despacho de outras tarefas continuam disponíveis, e o avaliador pode produzir `integrity_mismatch` sobre os bindings registrados.
+- Avaliação global: `simulated_verdict` exige os `output_ids` finais do critério em `subject_bindings` e inclui os respectivos ArtifactRefs nas evidências. Produtores precisam pertencer ao run; tarefa/tentativa também precisam coincidir no escopo `task_attempt`.
+- Hooks: `due` valida o evento pelo vocabulário de `journal-event.schema.json#/properties/event_type`; `fired` aceita sequência ou conjunto de strings conhecidas e únicas, recusando string/bytes soltos e entradas malformadas com `ScriptError`.
+- Regressões incluem reconciliação após a duração (com e sem cancelamento não confirmado), persistência inicial e reconstrução, falha de persistência nas quatro operações, estados rehashados inconsistentes, restauração com artefatos ausentes/corrompidos seguida de avaliação, mínimos dos limites, avaliação global única, metadados de integridade distintos e os quatro métodos com IDs finais.
+- Verificação executada em `tests/test_simulated_executor.py`, `tests/test_evaluator.py` e `tests/test_schemas.py`: **332 aprovados, nenhum ignorado**. Fixtures e valores de `PINNED_DIGESTS` inalterados. Suíte integral após esta segunda revisão: 1032 aprovados e 4 ignorados. Sem novos schemas ou dependências nesta correção.

@@ -1,0 +1,30 @@
+{
+  "actor": {
+    "kind": "orchestrator",
+    "ref": "orq-runner"
+  },
+  "aggregate_id": "attempt-T3-2",
+  "aggregate_sequence": 1,
+  "aggregate_type": "attempt",
+  "causation_event_id": "event-57",
+  "correlation_id": "attempt-T3-2",
+  "event_hash": {
+    "algorithm": "sha256",
+    "value": "3c0821a199bbf08ded579414199f90f09ea7d4b1369912c6ff30674d321ecb80"
+  },
+  "event_id": "event-58",
+  "event_type": "dispatch_requested",
+  "global_sequence": 58,
+  "idempotency_key": "run-demo-001/dispatch-T3-2",
+  "occurred_at": null,
+  "payload": {
+    "external_call_id": null
+  },
+  "previous_event_hash": {
+    "algorithm": "sha256",
+    "value": "50abf8aca0edd20d42dae39e0ce785041c6ac6430c3529fbb53d7986361ab42f"
+  },
+  "recorded_at": "2026-11-10T12:04:00Z",
+  "run_id": "run-demo-001",
+  "schema_version": "0.1"
+}

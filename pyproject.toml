@@ -25,6 +25,7 @@ jev = [
 ]
 
 [project.scripts]
+orq = "orq_contracts.cli:main"
 orq-contracts = "orq_contracts.cli:main"
 orq-knowledge-mcp = "orq_contracts.mcp_server:main"
 

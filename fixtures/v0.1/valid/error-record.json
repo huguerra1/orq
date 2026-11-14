@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "error_id": "error-T3-2-timeout",
+  "run_id": "run-demo-001",
+  "scope_type": "attempt",
+  "scope_ref": "attempt-T3-2",
+  "phase": "observe",
+  "category": "timeout",
+  "code": "timeout",
+  "message": "Prazo excedido; término ainda desconhecido.",
+  "occurred_at": null,
+  "recorded_at": "2026-11-10T12:04:30Z",
+  "retryability": "unknown",
+  "termination_certainty": "unknown",
+  "external_call_ref": null,
+  "cause_error_refs": [],
+  "diagnostic_artifact_refs": [],
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "5db231aa971cbf80d8419885983881578d266679b59a20cf2b468e2fe53f11f9"
+  }
+}

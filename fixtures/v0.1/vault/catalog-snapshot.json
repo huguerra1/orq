@@ -1,0 +1,286 @@
+{
+  "schema_version": "0.1",
+  "catalog_id": "knowledge-project-demo",
+  "version": "1",
+  "created_at": "2026-09-29T12:00:00Z",
+  "status_cutoff": "2026-09-29T12:00:00Z",
+  "catalog_policy_ref": {
+    "id": "catalog-policy",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "status_assertions": [
+    {
+      "assertion_id": "status-project-demo-architecture-1",
+      "source_ref": {
+        "source_id": "project-demo-architecture",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "54220408142556e91a3a632cfd14abb1b8ec29a709f1495a544940b65b6d8aa3"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-09-29T11:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:project-demo-architecture:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "0b33a57401e1db630c0a81e089222628e4a82525627bfe347879afd792d46cb5"
+      }
+    }
+  ],
+  "source_entries": [
+    {
+      "source_metadata": {
+        "schema_version": "0.1",
+        "source_id": "project-demo-architecture",
+        "revision": "1",
+        "title": "Arquitetura do projeto demo",
+        "knowledge_kind": "project",
+        "content_locator": {
+          "root_id": "vault",
+          "path": "content/projects/project-demo/architecture.md"
+        },
+        "media_type": "text/markdown",
+        "encoding": "utf-8",
+        "language": "pt-BR",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "54220408142556e91a3a632cfd14abb1b8ec29a709f1495a544940b65b6d8aa3"
+        },
+        "size_bytes": 270,
+        "project_scope": {
+          "kind": "project",
+          "project_id": "project-demo"
+        },
+        "authority": {
+          "authority_level": "project_authoritative",
+          "authority_scopes": [
+            "project_architecture"
+          ],
+          "issuer_ref": "catalog-admin",
+          "assigned_at": "2026-09-29T11:00:00Z",
+          "evidence_ref": "catalog-entry:project-demo-architecture:1"
+        },
+        "instruction_scope": "project",
+        "applicability": {
+          "roles": [
+            "software_architect"
+          ],
+          "task_types": [
+            "architecture"
+          ],
+          "topics": [
+            "arquitetura",
+            "seguranca"
+          ],
+          "paths": [
+            "src/**"
+          ],
+          "domains": [
+            "orchestration"
+          ],
+          "capabilities": []
+        },
+        "data_classification": "internal",
+        "owner_ref": "team-project-demo",
+        "verified_at": "2026-09-29T11:00:00Z",
+        "effective_from": null,
+        "expires_at": null,
+        "relationships": [],
+        "chunking_policy_ref": {
+          "id": "heading-sections",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        },
+        "metadata_provenance": {
+          "authority": {
+            "origin": "catalog_rule",
+            "evidence_ref": "catalog-entry:project-demo-architecture:1"
+          },
+          "title": {
+            "origin": "accepted_frontmatter",
+            "evidence_ref": "frontmatter:title"
+          },
+          "language": {
+            "origin": "accepted_frontmatter",
+            "evidence_ref": "frontmatter:language"
+          },
+          "applicability.topics": {
+            "origin": "accepted_frontmatter",
+            "evidence_ref": "frontmatter:topics"
+          }
+        }
+      },
+      "resolved_status": "active",
+      "status_assertion_refs": [
+        "status-project-demo-architecture-1"
+      ],
+      "materialized_artifact_ref": {
+        "artifact_id": "artifact-a8c4917b21a7455a161a",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "54220408142556e91a3a632cfd14abb1b8ec29a709f1495a544940b65b6d8aa3"
+        }
+      },
+      "units": [
+        {
+          "unit_id": "unit-b0b83d5d84d06c322b27",
+          "source_ref": {
+            "source_id": "project-demo-architecture",
+            "revision": "1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "54220408142556e91a3a632cfd14abb1b8ec29a709f1495a544940b65b6d8aa3"
+            }
+          },
+          "ordinal": 0,
+          "unit_kind": "prose",
+          "heading_path": [
+            "Arquitetura"
+          ],
+          "source_span": {
+            "start_line": 6,
+            "end_line": 9,
+            "start_byte": 92,
+            "end_byte": 181
+          },
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "a4edf242ce7635fae9f6764dd089ee9c90875834ba4ded25233e2eaa4a63eb70"
+          },
+          "size_bytes": 89,
+          "parent_unit_id": null,
+          "effective_topics": [
+            "arquitetura",
+            "seguranca"
+          ],
+          "effective_applicability": {
+            "roles": [
+              "software_architect"
+            ],
+            "task_types": [
+              "architecture"
+            ],
+            "topics": [
+              "arquitetura",
+              "seguranca"
+            ],
+            "paths": [
+              "src/**"
+            ],
+            "domains": [
+              "orchestration"
+            ],
+            "capabilities": []
+          },
+          "effective_classification": "internal",
+          "instruction_scope": "project",
+          "token_estimates": [
+            {
+              "tokenizer_ref": "char4-v1",
+              "count": 22,
+              "status": "estimated"
+            }
+          ],
+          "derivation": {
+            "parser": "markdown-it-py",
+            "parser_version": "4.2.0",
+            "policy": "heading-sections-v1"
+          },
+          "oversized": false
+        },
+        {
+          "unit_id": "unit-9dfd455bf147e31ba06a",
+          "source_ref": {
+            "source_id": "project-demo-architecture",
+            "revision": "1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "54220408142556e91a3a632cfd14abb1b8ec29a709f1495a544940b65b6d8aa3"
+            }
+          },
+          "ordinal": 1,
+          "unit_kind": "prose",
+          "heading_path": [
+            "Arquitetura",
+            "Segurança"
+          ],
+          "source_span": {
+            "start_line": 10,
+            "end_line": 12,
+            "start_byte": 181,
+            "end_byte": 270
+          },
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "bc6fcb2f051fb91abbf995a9836b93bfcf7777df775a7c956c0abea25a212a09"
+          },
+          "size_bytes": 89,
+          "parent_unit_id": "unit-b0b83d5d84d06c322b27",
+          "effective_topics": [
+            "arquitetura",
+            "seguranca"
+          ],
+          "effective_applicability": {
+            "roles": [
+              "software_architect"
+            ],
+            "task_types": [
+              "architecture"
+            ],
+            "topics": [
+              "arquitetura",
+              "seguranca"
+            ],
+            "paths": [
+              "src/**"
+            ],
+            "domains": [
+              "orchestration"
+            ],
+            "capabilities": []
+          },
+          "effective_classification": "internal",
+          "instruction_scope": "project",
+          "token_estimates": [
+            {
+              "tokenizer_ref": "char4-v1",
+              "count": 22,
+              "status": "estimated"
+            }
+          ],
+          "derivation": {
+            "parser": "markdown-it-py",
+            "parser_version": "4.2.0",
+            "policy": "heading-sections-v1"
+          },
+          "oversized": false
+        }
+      ]
+    }
+  ],
+  "parser_chunker_snapshots": [
+    {
+      "id": "markdown-heading-sections",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "vocabulary_refs": [],
+  "exclusions": [],
+  "catalog_hash": {
+    "algorithm": "sha256",
+    "value": "9ef28223853ab893fd34fee53b3dd7c2c557cd658b0078df72f2a09c441f27be"
+  }
+}

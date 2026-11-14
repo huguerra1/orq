@@ -106,9 +106,36 @@ def validate_task(task: Any) -> list[ValidationIssue]:
 
 
 def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
-    """Valida uma instância contra um schema local fechado."""
+    """Valida o schema local e a igualdade de outputs nos critérios globais do 6A.
 
-    return _structural_issues(instance, schema_name)
+    Não substitui os validadores de vínculos e transições previstos no 6C.
+    """
+
+    issues = _structural_issues(instance, schema_name)
+    if issues:
+        return issues
+    if schema_name == "evaluation_report":
+        return _workflow_criterion_output_issues(instance)
+    if schema_name == "journal_event" and instance["event_type"] in {
+        "evaluation_requested", "evaluation_report_recorded",
+    }:
+        return _workflow_criterion_output_issues(instance["payload"], "/payload")
+    return issues
+
+
+def _workflow_criterion_output_issues(record: dict[str, Any], path: str = "") -> list[ValidationIssue]:
+    if record["scope"]["kind"] != "workflow":
+        return []
+    issues = []
+    for index, criterion in enumerate(record["criteria_snapshot"]["criteria"]):
+        if criterion["method"] in {"output_binding_present", "digest_matches", "content_contract_valid"}:
+            if criterion["pass_rule"]["output_ids"] != criterion["output_ids"]:
+                issues.append(ValidationIssue(
+                    "semantic.criterion_output_ids_mismatch",
+                    f"{path}/criteria_snapshot/criteria/{index}/pass_rule/output_ids",
+                    "output_ids do pass_rule devem ser iguais aos do critério global, na mesma ordem",
+                ))
+    return issues
 
 
 def validate_knowledge_source(source: Any) -> list[ValidationIssue]:

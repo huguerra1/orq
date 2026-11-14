@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/simulation-script.schema.json",
+  "title": "ORQ SimulationScript v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "script_id",
+    "version",
+    "clock",
+    "reconcile_not_found_authoritative",
+    "default",
+    "attempts",
+    "workflow_verifier",
+    "hooks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "script_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "clock": {
+      "type": "object",
+      "required": [
+        "start",
+        "step_ms"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "step_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "reconcile_not_found_authoritative": {
+      "type": "boolean"
+    },
+    "default": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/behavior"
+        },
+        {
+          "required": [
+            "dispatch",
+            "execution",
+            "duration_ms",
+            "on_cancel",
+            "reconcile",
+            "resolved_model_id",
+            "usage",
+            "outputs"
+          ]
+        }
+      ]
+    },
+    "attempts": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/behavior"
+        }
+      }
+    },
+    "workflow_verifier": {
+      "$ref": "#/$defs/verifier"
+    },
+    "hooks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/hook"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hook": {
+      "type": "object",
+      "required": [
+        "hook_id",
+        "action",
+        "event_type",
+        "scope"
+      ],
+      "properties": {
+        "hook_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "action": {
+          "enum": [
+            "crash_after",
+            "cancel_after"
+          ]
+        },
+        "event_type": {
+          "$ref": "journal-event.schema.json#/properties/event_type"
+        },
+        "scope": {
+          "$ref": "#/$defs/hookScope"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hookScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "run"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "task_id",
+            "attempt_number"
+          ],
+          "properties": {
+            "kind": {
+              "const": "task_attempt"
+            },
+            "task_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "attempt_number": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "workflow"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "behavior": {
+      "type": "object",
+      "properties": {
+        "dispatch": {
+          "enum": [
+            "ack",
+            "ack_lost",
+            "reject_confirmed",
+            "not_executed"
+          ]
+        },
+        "execution": {
+          "enum": [
+            "finish",
+            "fail_retryable",
+            "fail_non_retryable",
+            "hang"
+          ]
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "on_cancel": {
+          "enum": [
+            "confirmed",
+            "unconfirmed"
+          ]
+        },
+        "reconcile": {
+          "enum": [
+            "found_running",
+            "found_finished",
+            "found_failed",
+            "found_stopped",
+            "not_found",
+            "unknown"
+          ]
+        },
+        "resolved_model_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage": {
+          "type": "object",
+          "required": [
+            "cost"
+          ],
+          "properties": {
+            "cost": {
+              "$ref": "#/$defs/cost"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputs": {
+          "oneOf": [
+            {
+              "const": "from_output_spec"
+            },
+            {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "additionalProperties": {
+                "enum": [
+                  "omit",
+                  "wrong_contract",
+                  "declared_digest_mismatch"
+                ]
+              }
+            }
+          ]
+        },
+        "verifier": {
+          "$ref": "#/$defs/verifier"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": "object",
+      "required": [
+        "status",
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "reported",
+            "estimated",
+            "unavailable"
+          ]
+        },
+        "amount": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "amount": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "amount": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive",
+        "not_run",
+        "unknown_termination"
+      ]
+    },
+    "verifier": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/verdict"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/verdict"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "usage_id": "usage-T3-2",
+  "run_id": "run-demo-001",
+  "scope_type": "attempt",
+  "scope_ref": "attempt-T3-2",
+  "provider_ref": null,
+  "observed_at": "2026-11-10T12:04:30Z",
+  "recorded_at": "2026-11-10T12:04:30Z",
+  "measurements": [],
+  "cost_lines": [
+    {
+      "amount": "0",
+      "currency": "USD",
+      "status": "unavailable",
+      "pricing_ref": null,
+      "method": "executor_unavailable"
+    }
+  ],
+  "coverage": {
+    "reported": [],
+    "estimated": [],
+    "unavailable": [
+      "cost"
+    ]
+  },
+  "supersedes_usage_id": null,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "8a0b025a600a96a616b37777ea3238990889b55ba77c111550396032895c1afb"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "schema_version": "0.1",
+  "evaluation_id": "evaluation-T3-1-1",
+  "evaluation_number": 1,
+  "run_id": "run-demo-001",
+  "scope": {
+    "kind": "task_attempt",
+    "task_id": "T3",
+    "attempt_id": "attempt-T3-1"
+  },
+  "subject_bindings": [
+    {
+      "output_id": "code_patch",
+      "artifact": {
+        "artifact_id": "artifact-T3-1-code_patch",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "97086571f822df6942619590a6980a5b7f2f3395c5581c8bec2a5075cf4e23c0"
+        }
+      }
+    }
+  ],
+  "patch_application_refs": [],
+  "criteria_snapshot": {
+    "criteria": [
+      {
+        "criterion_id": "patch-present",
+        "requirement_ids": [
+          "R1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "code_patch"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "behavior-ok",
+        "requirement_ids": [
+          "R2"
+        ],
+        "method": "simulated_verdict",
+        "pass_rule": {
+          "script_key": "behavior-ok"
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ],
+    "criteria_hash": {
+      "algorithm": "sha256",
+      "value": "f1b297d7776e0c08ec41a9e80f3032ce52caf274c7f8c3c8de9bf74587c040fc"
+    }
+  },
+  "evaluator_snapshot": {
+    "kind": "deterministic",
+    "evaluator_ref": {
+      "id": "evaluator-deterministic",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e92ceddada73caffdd3699fed194572f78c859aaa97f8397c3112f9bd0573a11"
+      }
+    },
+    "version": "0.1",
+    "supported_methods": [
+      "output_binding_present",
+      "digest_matches",
+      "content_contract_valid",
+      "simulated_verdict"
+    ]
+  },
+  "context_manifest_ref": null,
+  "started_at": "2026-11-10T12:03:00Z",
+  "completed_at": "2026-11-10T12:03:00Z",
+  "execution_status": "completed",
+  "criterion_results": [
+    {
+      "criterion_id": "patch-present",
+      "required": true,
+      "requirement_ids": [
+        "R1"
+      ],
+      "method": "output_binding_present",
+      "status": "pass",
+      "evidence_refs": [],
+      "observations": [],
+      "error_record_ids": []
+    },
+    {
+      "criterion_id": "behavior-ok",
+      "required": true,
+      "requirement_ids": [
+        "R2"
+      ],
+      "method": "simulated_verdict",
+      "status": "fail",
+      "evidence_refs": [],
+      "observations": [
+        "roteiro: fail"
+      ],
+      "error_record_ids": []
+    }
+  ],
+  "verdict": "fail",
+  "evidence_refs": [],
+  "usage_record_ids": [],
+  "error_record_ids": [],
+  "limitations": [],
+  "unknowns": [],
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "ad0cd87286f74f520e314dcd2c1ff662acb54c3c69d2852cfa55848e4decc7ca"
+  }
+}

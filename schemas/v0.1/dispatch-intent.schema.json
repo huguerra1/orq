@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/dispatch-intent.schema.json",
+  "title": "ORQ DispatchIntent v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dispatch_intent_id",
+    "dispatch_idempotency_key",
+    "run_id",
+    "task_id",
+    "attempt_id",
+    "attempt_number",
+    "workflow_ref",
+    "target_ref",
+    "executor_ref",
+    "routing_decision_ref",
+    "context_manifest_ref",
+    "bundle_hash",
+    "workspace_base_ref",
+    "input_bindings",
+    "admission_checks",
+    "budget_reservation_ids",
+    "attempt_timeout_ms",
+    "deadline_at",
+    "created_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "dispatch_intent_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "dispatch_idempotency_key": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 4096
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "task_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "attempt_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "attempt_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workflow_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "target_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "executor_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "routing_decision_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "context_manifest_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "bundle_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "workspace_base_ref": {
+      "$ref": "common.schema.json#/$defs/artifactRef"
+    },
+    "input_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inputBinding"
+      }
+    },
+    "admission_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "control",
+          "status",
+          "observed_at",
+          "evidence_refs"
+        ],
+        "properties": {
+          "control": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "status": {
+            "const": "passed"
+          },
+          "observed_at": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/versionedRef"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 6,
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "context_integrity"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "knowledge_status"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "attempts_remaining"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "run_time_remaining"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "budget"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "control": {
+                "const": "inputs_accepted"
+              }
+            },
+            "required": [
+              "control"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "budget_reservation_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "maxItems": 2
+    },
+    "attempt_timeout_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "deadline_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "inputBinding": {
+      "type": "object",
+      "required": [
+        "input_id",
+        "artifact",
+        "basis"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "artifact": {
+          "$ref": "common.schema.json#/$defs/artifactRef"
+        },
+        "basis": {
+          "type": "object",
+          "required": [
+            "kind",
+            "event_id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "external_input_binding",
+                "outputs_accepted"
+              ]
+            },
+            "event_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

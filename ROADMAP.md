@@ -6,23 +6,37 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 
 ## Checklist de "pronto"
 - [x] CI no GitHub Actions (pytest em Python 3.12 e 3.13; os testes incluem a validação dos schemas)
-- [x] Testes automatizados (91 testes)
+- [x] Testes automatizados (histórico integral verificado: 6A = 366 aprovados e 1 ignorado, CI verde no PR #8; 6B = 485 aprovados e 4 ignorados após a revisão; ver HANDOFF)
 - [x] Licença (MIT)
 - [x] README com diagrama da arquitetura (Mermaid) e exemplo ponta a ponta da CLI (validação, digest e cadeia do Vault)
-- [ ] Fase 6: runner sequencial do Orchestrator com executor simulado (especificação escrita em `docs/phase-6/`, aguardando revisão do dono; implementação não iniciada)
+- [x] Fase 6: runner sequencial e `orq run simulate` (6A–6E); 63/63 cenários automatizados; suíte integral com 1180 aprovados e 4 ignorados
+- [x] Incremento 6E: runner ponta a ponta, `orq run simulate`, T1–T5 succeeded com retry de T3 e journal reproduzível
 - [ ] Primeiro adaptador real de executor/provedor
 - [x] Dependabot ativo (pip + GitHub Actions; PRs semanais na `dev`)
 - [x] Descrição e tópicos no repositório
 
 ## Backlog
 1. Workflow de CI: instalar com `requirements.lock`, rodar `pytest` em Python 3.12 e 3.13
-2. Especificação da Fase 6 — escrita em 2026-11-10, aguardando revisão (ADR 0007 Proposta)
-3. Executor simulado provando o fluxo completo — após aceite da especificação (incrementos 6A–6E)
-4. Adaptadores de executor para CLIs de agentes (Claude Code, Codex, Gemini, Kiro), alinhados à separação papel/modelo/provedor/runtime/executor
+2. Especificação da Fase 6 — aceita em 2026-11-10 (ADR 0007 Aceita)
+3. Executor simulado provando o fluxo completo (incrementos 6A–6E)
+4. Especificação da Fase 7 (ADR 0008 Aceita e `docs/phase-7/`): hub de assinaturas pessoais via CLI (Claude Code, Codex, Gemini/agy, Kiro), roteamento ciente de cota, memória por família em Postgres com RLS e experimento 7F (incrementos 7A–7F depois do 6E na main)
 5. Exemplo reproduzível no README (`orq plan` → `orq route` → execução simulada)
 
 ## Log
+- 2026-11-14 — Proposta da Fase 7 documentada em `docs/phase-7/` e ADR 0008 (Proposta): hub de assinaturas pessoais em modo não interativo, roteamento ciente de cota com fallback entre famílias, memória por família em Postgres com RLS (FTS português + pg_trgm via MCP; BM25 Markdown como modo offline), cenários Q01–Q30 e experimento 7F. Sem código. Aceita no mesmo dia, com as seis decisões do dono registradas na ADR 0008; implementação depois do 6E na main.
+- 2026-11-14 — Revisão 6E: problemas 1–9 corrigidos com regressões; 19 cenários da revisão e outros 27 reforçados, 17 auditados e mantidos. S04 revisado para TK05, preservando o teste após output_bound. Notas e tabela de cobertura atualizadas; 364 testes dos quatro arquivos aprovados, nenhum ignorado; suíte integral verificada pelo orquestrador em 2026-11-14: 1180 aprovados e 4 ignorados (symlinks sem privilégio no Windows).
+- 2026-11-14 — 6E implementado: runner sequencial, CLI exclusiva, checkpoints duráveis e fixture T1–T5. 101 testes novos aprovados, nenhum ignorado; S02 succeeded e S03 idêntico byte a byte; 62 cenários automatizados fielmente. S04 permanece aberto por incompatibilidade do checkpoint output_bound com evaluating (AT06/TK05 ainda não gravadas); teste diagnóstico e cobertura explícita. Sem commit/push por instrução do usuário.
+- 2026-11-14 — Segunda revisão do 6D: achados 1–6 e cinco itens de testes/documentação corrigidos. Reconciliação roteirizada, rollback de persistência, restauração sem leitura de artefatos, integridade/produtor/IDs finais, limites efetivos mínimos e hooks validados. 332 testes de executor/avaliador/schemas aprovados, nenhum ignorado; fixtures/digests inalterados. Suíte integral: 1032 aprovados, 4 ignorados. Próximo incremento: 6E.
+- 2026-11-10 — Achados 1–14 da revisão 6D corrigidos: reconciliação sem negar chave desconhecida (estado durável reconstruível), releitura de todos os bindings antes dos critérios, hooks com escopo e disparo único, schema versionado do envelope simulado, roteiro validado na carga e contra o WorkflowSpec, relógio obrigatório. Gate do 6D redefinido pelo orquestrador (S01–S63 passam ao 6E). Suíte integral: 932 aprovados, 4 ignorados. Próximo: 6E.
+- 2026-11-10 — 6D implementado: interface de executor, roteiro versionado fechado, simulado e avaliador determinísticos; 148 testes próprios aprovados, sem rede/dependências novas. Decisões nas Notas 6D; próximo: 6E (runner e CLI).
+- 2026-11-10 — Achados 1–13 da revisão 6C corrigidos: evidências/ordem, prazo fixo de reconciliação, orçamento desconhecido, retomada terminal, causa de RN07 e admissão com erros/reservas liberadas. 217 testes próprios aprovados; suíte integral: 702 aprovados, 4 ignorados. Decisões nas Notas 6C; próximo incremento: 6D.
+- 2026-11-10 — 6C implementado: projeções puras, 49 linhas AT/TK/RN, guardas e retomada sem despacho duplicado; 140 testes novos (suíte: 625 aprovados, 4 ignorados), incluindo RunJournal e falha de fsync. Sem dependências novas; próximo: 6D (executor simulado e avaliador determinístico).
+- 2026-11-10 — Achados 1–19 do 6B corrigidos: integridade estrita com LF, durabilidade na reabertura/reutilização, publicação exclusiva, lock com token e erros tipados. Suíte integral: 485 aprovados e 4 ignorados (symlinks sem privilégio no Windows). Decisões nas Notas 6B; próximo: 6C, com reconciliação de intenção sem efeito comprovado.
+- 2026-11-10 — 6B implementado: journal JCS append-only encadeado por digest e armazenamento de artefatos por SHA-256, sem dependências novas; 66 testes novos (suíte: 432 aprovados, 1 ignorado). Próximo: 6C.
 - 2026-11-10 — Fase 1: licença MIT, CLAUDE.md, regras de autonomia, roadmap.
 - 2026-11-10 — CI (pytest 3.12/3.13) e Dependabot; descrição e tópicos aplicados.
 - 2026-11-10 — README de vitrine: diagrama Mermaid, estado por fase e exemplos reais da CLI (todos conferidos rodando).
 - 2026-11-10 — Especificação da Fase 6 em `docs/phase-6/` e ADR 0007 (Proposta): executor simulado primeiro, journal JSONL encadeado, máquina de estados e cenários S01–S51. Sem código; aguardando revisão.
+- 2026-11-10 — Decisões da Fase 6 aceitas (ADR 0007 Aceita): `orq run simulate`, limites de 1 MiB por linha do journal e 8 MiB por artefato simulado, lock órfão com remoção manual.
+- 2026-11-10 — 6A implementado: oito schemas fechados, 22 fixtures e 144 testes novos; próximo: 6B.
+- 2026-11-10 — Revisão cruzada do 6A (Kiro, Claude Opus): achados 1–10 e 12–16 corrigidos; achado 11 reservado ao 6E. Suíte integral verificada pelo orquestrador: 366 aprovados e 1 ignorado; CI verde no PR #8. Comando das verificações de 6A e 6B: `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`.

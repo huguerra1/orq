@@ -1,0 +1,635 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/run-manifest.schema.json",
+  "title": "ORQ RunManifest v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "run_intent_ref",
+    "manifest_status",
+    "created_at",
+    "closed_at",
+    "project_id",
+    "objective_snapshot",
+    "planning_record_ref",
+    "workflow_snapshot_ref",
+    "execution_policy_snapshot_ref",
+    "resolved_limits",
+    "budget_snapshot",
+    "routing_catalog_ref",
+    "routing_policy_ref",
+    "knowledge_catalog_snapshot_ref",
+    "knowledge_status_assertions",
+    "external_input_bindings",
+    "executor_snapshot",
+    "evaluator_snapshot",
+    "orchestrator_snapshot",
+    "scheduling_policy",
+    "experiment_metadata",
+    "preparation_coverage",
+    "preparation_usage_refs",
+    "preparation_error_refs",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_intent_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "manifest_status": {
+      "enum": [
+        "ready",
+        "planning_failed",
+        "cancelled_before_ready"
+      ]
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "closed_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "project_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "objective_snapshot": {
+      "type": "object",
+      "required": [
+        "objective",
+        "objective_hash"
+      ],
+      "properties": {
+        "objective": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "objective_hash": {
+          "$ref": "common.schema.json#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "planning_record_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workflow_snapshot_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "execution_policy_snapshot_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved_limits": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/resolvedLimits"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "budget_snapshot": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/budgetSnapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "routing_catalog_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "routing_policy_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "knowledge_catalog_snapshot_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "knowledge_status_assertions": {
+      "type": "array",
+      "items": {
+        "$ref": "knowledge-catalog.schema.json#/$defs/statusAssertion"
+      }
+    },
+    "external_input_bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "input_id",
+          "artifact"
+        ],
+        "properties": {
+          "input_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "artifact": {
+            "$ref": "common.schema.json#/$defs/artifactRef"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "executor_snapshot": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "executor_ref",
+            "adapter_version",
+            "script_ref"
+          ],
+          "properties": {
+            "executor_ref": {
+              "$ref": "common.schema.json#/$defs/versionedRef"
+            },
+            "adapter_version": {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            "script_ref": {
+              "$ref": "common.schema.json#/$defs/versionedRef"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evaluator_snapshot": {
+      "oneOf": [
+        {
+          "$ref": "evaluation-report.schema.json#/$defs/evaluatorSnapshot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "orchestrator_snapshot": {
+      "type": "object",
+      "required": [
+        "version",
+        "config_ref",
+        "clock"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "config_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "clock": {
+          "enum": [
+            "injected",
+            "system"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "scheduling_policy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "max_concurrency",
+            "tie_break"
+          ],
+          "properties": {
+            "max_concurrency": {
+              "const": 1
+            },
+            "tie_break": {
+              "const": "workflow_task_order"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "experiment_metadata": {
+      "$ref": "run-intent.schema.json#/$defs/experimentMetadata"
+    },
+    "preparation_coverage": {
+      "type": "object",
+      "required": [
+        "completed",
+        "missing",
+        "reason"
+      ],
+      "properties": {
+        "completed": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "preparation_usage_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "preparation_error_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "resolvedLimits": {
+      "type": "object",
+      "required": [
+        "max_concurrency",
+        "max_attempts",
+        "attempt_timeout_ms",
+        "max_run_duration_ms",
+        "max_evaluations_per_attempt",
+        "evaluation_timeout_ms",
+        "reconciliation_timeout_ms",
+        "retry_policy",
+        "sources"
+      ],
+      "properties": {
+        "max_concurrency": {
+          "const": 1
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attempt_timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_run_duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_evaluations_per_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluation_timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reconciliation_timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retry_policy": {
+          "type": "object",
+          "required": [
+            "on_evaluation_fail",
+            "on_retryable_error",
+            "on_confirmed_timeout"
+          ],
+          "properties": {
+            "on_evaluation_fail": {
+              "type": "boolean"
+            },
+            "on_retryable_error": {
+              "type": "boolean"
+            },
+            "on_confirmed_timeout": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "field",
+              "origin_ref"
+            ],
+            "properties": {
+              "field": {
+                "enum": [
+                  "max_concurrency",
+                  "max_attempts",
+                  "attempt_timeout_ms",
+                  "max_run_duration_ms",
+                  "max_evaluations_per_attempt",
+                  "evaluation_timeout_ms",
+                  "reconciliation_timeout_ms",
+                  "retry_policy"
+                ]
+              },
+              "origin_ref": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "budgetSnapshot": {
+      "type": "object",
+      "required": [
+        "currency",
+        "max_cost",
+        "cap_mandatory",
+        "unknown_cost_action",
+        "cost_estimates"
+      ],
+      "properties": {
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "max_cost": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cap_mandatory": {
+          "type": "boolean"
+        },
+        "unknown_cost_action": {
+          "enum": [
+            "reject",
+            "admit_with_estimate"
+          ]
+        },
+        "cost_estimates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "scope",
+              "subject_ref",
+              "amount",
+              "currency",
+              "method",
+              "source_ref"
+            ],
+            "properties": {
+              "scope": {
+                "enum": [
+                  "attempt",
+                  "evaluation"
+                ]
+              },
+              "subject_ref": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "method": {
+                "$ref": "common.schema.json#/$defs/nonEmptyText",
+                "maxLength": 4096
+              },
+              "source_ref": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "cap_mandatory": {
+                "const": true
+              }
+            },
+            "required": [
+              "cap_mandatory"
+            ]
+          },
+          "then": {
+            "properties": {
+              "max_cost": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "manifest_status": {
+            "const": "ready"
+          }
+        },
+        "required": [
+          "manifest_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "planning_record_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "workflow_snapshot_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "execution_policy_snapshot_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "routing_catalog_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "routing_policy_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "knowledge_catalog_snapshot_ref": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "resolved_limits": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "budget_snapshot": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "executor_snapshot": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "evaluator_snapshot": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "scheduling_policy": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "preparation_coverage": {
+            "properties": {
+              "missing": {
+                "maxItems": 0
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "manifest_status": {
+            "not": {
+              "const": "ready"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "preparation_coverage": {
+            "properties": {
+              "missing": {
+                "minItems": 1
+              },
+              "reason": {
+                "$ref": "common.schema.json#/$defs/nonEmptyText",
+                "maxLength": 4096
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "manifest_status": {
+            "const": "planning_failed"
+          }
+        },
+        "required": [
+          "manifest_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "workflow_snapshot_ref": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação proposta em 2026-11-10, aguardando revisão do dono. Nenhum código, schema executável ou fixture desta fase foi implementado. A decisão correspondente está na [ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), com status Proposta.
+Estado: 6A–6E implementados, com runner sequencial e `orq run simulate` entregues em 2026-11-14. **Fase 6 concluída** (suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows)): os 63 cenários têm automação fiel ([cobertura](acceptance-scenarios.md#cobertura-executada-no-6e)); o checkpoint de S04 foi revisado em 2026-11-14 para a transição TK05. S02 termina `succeeded` e S03 prova journal idêntico em dois diretórios novos.
 
 ## Problema
 
@@ -34,7 +34,7 @@ Especificar e, após o aceite, implementar:
 | Executor simulado | Comportamento roteirizado por `(task_id, attempt_number)`, relógio injetado, sem rede |
 | Avaliador | Métodos determinísticos fechados; método desconhecido produz `not_run` |
 | Interface de adaptador real | Operações, dados trocados e checklist de verificação dos controles |
-| CLI | Proposta de subcomando para execução simulada ponta a ponta (sujeita a aprovação) |
+| CLI | Subcomando `orq run simulate` para execução simulada ponta a ponta |
 
 ### Fica fora
 
@@ -56,13 +56,13 @@ Especificar e, após o aceite, implementar:
 | 4 | `plan_and_validate(planner, request, completed_at=...)` → `PlanningResult(record, workflow)` | Implementado; PlanningRequest exige `run_id` já registrado por RunIntent, que ainda não existe |
 | 5 | `route_and_finalize(request, catalog, policy, preflight_checks=..., decision_engine=...)` → RoutingDecision com `record_hash` | Implementado; não despacha nem consome tentativa |
 
-### Lacunas encontradas no código atual
+### Lacunas identificadas e soluções aceitas
 
-Estas lacunas não invalidam as fases anteriores, mas exigem decisão nesta fase:
+Estas lacunas das fases anteriores têm soluções aceitas na ADR 0007; o 6A formaliza seus contratos e 6B–6E os executarão:
 
-1. **Ordem entre roteamento e contexto.** O contrato da Fase 1 prevê preflight de contexto registrado na RoutingDecision antes de finalizá-la. No código, `route_and_finalize` exige `preflight_checks` já resolvidos e `materialize_knowledge_context` exige `routing_decision_ref` com `content_digest`, isto é, uma decisão já finalizada. A proposta é registrar os checks dependentes do bundle no DispatchIntent (`admission_checks`), mantendo na RoutingDecision apenas os checks disponíveis antes da materialização. Ver [runner-state-machine.md](runner-state-machine.md#pipeline-de-admissão).
-2. **RunIntent inexistente.** PlanningRequest referencia um `run_id` "já registrado"; a Fase 6 cria o primeiro registro do run.
-3. **ExecutionPolicy sem schema.** RoutingRequest só carrega `execution_policy_snapshot_ref`. O runner precisa de valores finitos; a proposta é um objeto `resolved_limits` fechado no RunManifest.
+1. **Ordem entre roteamento e contexto.** O contrato da Fase 1 prevê preflight de contexto registrado na RoutingDecision antes de finalizá-la. No código, `route_and_finalize` exige `preflight_checks` já resolvidos e `materialize_knowledge_context` exige `routing_decision_ref` com `content_digest`, isto é, uma decisão já finalizada. A solução aceita registra os checks dependentes do bundle no DispatchIntent (`admission_checks`), mantendo na RoutingDecision apenas os checks disponíveis antes da materialização. O schema do 6A já exige esses controles. Ver [runner-state-machine.md](runner-state-machine.md#pipeline-de-admissão).
+2. **Registro inicial do run.** PlanningRequest referencia um `run_id` "já registrado"; RunIntent tem schema no 6A e será persistido antes do planejamento pelo runner.
+3. **ExecutionPolicy sem schema completo.** RoutingRequest só carrega `execution_policy_snapshot_ref`. O runner usará o objeto `resolved_limits` fechado no RunManifest, já formalizado no 6A.
 4. **ArtifactRef mínimo.** `common.schema.json#/$defs/artifactRef` contém apenas `artifact_id` e `content_digest`. O descritor completo da Fase 1 passa a ser o payload do evento `artifact_ingested`; as referências continuam mínimas.
 5. **ContextManifest sem hash próprio.** O schema não tem campo `record_hash`; a referência ao manifesto usa `canonical_digest` do documento inteiro, calculado por quem o referencia.
 
@@ -70,13 +70,36 @@ Estas lacunas não invalidam as fases anteriores, mas exigem decisão nesta fase
 
 | Incremento | Entrega | Gate |
 | --- | --- | --- |
-| 6A | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis |
-| 6B | Journal append-only e armazenamento de artefatos | Cadeia de digests, sequência contígua, cauda truncada, conflito de idempotência |
-| 6C | Projeções e máquina de estados (validador de transições) | Toda transição da tabela coberta; saltos inválidos rejeitados |
-| 6D | Executor simulado e avaliador determinístico | Roteiros dos cenários S01–S63 executáveis sem rede |
-| 6E | Runner ponta a ponta e CLI proposta | Cenário completo reproduzível com o mesmo digest final do journal |
+| 6A — implementado | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis em `tests/test_phase6_schemas.py`; [escolhas de implementação](run-contracts.md#notas-de-implementação-6a) |
+| 6B — implementado | Journal append-only e armazenamento de artefatos | Antes desta correção: suíte completa com 432 aprovados e 1 ignorado; após correções, 119 aprovados e 3 ignorados nos testes de armazenamento; decisões nas [notas do 6B](run-contracts.md#notas-de-implementação-6b) |
+| 6C — implementado; revisão 1–13 corrigida | Projeções e máquina de estados (validador de transições), com ações puras de retomada | 217 testes próprios aprovados após revisão: 49 linhas AT/TK/RN, saltos proibidos, guardas negativas, vínculos/invariantes e integração com RunJournal; suíte integral pós-revisão pelo orquestrador; [decisões e API](runner-state-machine.md#notas-de-implementação-6c) |
+| 6D — implementado; duas revisões corrigidas | Interface de executor, roteiro versionado fechado, executor simulado e avaliador determinístico | Interface, simulado e avaliador completos e roteiros representativos validados (`simulation-script.json` e `simulation-script-recovery.json`, inclusive contra o WorkflowSpec), sem rede. Segunda revisão: 332 testes de executor/avaliador/schemas aprovados, sem ignorados; suíte integral após a segunda revisão: 1032 aprovados e 4 ignorados. [Decisões e API](executor-choice.md#notas-de-implementação-6d). A execução dos cenários S01–S63 como testes fica no gate do 6E ([decisão de 2026-11-10](#decisão-do-orquestrador-de-2026-11-10-gate-do-6d)) |
+| 6E — implementado; revisão corrigida | Runner ponta a ponta e CLI `orq run simulate`; fixture T1–T5 fecha achado 11 do 6A | S02 succeeded e S03 byte a byte; os 63 cenários automatizados (S04 revisado para o checkpoint TK05). [Decisões/API](runner-state-machine.md#notas-de-implementação-6e) |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
+
+### Decisão do orquestrador de 2026-11-10: gate do 6D
+
+O gate original do 6D era "Roteiros dos cenários S01–S63 executáveis sem rede". Ele foi reescrito na entrega do 6D sem decisão registrada (achado 8 da revisão do 6D). O orquestrador decidiu em 2026-11-10:
+
+- O gate do 6D passa a ser: **interface, executor simulado e avaliador completos e roteiros representativos validados**.
+- A execução dos cenários S01–S63 como testes automatizados fica no **gate do 6E**, que já depende do runner para percorrê-los.
+
+Na mesma data, o orquestrador decidiu também, para as correções do 6D: chave desconhecida na reconciliação devolve `unknown` não autoritativo e `not_found` autoritativo exige estado durável reconstruível de um registro persistido pelo chamador; hooks `crash_after`/`cancel_after` têm escopo explícito (run, tarefa/tentativa, workflow) e disparo único controlado pelo harness; o envelope JSON de `from_output_spec` tem schema versionado com digest; o relógio injetado é obrigatório. Detalhes nas [Notas 6D](executor-choice.md#notas-de-implementação-6d).
+
+Revisão do 6A: 276 testes próprios aprovados, oito schemas e 22 fixtures; suíte completa **366 aprovados e 1 ignorado**, CI verde no PR #8. O orquestrador verificou 6A e 6B antes desta correção com `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`; no 6B, foram **432 aprovados e 1 ignorado**. A matriz do journal cobre os 41 pares agregado/evento permitidos e os 79 proibidos. `validate_instance` acrescenta a verificação local de igualdade de output IDs dos critérios globais, em relatórios e intenções de avaliação; o replay do 6C confere vínculos e transições. Estes testes não executam os 63 cenários do runner. Resultados no [HANDOFF](../HANDOFF.md). Nesta sessão não há commit/push, por instrução do usuário.
+
+## Lock órfão (procedimento manual)
+
+Um run só tem um escritor, garantido pelo `run.lock` criado com exclusividade. Se o processo morrer, o lock fica no diretório do run e o runner recusa continuar (`run_locked`). Para retomar:
+
+1. Leia PID, host, horário UTC e UUID em `run.lock` e confirme, no host indicado, que nenhum processo `orq` está rodando sobre esse run.
+2. Apague `runs/<run_id>/run.lock` à mão.
+3. Rode o comando de novo. A abertura verifica e sincroniza a cadeia; só descarta cauda sem LF após evento válido, com registro. Linha inválida com LF ou journal só com cauda é erro de integridade.
+
+O runner nunca remove o lock sozinho.
+
+O fechamento normal só libera o lock se o token ainda for o mesmo. Se a persistência ficar indeterminada (escrita parcial ou falha de flush/fsync), o escritor do 6B recusa novos appends e deixa o lock para o procedimento manual acima. Uma linha completa de escrita com falha pode reaparecer confirmada na reabertura; o 6C precisa reconciliar a intenção de despacho sem efeito comprovado. `.pending-*` em `discarded/` ou no armazenamento de artefatos gera `storage_pending_files`, com preservação para inspeção manual.
 
 ## Documentos
 
@@ -88,4 +111,10 @@ Cada incremento termina com testes, atualização do HANDOFF e commit próprio, 
 
 ## Critério de saída da fase
 
-Um run simulado do workflow de referência T1–T5 percorre planejamento, roteamento, contexto, tentativa, avaliação, retry de T3 e avaliação global, terminando `succeeded`. O journal é reproduzível byte a byte com o mesmo roteiro, relógio e fixtures. Os cenários de falha, timeout, reconciliação, custo desconhecido, divergência de digest e cancelamento da [matriz](acceptance-scenarios.md) passam como testes automatizados. Até lá, os cenários são especificação, não testes executados.
+Um run simulado do workflow de referência T1–T5 percorre planejamento, roteamento, contexto, tentativa, avaliação, retry de T3 e avaliação global, terminando `succeeded`. O journal é reproduzível byte a byte com o mesmo roteiro, relógio e fixtures. **Essas duas condições foram executadas e aprovadas no 6E.** Os cenários de falha, timeout, reconciliação, custo desconhecido, divergência de digest e cancelamento têm testes locais. Os 63 cenários passam como testes automatizados.
+
+## Executar a referência local
+
+Após instalar o pacote, `orq` é um alias da CLI existente `orq-contracts`. Alternativamente use `PYTHONPATH=src python -m orq_contracts`.
+
+Revisão independente do 6E: problemas 1–9 corrigidos com regressões em runner/projeções/guardas; 46 cenários reforçados e os demais 17 auditados. S04 cobre TK05 e a retomada após output_bound com T1 running/T2 pending. Verificação dos quatro arquivos de runner/CLI/projeções/máquina de estados: **364 testes aprovados, nenhum ignorado**; suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows). [Decisões](runner-state-machine.md#revisão-independente-do-6e--2026-11-14) e [evidências por cenário](acceptance-scenarios.md#cobertura-executada-no-6e).

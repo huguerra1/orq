@@ -1,0 +1,200 @@
+{
+  "schema_version": "0.1",
+  "run_id": "run-demo-001",
+  "run_intent_ref": {
+    "id": "run-demo-001",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "11148c4446bc476f79ea355bbf03b69ed1dc441680f79d693c7137f20326c198"
+    }
+  },
+  "manifest_status": "ready",
+  "created_at": "2026-11-10T12:00:00Z",
+  "closed_at": "2026-11-10T12:00:01Z",
+  "project_id": "project-demo",
+  "objective_snapshot": {
+    "objective": "Implementar autenticação",
+    "objective_hash": {
+      "algorithm": "sha256",
+      "value": "6192c529afd1a00781ecf373bdeb6fc4e5c3d1d35cdfda6a47013b9000ed886f"
+    }
+  },
+  "planning_record_ref": {
+    "id": "planning-plan-001",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "6c8a2e313215064e856ae58ff82884dca0a848579a4f299a0da011014c883e29"
+    }
+  },
+  "workflow_snapshot_ref": {
+    "id": "workflow-feature",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "1688d51cb2decc79d2c2d21d78c57a76c7ed3e9bd2a2e245da0c35e213c857a9"
+    }
+  },
+  "execution_policy_snapshot_ref": {
+    "id": "policy-default",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "17ad92e63c962393c0329c658937d16eccaea13036412a3d1d0a5b6b8f29d738"
+    }
+  },
+  "resolved_limits": {
+    "max_concurrency": 1,
+    "max_attempts": 2,
+    "attempt_timeout_ms": 60000,
+    "max_run_duration_ms": 600000,
+    "max_evaluations_per_attempt": 2,
+    "evaluation_timeout_ms": 20000,
+    "reconciliation_timeout_ms": 15000,
+    "retry_policy": {
+      "on_evaluation_fail": true,
+      "on_retryable_error": true,
+      "on_confirmed_timeout": true
+    },
+    "sources": [
+      {
+        "field": "max_attempts",
+        "origin_ref": {
+          "id": "policy-default",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "17ad92e63c962393c0329c658937d16eccaea13036412a3d1d0a5b6b8f29d738"
+          }
+        }
+      }
+    ]
+  },
+  "budget_snapshot": {
+    "currency": "USD",
+    "max_cost": "1.00",
+    "cap_mandatory": true,
+    "unknown_cost_action": "reject",
+    "cost_estimates": [
+      {
+        "scope": "attempt",
+        "subject_ref": {
+          "id": "target-sim-a",
+          "version": "0.1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "813bedefa622757a3e65d65df3c892fcfab42f33e48a338aae720da8c174a1b7"
+          }
+        },
+        "amount": "0.30",
+        "currency": "USD",
+        "method": "fixture_ceiling",
+        "source_ref": {
+          "id": "sim-script",
+          "version": "0.1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "c30a7ee2630b9fcb6ea8c1725a9ecb06b8e1eeea3674abe235a7899f7651f9e6"
+          }
+        }
+      }
+    ]
+  },
+  "scheduling_policy": {
+    "max_concurrency": 1,
+    "tie_break": "workflow_task_order"
+  },
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "583aa8928a9c400a85aa126126ee247be62d1caf098293039ed91849a3e966cd"
+  },
+  "routing_catalog_ref": {
+    "id": "catalog-simulated",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "391f07eca781c53cec2330efa6367cde01a0a9bda72919e64cd775fdd9d1be36"
+    }
+  },
+  "routing_policy_ref": {
+    "id": "routing-fixed",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "9b074c10fb2c24ae21bb8a1b8032b1ff7a36b80ce71e391cdf3b0483d5617801"
+    }
+  },
+  "knowledge_catalog_snapshot_ref": {
+    "id": "catalog-knowledge",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "aa365656b515afb4b97e7ea895d9501f02664f5f4203fa86ca6e85babc54472e"
+    }
+  },
+  "knowledge_status_assertions": [],
+  "external_input_bindings": [],
+  "executor_snapshot": {
+    "executor_ref": {
+      "id": "executor-simulated",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "589c4ea34f08a60294cd9fcf697449dff0ab15427c0c801aa8270721860b908c"
+      }
+    },
+    "adapter_version": "0.1",
+    "script_ref": {
+      "id": "sim-script",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "c30a7ee2630b9fcb6ea8c1725a9ecb06b8e1eeea3674abe235a7899f7651f9e6"
+      }
+    }
+  },
+  "evaluator_snapshot": {
+    "kind": "deterministic",
+    "evaluator_ref": {
+      "id": "evaluator-deterministic",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e92ceddada73caffdd3699fed194572f78c859aaa97f8397c3112f9bd0573a11"
+      }
+    },
+    "version": "0.1",
+    "supported_methods": [
+      "output_binding_present",
+      "digest_matches",
+      "content_contract_valid",
+      "simulated_verdict"
+    ]
+  },
+  "orchestrator_snapshot": {
+    "version": "0.1",
+    "config_ref": {
+      "id": "runner-config",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "fc9dd6184454e7e05638baaa95fbf5b467ad4d562318195a5266ed5ede315fff"
+      }
+    },
+    "clock": "injected"
+  },
+  "experiment_metadata": {},
+  "preparation_coverage": {
+    "completed": [
+      "planning",
+      "limits",
+      "catalogs",
+      "inputs"
+    ],
+    "missing": [],
+    "reason": null
+  },
+  "preparation_usage_refs": [],
+  "preparation_error_refs": []
+}

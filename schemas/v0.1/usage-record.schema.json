@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/usage-record.schema.json",
+  "title": "ORQ UsageRecord (minimum) v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "usage_id",
+    "run_id",
+    "scope_type",
+    "scope_ref",
+    "provider_ref",
+    "observed_at",
+    "recorded_at",
+    "measurements",
+    "cost_lines",
+    "coverage",
+    "supersedes_usage_id",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "usage_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "scope_type": {
+      "enum": [
+        "planning",
+        "routing",
+        "attempt",
+        "evaluation"
+      ]
+    },
+    "scope_ref": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "provider_ref": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
+    },
+    "cost_lines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/costLine"
+      },
+      "minItems": 1
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "reported",
+        "estimated",
+        "unavailable"
+      ],
+      "properties": {
+        "reported": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        },
+        "estimated": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "supersedes_usage_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "costLine": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency",
+        "status",
+        "pricing_ref",
+        "method"
+      ],
+      "properties": {
+        "amount": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "status": {
+          "enum": [
+            "reported",
+            "estimated",
+            "unavailable"
+          ]
+        },
+        "pricing_ref": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/versionedRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "method": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "amount": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "amount": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "quantity",
+        "unit",
+        "status",
+        "source_ref"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "quantity": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "status": {
+          "enum": [
+            "reported",
+            "estimated",
+            "unavailable"
+          ]
+        },
+        "source_ref": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/versionedRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quantity": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "quantity": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              },
+              "source_ref": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    }
+  }
+}

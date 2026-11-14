@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/attempt-header.schema.json",
+  "title": "ORQ AttemptHeader v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "attempt_id",
+    "run_id",
+    "task_id",
+    "workflow_ref",
+    "attempt_number",
+    "previous_attempt_id",
+    "routing_decision_ref",
+    "context_manifest_ref",
+    "execution_target_snapshot",
+    "effective_policy_snapshot_ref",
+    "workspace_base_ref",
+    "input_bindings",
+    "budget_reservation_ids",
+    "dispatch_intent_id",
+    "dispatch_idempotency_key",
+    "deadline_at",
+    "created_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "attempt_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "task_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "workflow_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "attempt_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous_attempt_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "routing_decision_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "context_manifest_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "execution_target_snapshot": {
+      "type": "object",
+      "required": [
+        "target_ref",
+        "model_ref",
+        "provider_ref",
+        "runtime_ref",
+        "executor_ref",
+        "execution_config_ref"
+      ],
+      "properties": {
+        "target_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "model_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "provider_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "runtime_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "executor_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "execution_config_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        }
+      },
+      "additionalProperties": false
+    },
+    "effective_policy_snapshot_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "workspace_base_ref": {
+      "$ref": "common.schema.json#/$defs/artifactRef"
+    },
+    "input_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "dispatch-intent.schema.json#/$defs/inputBinding"
+      }
+    },
+    "budget_reservation_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "maxItems": 2
+    },
+    "dispatch_intent_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "dispatch_idempotency_key": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 4096
+    },
+    "deadline_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "attempt_number": {
+            "const": 1
+          }
+        },
+        "required": [
+          "attempt_number"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_attempt_id": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "previous_attempt_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          }
+        }
+      }
+    }
+  ]
+}
