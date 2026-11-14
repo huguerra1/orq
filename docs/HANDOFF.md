@@ -72,6 +72,12 @@ A especificação da Fase 6 foi aceita em 2026-11-10 ([ADR 0007](adr/0007-phase-
 
 O adaptador real fica para depois do runner simulado e de uma sessão de verificação com versão fixada (checklist V01–V12 em [phase-6/executor-choice.md](phase-6/executor-choice.md)).
 
+### Fase 7 — Proposta aguardando revisão do dono
+
+- Proposta documental escrita em 2026-11-14 ([ADR 0008](adr/0008-phase-7-subscription-hub-and-family-memory.md) e [phase-7/README.md](phase-7/README.md)), sem código, schemas executáveis ou fixtures.
+- Escopo proposto para depois do 6E: hub das quatro assinaturas pessoais via CLIs oficiais em modo não interativo (Claude Code, Codex CLI, Gemini CLI/`agy`, Kiro CLI; sem API paga, sem LLM local, sem extrair tokens nem automatizar web), roteamento ciente de cota com fallback entre famílias e custo monetário `unavailable` (`amount: null`), memória por família em Postgres configurável via Docker com Row-Level Security (FTS em português + `pg_trgm`, escolha final pelo agente via MCP, consolidando `ContextManifest` com digests; BM25 em Markdown preservado como modo offline) e experimento reproduzível 7F (cenários Q01–Q30).
+- Aguarda revisão e decisão do dono sobre os itens abertos na [ADR 0008](adr/0008-phase-7-subscription-hub-and-family-memory.md#decisões-que-dependem-do-dono). Nenhum incremento 7A–7F deve começar antes do término do 6E e do aceite do dono.
+
 Não é necessário pedir novamente autorização para a documentação ou para seu envio ao repositório já autorizado.
 
 ## Fechamento da Fase 1
@@ -143,6 +149,8 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [Andamento da Fase 5](phase-5/README.md).
 - [Fase 6 — runner sequencial e executor simulado](phase-6/README.md), 6A–6E implementados; concluída; 63 cenários automatizados.
 - [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), aceita.
+- [Fase 7 — hub de assinaturas pessoais, roteamento por cota e memória por família](phase-7/README.md), proposta aguardando revisão do dono.
+- [ADR 0008 — hub de assinaturas pessoais, roteamento por cota e memória por família em Postgres](adr/0008-phase-7-subscription-hub-and-family-memory.md), proposta.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
