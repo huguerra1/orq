@@ -1,6 +1,6 @@
 # Contratos de execução e armazenamento append-only
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas/fixtures do 6A, armazenamento do 6B e projeções/validador do 6C implementados; execução permanece nos incrementos 6D–6E. API e decisões nas [Notas 6C](runner-state-machine.md#notas-de-implementação-6c); resultados no [HANDOFF](../HANDOFF.md). Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Schemas/fixtures do 6A, armazenamento do 6B, projeções/validador do 6C e executor simulado/avaliador do 6D implementados; runner/CLI permanecem no 6E. API e decisões nas [Notas 6C](runner-state-machine.md#notas-de-implementação-6c) e [Notas 6D](executor-choice.md#notas-de-implementação-6d); resultados no [HANDOFF](../HANDOFF.md). Concretiza os contratos conceituais aceitos em [registros de execução e avaliação](../phase-1/execution-records-contract.md).
 
 ## Problema
 
@@ -498,7 +498,7 @@ Decisões e correções da revisão independente (achados 1–19), aceitas pelo 
 
 Histórico verificado pelo orquestrador em 2026-11-10 com `PYTHONPATH=src python -m pytest -p no:cacheprovider --basetemp=<pasta gravável>`: **6A: 366 aprovados e 1 ignorado**, CI verde no PR #8; **6B antes desta revisão: 432 aprovados e 1 ignorado** (66 casos novos). Estes resultados e os testes de armazenamento não implementam nem executam os cenários do runner do 6C–6E.
 
-Após as correções, execução complementar dos três arquivos novos de teste (122 casos, fixture temporária herdando ACLs da worktree): **119 aprovados e 3 ignorados**. Os skips são symlinks sem privilégio no Windows; os três testes de junction passaram. Testes antigos e suas fixtures não foram alterados.
+Após as correções, os 122 casos dos três arquivos de teste de armazenamento dão **119 aprovados e 3 ignorados**; suíte integral: 485 aprovados e 4 ignorados. Os skips são symlinks sem privilégio no Windows; os três testes de junction passaram. Testes antigos e suas fixtures não foram alterados.
 
 ## Notas de implementação 6A
 

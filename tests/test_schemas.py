@@ -23,6 +23,8 @@ def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
         "routing_target_catalog",
         "run_intent",
         "run_manifest",
+        "simulation_script",
+        "simulated_output",
         "task",
         "usage_record",
         "workflow",

@@ -1,6 +1,6 @@
 # Máquina de estados sequencial do runner
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). 6A (schemas), 6B (armazenamento) e 6C (projeções/validador) implementados; executor, avaliador e runner seguem nos incrementos 6D–6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda não são testes do runner executados.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). 6A (schemas), 6B (armazenamento), 6C (projeções/validador) e 6D (interface de executor, executor simulado e avaliador) implementados; o runner segue no incremento 6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda não são testes do runner executados; pela [decisão do orquestrador de 2026-11-10](README.md#decisão-do-orquestrador-de-2026-11-10-gate-do-6d), executá-los como testes é gate do 6E.
 
 Verificação do 6C após correção dos achados 1–13: 217 testes próprios aprovados, incluindo cada uma das 49 linhas AT/TK/RN, saltos proibidos entre estados, guardas negativas e sequências de eventos locais com RunJournal. A suíte integral pós-revisão cabe ao orquestrador. Histórico dos incrementos no [HANDOFF](../HANDOFF.md); esses testes não executam o runner do 6E.
 
@@ -357,7 +357,7 @@ Decisões da revisão 6C, registradas em **2026-11-10**:
 - **Achado 12:** TK04 exige `error_record_ids` não vazio e erros anexados à própria tarefa. Na execução sequencial, reservas ainda não vinculadas a despacho/avaliação representam a admissão incompleta: todas devem ter `budget_released` antes de `admission_rejected`, conforme o passo 7. A rejeição não cria tentativa nem consome contador.
 - **Achados 7 e 13:** regressões negativas cobrem dependências de TK24, escolha RN08/RN09, motivo de TK20, AT04 sem stopping/com ack, ordem de AT14, códigos de AT13, capacidade/tempo/estado de TK19, defesa `attempts_exhausted` e política de retry após timeout confirmado. Testes passam a conferir todos os saltos proibidos entre estados, evidências reais de outra tentativa, S31 `queued → unknown → running`, ação concreta de reconciliação e admissão efetiva da tentativa 2 em S32. São sequências de journal e validação pura, sem execução do runner.
 
-Não há runner, executor, avaliador ou CLI novos, nem mudança de schemas/dependências. As sequências de teste representam os cenários sem executar serviços externos; a execução dos roteiros S01–S63 continua nos gates de 6D/6E.
+Não há runner, executor, avaliador ou CLI novos, nem mudança de schemas/dependências. As sequências de teste representam os cenários sem executar serviços externos; a execução dos roteiros S01–S63 como testes fica no gate do 6E (decisão do orquestrador de 2026-11-10).
 
 ## Executor simulado
 
@@ -386,7 +386,8 @@ O comportamento é lido de um roteiro versionado, cujo digest entra em `executor
       "2": {"usage": {"cost": {"status": "unavailable", "amount": null, "currency": "USD"}}}
     }
   },
-  "workflow_verifier": {"workflow-behavior-ok": "pass"}
+  "workflow_verifier": {"workflow-behavior-ok": "pass"},
+  "hooks": []
 }
 ```
 
@@ -401,7 +402,6 @@ No exemplo, `behavior-ok` e `workflow-behavior-ok` são valores de `pass_rule.sc
 | outputs | `from_output_spec` (JSON canônico determinístico por output), ou mapa por `output_id` com `omit`, `wrong_contract` ou `declared_digest_mismatch` |
 | usage.cost | `reported`, `estimated` ou `unavailable` |
 | verifier | Mapa indexado pelo `script_key` do `pass_rule` do critério com método `simulated_verdict`. O valor é um veredicto (`pass`, `fail`, `inconclusive`, `not_run` ou `unknown_termination`), usado em toda avaliação da tentativa, ou uma lista em que a posição `n` vale para `evaluation_number` = `n + 1`. Avaliação além do fim da lista ou `script_key` ausente invalidam o roteiro |
-| crash_after | Opcional, apenas em testes: nome do evento após o qual o harness interrompe o runner |
-| cancel_after | Opcional, apenas em testes: nome do evento após o qual o harness grava `cancel_requested` no agregado `run`, sem interromper o runner |
+| hooks | Lista obrigatória (pode ser vazia), apenas para o harness de testes: `{hook_id, action, event_type, scope}`. `action` é `crash_after` (o harness interrompe o runner após o evento) ou `cancel_after` (o harness grava `cancel_requested` no agregado `run`, sem interromper). `scope` é `{"kind": "run"}`, `{"kind": "task_attempt", "task_id", "attempt_number"}` ou `{"kind": "workflow"}`. Cada hook dispara uma única vez: `HookController` marca o disparo e o harness o persiste antes do crash, para a retomada não repetir o hook |
 
-O simulado não lê o bundle além de verificar seu digest, não acessa rede e só escreve no diretório de artefatos do run.
+O simulado não lê o bundle além de verificar seu digest, não acessa rede e só escreve no diretório de artefatos do run. O envelope de `from_output_spec` segue o schema versionado `simulated-output.schema.json`; OutputSpecs atendidos pelo simulado declaram a referência desse schema (ID `simulated-output`, versão `0.1`, digest JCS). O roteiro é conferido contra o WorkflowSpec antes da admissão (`validate_against_workflow`).

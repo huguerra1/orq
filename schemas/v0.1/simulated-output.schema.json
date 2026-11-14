@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/simulated-output.schema.json",
+  "title": "ORQ SimulatedOutput v0.1",
+  "description": "Envelope JSON canônico produzido pelo executor simulado no modo from_output_spec. Referenciado por OutputSpecs como {id: simulated-output, version: 0.1, content_digest: SHA-256 JCS deste schema}.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "attempt_number",
+    "output_id",
+    "artifact_type",
+    "content_contract_ref",
+    "input_bindings",
+    "bundle_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "task_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "attempt_number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "output_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "artifact_type": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "content_contract_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "input_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "dispatch-intent.schema.json#/$defs/inputBinding"
+      }
+    },
+    "bundle_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false
+}
