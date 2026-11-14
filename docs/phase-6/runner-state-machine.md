@@ -1,6 +1,6 @@
 # Máquina de estados sequencial do runner
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). 6A (schemas), 6B (armazenamento), 6C (projeções/validador) e 6D (interface de executor, executor simulado e avaliador) implementados; o runner segue no incremento 6E. Concretiza o [ciclo de execução](../phase-1/execution-lifecycle.md) para concorrência igual a um e executor simulado. Os 63 cenários ainda não são testes do runner executados; pela [decisão do orquestrador de 2026-11-10](README.md#decisão-do-orquestrador-de-2026-11-10-gate-do-6d), executá-los como testes é gate do 6E.
+Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)); 6A–6E implementados. Runner e CLI locais entregues em 2026-11-14. Os 63 cenários têm automação fiel (S04 revisado em 2026-11-14). Ver [cobertura](acceptance-scenarios.md#cobertura-executada-no-6e) e notas abaixo.
 
 Verificação do 6C após correção dos achados 1–13: 217 testes próprios aprovados, incluindo cada uma das 49 linhas AT/TK/RN, saltos proibidos entre estados, guardas negativas e sequências de eventos locais com RunJournal. A suíte integral pós-revisão cabe ao orquestrador. Histórico dos incrementos no [HANDOFF](../HANDOFF.md); esses testes não executam o runner do 6E.
 
@@ -359,6 +359,42 @@ Decisões da revisão 6C, registradas em **2026-11-10**:
 
 Não há runner, executor, avaliador ou CLI novos, nem mudança de schemas/dependências. As sequências de teste representam os cenários sem executar serviços externos; a execução dos roteiros S01–S63 como testes fica no gate do 6E (decisão do orquestrador de 2026-11-10).
 
+## Notas de implementação 6E
+
+- API: `SequentialRunner.create(...)` cria exclusivamente; `open(...)` retoma explicitamente; `run()` retorna `RunProjection`; `cancel()` grava o pedido; `parar()` conclui a parada. O chamador mantém o context manager aberto para uso/observações tardios. `clock` e `id_factory` são injetados; eventos preservam `event-<sequência>`. Workflow, pedido, catálogos, política e roteiro devem ser os mesmos na retomada. A CLI sempre cria, retornando `run_exists` para diretório existente.
+- O runner usa `plan_and_validate`, seleção, roteamento, materialização, avaliador e executor existentes. `project_event` aplica a mesma etapa do replay completo do 6C a uma cópia da projeção para validar antes do append/fsync; evita revalidar todo o prefixo a cada evento. Só depois do append confirmado atualiza a projeção e chama o callback do harness. DispatchIntent autoriza o ciclo de execução/coleta; cancelamento, reconciliação e avaliação têm suas intenções específicas anteriores às chamadas.
+- O estado completo do simulado é publicado em checkpoints JSON JCS imutáveis em `simulator/state-<n>.json`, com hash, relógio e digest dos snapshots de entrada, usando a publicação durável do 6B. A retomada reconstrói uma instância nova, aplica `recovery_actions` e nunca chama dispatch para intenção já existente. `RunJournal.open(prepare_recovery=...)` permite avançar o relógio sobre o prefixo **verificado**, antes de auditar uma cauda descartada. Locks órfãos continuam exigindo o procedimento manual; `open` não os remove.
+- Hooks permanecem fora do executor/journal: `on_event(runner, event)` é a interface do harness, que usa o `HookController` do 6D e persiste `fired` antes de interromper. A prova de AT04 é um conjunto volátil de intenções ainda não despachadas neste processo; ele não é restaurado. O simulado usa bases vazias e IDs de workspace distintos por tentativa, sem copiar outputs anteriores.
+- Ajustes de integração sem novos schemas: referências de seleção respeitam a versão por candidato que o materializador da Fase 2 já emite. `select_knowledge(selection_id=...)` e `materialize_knowledge_context(context_manifest_id=...)` recebem IDs opcionais, preservando os defaults anteriores; assim uma admissão abortada pode gerar novos registros do mesmo candidato, mantendo IDs consistentes dentro do bundle.
+- Guardas refinadas para completar caminhos já exigidos pelos princípios: TK19/TK20 consideram também capacidade financeira de outra avaliação; RN07 aceita rejeição financeira global explícita; RN10 aceita avaliação global com término incerto após o prazo, sem relatório inventado e mantendo a reserva. AT13 também aceita `found_finished` com erro posterior de output/digest (os mesmos três códigos de AT07); resultado recuperado inválido não pode virar `completed`. Há regressões para essas fronteiras, além da matriz S01–S63.
+- Achado 11 do 6A fechado: `workflow-reference.json` usa somente os quatro métodos conhecidos e `simulated-output`; `simulation-script-reference.json` reprova T3/1 e aprova T3/2. As fixtures antigas permanecem intactas. **S04 revisado pelo orquestrador em 2026-11-14:** interromper imediatamente após `output_bound` precede AT06/TK05, então o checkpoint do cenário passou a ser a transição TK05. A interrupção após `output_bound` virou teste de retomada sem novo despacho.
+
+### Revisão independente do 6E — 2026-11-14
+
+Corrigidos os problemas 1–9 de `.revisao-6e.md`, sem novos schemas ou dependências. Mantidas as guardas: a retomada completa os fatos e as transições que faltam no prefixo durável.
+
+| Problema | Decisão e regressão |
+| --- | --- |
+| 1 — recuperação em etapas | `_recover` consulta novamente `recovery_actions` após cada ação; cada append reprojeta o prefixo. Tentativas, avaliações e reservas são recuperadas antes de `stop_run`. A normalização de crash de cada tentativa ocorre uma vez por abertura; o laço normal faz a reconciliação. Testes combinam cancelamento com cortes após reserva, intenção, tentativa running, confirmação de timeout e segunda evaluation_requested antes de TK22. Outro corte em dispatch_failed confirmado exige reprojetar para descobrir e liberar ambas as reservas antes de RN07. |
+| 2 — manifesto não executável | `finish_preparation` conclui RN03/RN04 diretamente de running, sem consultar limites nulos nem passar por stopping. Testados ambos os manifestos após run_manifest_closed. |
+| 3 — evidência e liquidação | Observações conclusivas gravadas são reaplicadas sem novo reconcile. Collect, usage e settle/release precedem a transição terminal, também em falha/cancelamento confirmados. Recuperam-se reservas abertas de tentativas terminais com uso/ausência comprovados. Testes proíbem reconcile repetido e conferem a liquidação no instante do corte terminal. |
+| 4 — orçamento | Admissão, capacidade de reavaliação e replay respeitam unknown_cost_action=reject com teto opcional. O subtotal conhecido continua comparado a max_cost mesmo com lacunas; budget_committed permanece None e budget_gaps conserva os escopos desconhecidos. Teto obrigatório mantém seu gate de lacunas. Testados os três consumidores, com e sem estimativa. |
+| 5 — cancelamento repetido | Chave `<dispatch_key>/cancel/<índice>` por tentativa; toda chamada tem intenção nova. Testados motivo repetido e mudança para timeout após found_running. |
+| 6 — found_stopped | AT15 exige pedido do run/tentativa anterior à observação, run stopping e ausência de timeout anterior. Sem pedido prévio, AT13 usa execution_failed/retryability unknown; cancelamento posterior não muda a classificação. |
+| 7 — avaliações | Relatórios locais/globais confirmados liberam reservas na recuperação. Completed durante stopping gera relatório local interrompido e liberação. Erro global evaluator_failed com certeza unknown preserva ausência de relatório e reserva; a retomada aguarda o prazo original e mantém RN10/indeterminate. Cortes após relatório, erro incerto e RN07. |
+| 8 — relógio | prepare_recovery considera o prefixo verificado e os relógios dos checkpoints imutáveis, conferindo seus hashes antes de journal_tail_discarded. Teste com checkpoint posterior ao journal e cauda truncada. |
+| 9 — TK24 | Origem evaluating exige relatório corrente citado nas evidências. Na parada, registra-se failed/not_run com os mesmos subjects antes de TK24, sem chamar o avaliador. Testes negativos recusam relatório ausente ou omitido das evidências. |
+
+Para documentar a avaliação interrompida do problema 9, evaluation_requested local durante stopping só usa reserva existente, exige tentativa completed e mantém os gates de escopo, subjects, critérios e contador. Não cria reserva nem efeito de avaliação; a avaliação global continua proibida na parada. Em waiting_evaluation, intenção ativa é completada por TK22/relatório antes de RN07; sem intenção ativa, TK24 usa o relatório existente.
+
+Reservas sem UsageRecord ou prova contratual de não execução continuam pendentes: término incerto e AT04 isolado não provam custo zero (decisão do 6C preservada). Caminhos conclusivos com uso/ausência comprovados exigem liquidação/liberação; reservas de avaliações locais não iniciadas são liberadas.
+
+Auditados todos os “Então” de S01–S63: os 19 cenários da revisão e outros 27 receberam asserções; os 17 restantes foram conferidos e mantidos. A [tabela de cobertura](acceptance-scenarios.md#cobertura-executada-no-6e) descreve a evidência executada. S04 mantém os dois testes: checkpoint TK05 e corte imediatamente após output_bound, ainda com T1 running e T2 pending.
+
+Os schemas aceitos não contêm evento admission_checked: checks aprovados ficam no DispatchIntent; falhas usam ErrorRecord e admission_rejected sem criar tentativa. S09 confere revogação efetiva e reservas não vazias liberadas. S11 testa bundle adulterado e, adicionalmente, excesso de tokens antes das reservas. S12 confere integrity_mismatch na referência materializada antes de persistir ContextManifest inválido, preservando o gate de referências do journal. S10 seleciona conhecimento real nas duas tentativas de T3 e injeta revisão fora do catálogo no retry, recusada sem despacho da tentativa 2.
+
+Verificação dos quatro arquivos de runner/CLI/projeções/máquina de estados: **364 testes aprovados, nenhum ignorado**. A suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows).
+
 ## Executor simulado
 
 O comportamento é lido de um roteiro versionado, cujo digest entra em `executor_snapshot` do RunManifest. Chave: `task_id` e `attempt_number`. Entradas ausentes usam `default`. O veredicto da avaliação global fica em `workflow_verifier`, com o mesmo formato de `verifier`.
@@ -405,3 +441,12 @@ No exemplo, `behavior-ok` e `workflow-behavior-ok` são valores de `pass_rule.sc
 | hooks | Lista obrigatória (pode ser vazia), apenas para o harness de testes: `{hook_id, action, event_type, scope}`. `action` é `crash_after` (o harness interrompe o runner após o evento) ou `cancel_after` (o harness grava `cancel_requested` no agregado `run`, sem interromper). `scope` é `{"kind": "run"}`, `{"kind": "task_attempt", "task_id", "attempt_number"}` ou `{"kind": "workflow"}`. Cada hook dispara uma única vez: `HookController` marca o disparo e o harness o persiste antes do crash, para a retomada não repetir o hook |
 
 O simulado não lê o bundle além de verificar seu digest, não acessa rede e só escreve no diretório de artefatos do run. O envelope de `from_output_spec` segue o schema versionado `simulated-output.schema.json`; OutputSpecs atendidos pelo simulado declaram a referência desse schema (ID `simulated-output`, versão `0.1`, digest JCS). O roteiro é conferido contra o WorkflowSpec antes da admissão (`validate_against_workflow`).
+
+### Revisão de confirmação do 6E — 2026-11-14
+
+A revisão de confirmação (Gemini) considerou corrigidos os nove problemas e os 19 cenários da primeira revisão. Ela apontou três casos de borda de gravidade baixa, corrigidos pelo orquestrador:
+
+- **Cancelamento durante a reserva de uma avaliação:** se o cancelamento chega logo depois de `budget_reserved` de uma avaliação, `_evaluate` libera a reserva (`admission_aborted`) sem gravar `evaluation_requested`, e o laço segue para a parada. Regressão: `test_cancel_during_global_evaluation_reservation_releases_it`.
+- **TK22 durante `stopping`:** a guarda aceita o run em `running` ou `stopping`. O `evaluation_requested` só é admitido com o run em `running`, mas um crash antes de TK22 pode deixar a transição pendente depois que o run entra em `stopping`.
+- **AT14 em `found_stopped`:** o `deadline_exceeded` da tentativa só conta se for anterior à observação, como já acontecia com o cancelamento.
+

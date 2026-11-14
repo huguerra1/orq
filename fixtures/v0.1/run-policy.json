@@ -1,0 +1,58 @@
+{
+  "routing_policy": {
+    "schema_version": "0.1",
+    "routing_policy_id": "routing-policy-rules",
+    "version": "1",
+    "mode": "rules",
+    "fixed_target_id": null,
+    "ranking_rule": "priority_then_id",
+    "decision_engine_ref": null,
+    "input_template_ref": {
+      "id": "routing-input",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    "confidence_threshold": null,
+    "low_confidence_action": "rules_fallback",
+    "invalid_response_action": "rules_fallback",
+    "provider_error_action": "rules_fallback",
+    "fallback_target_id": null
+  },
+  "resolved_limits": {
+    "max_concurrency": 1,
+    "max_attempts": 2,
+    "attempt_timeout_ms": 60000,
+    "max_run_duration_ms": 600000,
+    "max_evaluations_per_attempt": 2,
+    "evaluation_timeout_ms": 20000,
+    "reconciliation_timeout_ms": 15000,
+    "retry_policy": {
+      "on_evaluation_fail": true,
+      "on_retryable_error": true,
+      "on_confirmed_timeout": true
+    },
+    "sources": [
+      {
+        "field": "max_attempts",
+        "origin_ref": {
+          "id": "policy-default",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "17ad92e63c962393c0329c658937d16eccaea13036412a3d1d0a5b6b8f29d738"
+          }
+        }
+      }
+    ]
+  },
+  "budget_snapshot": {
+    "currency": "USD",
+    "max_cost": null,
+    "cap_mandatory": false,
+    "unknown_cost_action": "admit_with_estimate",
+    "cost_estimates": []
+  }
+}

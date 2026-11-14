@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "planning_request_id": "planning-request-demo",
+  "run_id": "run-reference",
+  "project_id": "project-demo",
+  "objective": "Executar o workflow de referencia T1-T5",
+  "workflow_template_ref": {
+    "id": "workflow-reference",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "edf355c305604d9aa53e7902d2da2b330f08681708d91d01ccbf79ee35dff537"
+    }
+  },
+  "planner_policy_ref": {
+    "id": "planner-policy-fixed",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "created_at": "2026-11-10T12:00:00Z"
+}

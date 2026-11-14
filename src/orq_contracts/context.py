@@ -61,6 +61,7 @@ def materialize_knowledge_context(
     reserved_output_tokens: int,
     margin_tokens: int = 0,
     provider_context_coverage: str = "platform_only",
+    context_manifest_id: str | None = None,
 ) -> MaterializedContext:
     """Materializa unidades selecionadas e identifica os bytes ordenados do bundle."""
 
@@ -107,7 +108,7 @@ def materialize_knowledge_context(
         if candidate_key in candidate_by_key:
             _fail("duplicate_candidate_unit", "/selection/candidates", str(candidate_key))
         candidate_by_key[candidate_key] = candidate
-    manifest_id = (
+    manifest_id = context_manifest_id or (
         f"context-{selection['run_id']}-{selection['task_id']}-{selection['candidate_attempt_number']}"
     )
     items = []

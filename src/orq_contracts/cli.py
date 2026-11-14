@@ -10,7 +10,11 @@ import shutil
 import tempfile
 from typing import Any, Sequence
 
-from .canonical import CanonicalizationError, canonical_digest
+from .canonical import CanonicalizationError, canonical_digest, canonicalize
+from ._storage import StorageError
+from .planner import PlanningError
+from .runner import SequentialRunner
+from .simulated_executor import SimulationScript
 from .context import ContextError, materialize_knowledge_context
 from .selection import select_knowledge
 from .validator import (
@@ -109,6 +113,12 @@ def _parser() -> argparse.ArgumentParser:
     context.add_argument("--selection", type=Path, required=True)
     context.add_argument("--request", type=Path, required=True)
     context.add_argument("--output-dir", type=Path, required=True)
+
+    run = subparsers.add_parser("run", help="executa um workflow local")
+    run_commands = run.add_subparsers(dest="run_command", required=True)
+    simulate = run_commands.add_parser("simulate", help="executa com o executor simulado, sem rede")
+    for flag in ("store-root", "workflow", "request", "catalog", "policy", "script", "knowledge-catalog", "vault-root"):
+        simulate.add_argument("--" + flag, type=Path, required=True)
     return parser
 
 
@@ -161,6 +171,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(_run_vault(arguments), ensure_ascii=False, indent=2))
             return 0
 
+        if arguments.command == "run":
+            document = _read_json(arguments.script)
+            script = SimulationScript(document, expected_digest=canonical_digest(document))
+            with SequentialRunner.create(arguments.store_root, workflow=_read_json(arguments.workflow),
+                    request=_read_json(arguments.request), catalog=_read_json(arguments.catalog),
+                    policy=_read_json(arguments.policy), script=script,
+                    knowledge_catalog=_read_json(arguments.knowledge_catalog), vault_root=arguments.vault_root,
+                    clock=script.make_clock()) as runner:
+                result = runner.run()
+                print(canonicalize({"state": result.state, "run_id": result.id,
+                                    "journal_digest": runner.journal.final_digest}).decode("utf-8"))
+                return 0 if result.state == "succeeded" else 1
+
         document = _read_json(arguments.path)
         issues = _validate(arguments.kind, document)
         result = {
@@ -178,8 +201,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         CanonicalizationError,
         VaultError,
         ContextError,
+        StorageError,
+        PlanningError,
     ) as error:
-        print(json.dumps({"valid": False, "error": str(error)}))
+        result = {"valid": False, "error": str(error)}
+        if arguments.command == "run" and hasattr(error, "code"):
+            result["code"] = error.code
+        print(canonicalize(result).decode("utf-8") if arguments.command == "run" else json.dumps(result))
         return 2
 
 

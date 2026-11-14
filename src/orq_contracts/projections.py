@@ -168,6 +168,36 @@ class RunProjection(AggregateProjection):
             return timestamp(now) >= deadline
         return False
 
+    def evaluation_capacity(self, task_id: str) -> bool:
+        """Capacidade para outra avaliação local: contador e reserva conservadora."""
+        if len(self.task_evaluations(task_id)) >= self.limit("max_evaluations_per_attempt", task_id):
+            return False
+        budget = self.manifest["budget_snapshot"]
+        estimates = [e for e in budget["cost_estimates"] if e["scope"] == "evaluation" and
+                     e["subject_ref"] == self.manifest["evaluator_snapshot"]["evaluator_ref"]]
+        if not estimates and (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject"):
+            return False
+        if budget["cap_mandatory"] and self.budget_gaps:
+            return False
+        committed = self._budget_commitment()[0]
+        with localcontext() as ctx:
+            ctx.prec = 64 + sum(len(e["amount"]) for e in estimates) + len(str(committed))
+            return (budget["max_cost"] is None or
+                    committed + max((Decimal(e["amount"]) for e in estimates), default=Decimal(0)) <= Decimal(budget["max_cost"]))
+
+    def global_evaluation_uncertain(self, now: str) -> bool:
+        for ev in self.evaluations.values():
+            if ev.request["scope"]["kind"] != "workflow" or ev.report is not None:
+                continue
+            errors = [self.errors[id] for id in ev.error_record_ids]
+            requested = self.history("evaluation", ev.id, "evaluation_requested")[0]
+            deadline = min(timestamp(requested["recorded_at"]) + timedelta(milliseconds=self.limit("reconciliation_timeout_ms")),
+                           timestamp(self.intent["created_at"]) + timedelta(milliseconds=self.limit("max_run_duration_ms")))
+            if timestamp(now) >= deadline and any(e["code"] == "evaluator_failed" and
+                                                  e["termination_certainty"] == "unknown" for e in errors):
+                return True
+        return False
+
     @property
     def active_work(self) -> bool:
         return any(a.state not in ATTEMPT_TERMINAL for a in self.attempts.values()) or any(
@@ -290,7 +320,9 @@ def _bindings(bindings: list[dict]) -> dict[str, dict]:
 
 
 def record_ref(record: dict, id_field: str) -> dict:
-    return {"id": record[id_field], "version": record["schema_version"],
+    # A Fase 2 versiona a seleção por candidato (materialize_knowledge_context).
+    version = str(record["candidate_attempt_number"]) if id_field == "selection_id" else record["schema_version"]
+    return {"id": record[id_field], "version": version,
             "content_digest": record.get("record_hash") or record.get("selection_hash") or canonical_digest(record)}
 
 
@@ -312,46 +344,53 @@ def project_journal(events: Iterable[dict[str, Any]], *, workflow: dict | None =
     """
     projection = RunProjection("", workflow=deepcopy(workflow),
                                reconcile_not_found_authoritative=reconcile_not_found_authoritative)
-    sequences: dict[tuple[str, str], int] = {}
-    keys: set[str] = set()
-    previous_hash = None
-    for original in events:
-        event = deepcopy(original)
+    for event in events:
         if as_of_global_sequence is not None and event.get("global_sequence", 0) > as_of_global_sequence:
             break
-        try:
-            require(not validate_instance(event, "journal_event"), "event_schema_invalid", "schema/payload inválido")
-            seq, kind, id = event["global_sequence"], event["aggregate_type"], event["aggregate_id"]
-            require(seq == len(projection.events) + 1 and event["event_id"] == f"event-{seq}",
-                    "journal_integrity_error", "sequência/ID global inválido")
-            require(event["previous_event_hash"] == previous_hash and event["event_hash"] == canonical_digest(
-                {k: v for k, v in event.items() if k != "event_hash"}), "journal_integrity_error", "cadeia/hash diverge")
-            require(event["aggregate_sequence"] == sequences.get((kind, id), 0) + 1,
-                    "journal_integrity_error", "sequência do agregado diverge")
-            require(event["causation_event_id"] is None or event["causation_event_id"] in projection.events,
-                    "journal_integrity_error", "causa não é anterior")
-            key = event["idempotency_key"]
-            require(key is None or key not in keys, "idempotency_conflict", "chave repetida no journal")
-            if key is not None:
-                keys.add(key)
-            if seq == 1:
-                require(kind == "run" and event["event_type"] == "run_intent_recorded", "aggregate_not_created", "primeiro evento deve criar run")
-                projection.id = event["run_id"]
-            require(event["run_id"] == projection.id and (kind != "run" or id == projection.id),
-                    "aggregate_mismatch", "run do evento diverge")
-            _apply(projection, event)
-            projection.events[event["event_id"]] = event
-            projection.as_of_global_sequence, projection.as_of_event_id = seq, event["event_id"]
-            agg = projection.aggregate(kind, id)
-            agg.as_of_global_sequence, agg.as_of_event_id = seq, event["event_id"]
-            sequences[kind, id] = event["aggregate_sequence"]
-            previous_hash = event["event_hash"]
-        except StateMachineError as error:
-            raise ProjectionError(error.code, error.message, event.get("event_id")) from error
+        _advance_projection(projection, event)
     if as_of_global_sequence is not None:
         if projection.as_of_global_sequence != as_of_global_sequence:
             raise ProjectionError("cutoff_invalid", "cutoff não existe")
     return projection
+
+
+def project_event(projection: RunProjection, event: dict) -> RunProjection:
+    """Valida um próximo evento sem alterar o prefixo; usa o mesmo replay do journal."""
+    result = deepcopy(projection)
+    _advance_projection(result, event)
+    return result
+
+
+def _advance_projection(projection: RunProjection, original: dict) -> None:
+    event = deepcopy(original)
+    try:
+        require(not validate_instance(event, "journal_event"), "event_schema_invalid", "schema/payload inválido")
+        seq, kind, id = event["global_sequence"], event["aggregate_type"], event["aggregate_id"]
+        require(seq == len(projection.events) + 1 and event["event_id"] == f"event-{seq}",
+                "journal_integrity_error", "sequência/ID global inválido")
+        previous = projection.events.get(f"event-{seq-1}")
+        require(event["previous_event_hash"] == (previous["event_hash"] if previous else None) and
+                event["event_hash"] == canonical_digest({k: v for k, v in event.items() if k != "event_hash"}),
+                "journal_integrity_error", "cadeia/hash diverge")
+        local = [e for e in projection.events.values() if e["aggregate_type"] == kind and e["aggregate_id"] == id]
+        require(event["aggregate_sequence"] == len(local) + 1, "journal_integrity_error", "sequência do agregado diverge")
+        require(event["causation_event_id"] is None or event["causation_event_id"] in projection.events,
+                "journal_integrity_error", "causa não é anterior")
+        key = event["idempotency_key"]
+        require(key is None or all(e["idempotency_key"] != key for e in projection.events.values()),
+                "idempotency_conflict", "chave repetida no journal")
+        if seq == 1:
+            require(kind == "run" and event["event_type"] == "run_intent_recorded", "aggregate_not_created", "primeiro evento deve criar run")
+            projection.id = event["run_id"]
+        require(event["run_id"] == projection.id and (kind != "run" or id == projection.id),
+                "aggregate_mismatch", "run do evento diverge")
+        _apply(projection, event)
+        projection.events[event["event_id"]] = event
+        projection.as_of_global_sequence, projection.as_of_event_id = seq, event["event_id"]
+        agg = projection.aggregate(kind, id)
+        agg.as_of_global_sequence, agg.as_of_event_id = seq, event["event_id"]
+    except StateMachineError as error:
+        raise ProjectionError(error.code, error.message, event.get("event_id")) from error
 
 
 def _apply(s: RunProjection, e: dict) -> None:
@@ -670,7 +709,12 @@ def _artifact(s: RunProjection, e: dict) -> None:
 
 def _evaluation_request(s: RunProjection, e: dict) -> None:
     p, id = e["payload"], e["aggregate_id"]
-    require(s.state == "running" and not s.cancel_requested, "evaluation_not_admissible", "run não admite avaliação")
+    # Durante a parada só se registra a avaliação local já reservada, para
+    # documentar seu not_run antes de TK24; o runner não chama o avaliador.
+    interrupted = (s.state == "stopping" and p["scope"]["kind"] == "task_attempt" and
+                   bool(p["budget_reservation_ids"]))
+    require((s.state == "running" and not s.cancel_requested) or interrupted,
+            "evaluation_not_admissible", "run não admite avaliação")
     require(id == p["evaluation_id"], "aggregate_mismatch", "ID da avaliação diverge")
     require(id not in s.evaluations, "duplicate_id", "avaliação já existe")
     require(not any(ev.report is None or ev.report["execution_status"] == "indeterminate" for ev in s.evaluations.values()),
@@ -788,11 +832,12 @@ def _budget(s: RunProjection, e: dict) -> None:
         require(s.state == "running" and s.manifest and not s.cancel_requested, "event_out_of_order", "run não admite reserva")
         budget = s.manifest["budget_snapshot"]
         require(p["currency"] == budget["currency"], "currency_mismatch", "moeda da reserva diverge")
-        require(not budget["cap_mandatory"] or p["amount"] is not None, "budget_unknown", "teto obrigatório sem estimativa")
+        require(p["amount"] is not None or not (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject"),
+                "budget_unknown", "política exige estimativa")
         s.reservations[rid] = ReservationProjection(p)
         if budget["max_cost"] is not None:
-            committed = s.budget_committed
-            require(committed is None or committed <= Decimal(budget["max_cost"]), "budget_exceeded", "reserva excede teto")
+            committed = s.budget_committed if budget["cap_mandatory"] else s._budget_commitment()[0]
+            require(committed <= Decimal(budget["max_cost"]), "budget_exceeded", "subtotal conhecido excede teto")
     else:
         r = s.reservations.get(rid)
         require(r and r.state == "open", "reservation_not_open", "reserva inexistente ou encerrada")
@@ -909,14 +954,25 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
     if s.state in RUN_TERMINAL:
         return (RecoveryAction("close_run", s.id),)
     must_stop = bool(s.cancel_requested or s.run_deadlines or any(t.state in {"failed", "blocked", "indeterminate"}
-        for t in s.tasks.values()) or any(e["code"] == "idempotency_conflict" for e in s.errors.values()))
-    if s.state == "running" and must_stop:
-        return (RecoveryAction("stop_run", s.id),)
+        for t in s.tasks.values()) or any(e["code"] == "idempotency_conflict" or
+        e["scope_type"] == "run" and e["code"] in {"budget_unknown", "budget_exceeded"}
+        for e in s.errors.values()))
+    if s.state == "running" and s.manifest and s.manifest["manifest_status"] != "ready":
+        return (RecoveryAction("finish_preparation", s.id),)
     actions: list[RecoveryAction] = []
     for rid, r in s.unassigned_reservations.items():
         if r.state == "open":
             actions.append(RecoveryAction("release_reservation", rid, {"reason": "admission_aborted"}))
     for a in s.attempts.values():
+        if a.termination_certainty == "confirmed":
+            if a.state in ATTEMPT_TERMINAL and any(r.state == "open" and r.reservation["scope_ref"] == a.id for r in s.reservations.values()) and (
+                    s.attempt_has_usage(a) or s.dispatch_proven_not_executed(a)):
+                actions.append(RecoveryAction("settle_attempt", a.id))
+            if a.state in {"failed", "timed_out", "cancelled"}:
+                for rid in a.intent["budget_reservation_ids"]:
+                    r = s.reservations[rid]
+                    if r.state == "open" and r.reservation["scope_type"] == "evaluation" and r.reservation["scope_ref"] not in s.evaluations:
+                        actions.append(RecoveryAction("release_reservation", rid, {"reason": "admission_aborted"}))
         if a.state in {"queued", "running", "unknown"}:
             if s.tasks[a.header["task_id"]].state == "indeterminate":
                 continue
@@ -935,11 +991,23 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
             actions.append(RecoveryAction("reconcile_dispatch", a.id, details))
     for ev in s.evaluations.values():
         scope = ev.request["scope"]
+        if ev.report is not None and ev.report["execution_status"] != "indeterminate":
+            if any(s.reservations[rid].state == "open" for rid in ev.request["budget_reservation_ids"]):
+                actions.append(RecoveryAction("release_evaluation", ev.id))
+        uncertain_global = scope["kind"] == "workflow" and ev.report is None and any(
+            s.errors[id]["code"] == "evaluator_failed" and s.errors[id]["termination_certainty"] == "unknown"
+            for id in ev.error_record_ids)
+        if uncertain_global:
+            actions.append(RecoveryAction("preserve_uncertain_evaluation", ev.id))
+            must_stop = True
+            continue
         if scope["kind"] == "task_attempt" and s.tasks[scope["task_id"]].state in TASK_TERMINAL:
             continue
         if ev.report is None:
             actions.append(RecoveryAction("record_interrupted_evaluation", ev.id, {
                 "execution_status": "failed", "verdict": "not_run"}))
+    if s.state == "running" and must_stop:
+        actions.append(RecoveryAction("stop_run", s.id))
     if actions:
         return tuple(actions)
     if s.state == "stopping":

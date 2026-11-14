@@ -133,6 +133,7 @@ class RunJournal:
     def open(
         cls, store_root: Path, run_id: str, *, clock: Callable[[], str] = _utc_now,
         event_id_factory: Callable[[int], str] = _event_id,
+        prepare_recovery: Callable[[tuple[dict[str, Any], ...]], None] | None = None,
     ) -> RunJournal:
         directory = cls._directory(store_root, run_id)
         if not directory.is_dir():
@@ -146,6 +147,8 @@ class RunJournal:
             sync_file(journal.path)
             fsync_directory(directory.parent)
             journal._file = journal.path.open("ab", buffering=0)
+            if prepare_recovery is not None:
+                prepare_recovery(journal.events)
             journal._recover(tail)
         except BaseException:
             journal.close()

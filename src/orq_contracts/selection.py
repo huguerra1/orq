@@ -179,6 +179,7 @@ def select_knowledge(
     allowed_collections: set[str] | None = None,
     max_classification: str = "internal",
     margin_tokens: int = 0,
+    selection_id: str | None = None,
 ) -> dict[str, Any]:
     """Filtra, ranqueia e seleciona unidades sob orçamento."""
 
@@ -370,7 +371,7 @@ def select_knowledge(
     ]
     selection = {
         "schema_version": "0.1",
-        "selection_id": f"selection-{run_id}-{task_id}-{candidate_attempt_number}",
+        "selection_id": selection_id or f"selection-{run_id}-{task_id}-{candidate_attempt_number}",
         "run_id": run_id,
         "workflow_ref": workflow_ref,
         "task_id": task_id,

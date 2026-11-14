@@ -235,13 +235,15 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             guard(projection.state == "running" and not projection.cancel_requested and not projection.run_deadlines and
                   timestamp(event["recorded_at"]) < timestamp(a.intent["deadline_at"]))
         elif row.id == "AT13":
-            proof(outcome == "found_failed" or (authoritative and projection.state == "running") or
+            proof(outcome in {"found_failed", "found_finished"} or (authoritative and projection.state == "running") or
                   (outcome == "found_stopped" and not deadline and not cancel))
             proof(failure_error and failure_error["global_sequence"] > before_observation)
             error = failure_error["payload"]
             guard(not authoritative or (error["code"] == "dispatch_not_executed" and error["retryability"] == "retryable"))
             if outcome == "found_stopped":
                 guard(error["code"] == "execution_failed" and error["retryability"] == "unknown")
+            if outcome == "found_finished":
+                guard(error["code"] in {"output_missing", "output_contract_mismatch", "integrity_mismatch"})
         elif row.id == "AT14":
             proof(outcome == "found_stopped" and deadline)
             guard(any(e["global_sequence"] < observed[-1]["global_sequence"] for e in
@@ -301,7 +303,7 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             if row.id in {"TK17", "TK18"}:
                 guard(report["verdict"] == "fail" and (can_retry if row.id == "TK17" else not can_retry))
             else:
-                capacity = len(evaluations) < projection.limit("max_evaluations_per_attempt", id)
+                capacity = projection.evaluation_capacity(id)
                 guard(report["execution_status"] != "indeterminate" and report["verdict"] in {"inconclusive", "not_run"}
                       and (capacity if row.id == "TK19" else not capacity))
                 if row.id == "TK19":
@@ -311,10 +313,15 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
         elif row.id in {"TK21", "TK22"}:
             proof(active_eval and any(e["event_type"] == "evaluation_requested" and e["aggregate_id"] == evaluations[-1].id for e in evidence))
             if row.id == "TK22":
-                guard(projection.state == "running")
+                # evaluation_requested só é admitido com o run em running; se o run entrou em stopping
+                # depois disso (crash antes de TK22), a transição ainda precisa ser aplicada.
+                guard(projection.state in {"running", "stopping"})
         elif row.id == "TK23":
             guard(can_retry and not projection.cancel_requested)
         elif row.id == "TK24":
+            if state == "evaluating":
+                proof(report and any(e["event_type"] == "evaluation_report_recorded" and
+                      e["aggregate_id"] == report["evaluation_id"] for e in evidence))
             guard(projection.state == "stopping" and not active_eval and not task.accepted_event_id and
                   (not a or a.state in ATTEMPT_TERMINAL) and p["reason"] in {"run_cancelled", "workflow_failed"})
             guard(state != "pending" or not projection.failed_dependency(id))
@@ -322,7 +329,10 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
         global_report = projection.global_report
         failed = any(t.state in {"failed", "blocked", "indeterminate"} for t in projection.tasks.values())
         conflict = any(e["code"] == "idempotency_conflict" for e in projection.errors.values())
-        failure = failed or bool(projection.run_deadlines) or conflict
+        financial = any(e["scope_type"] == "run" and e["code"] in {"budget_unknown", "budget_exceeded"}
+                        for e in projection.errors.values())
+        uncertain_global = projection.global_evaluation_uncertain(event["recorded_at"])
+        failure = failed or bool(projection.run_deadlines) or conflict or financial or uncertain_global
         cancel = bool(projection.cancel_requested)
         if row.id == "RN03":
             proof(has("run_manifest_closed", manifest_status="planning_failed"))
@@ -337,6 +347,9 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             guard(failure or cancel)
             proof(any(e["event_type"] in {"deadline_exceeded", "cancel_requested"} and e["aggregate_type"] == "run"
                       or e["event_type"] == "error_attached" and e["payload"]["code"] == "idempotency_conflict"
+                      or e["event_type"] == "error_attached" and (financial and e["aggregate_type"] == "run" and
+                          e["payload"]["code"] in {"budget_unknown", "budget_exceeded"} or uncertain_global and
+                          e["payload"]["code"] == "evaluator_failed")
                       or e["event_type"] == "state_transition" and e["aggregate_type"] == "task" and
                       e["payload"]["to"] in {"failed", "blocked", "indeterminate"} for e in evidence))
         elif row.id in {"RN08", "RN09"}:
@@ -344,6 +357,6 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             guard(not any(t.state == "indeterminate" for t in projection.tasks.values()))
             guard(projection.stopping_cause == ("failed" if row.id == "RN08" else "cancelled"))
         elif row.id == "RN10":
-            guard(any(t.state == "indeterminate" for t in projection.tasks.values()) and
+            guard((any(t.state == "indeterminate" for t in projection.tasks.values()) or uncertain_global) and
                   all(t.state in TASK_TERMINAL for t in projection.tasks.values()))
     return row

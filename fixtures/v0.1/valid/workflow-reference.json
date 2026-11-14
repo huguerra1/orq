@@ -1,0 +1,692 @@
+{
+  "schema_version": "0.1",
+  "workflow_id": "workflow-reference",
+  "version": "1",
+  "project_id": "project-demo",
+  "objective": "Executar o workflow de referencia T1-T5",
+  "requirements": [
+    {
+      "requirement_id": "WREQ1",
+      "description": "Produzir o relatório final",
+      "required": true
+    }
+  ],
+  "external_inputs": [],
+  "tasks": [
+    {
+      "schema_version": "0.1",
+      "task_id": "T1",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [],
+      "inputs": [],
+      "required_capabilities": [],
+      "constraints": {
+        "max_attempts": 2
+      },
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "output_binding_present",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT2",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "digest_matches",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT3",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "content_contract_valid",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT4",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "simulated_verdict",
+          "pass_rule": {
+            "script_key": "behavior-ok"
+          },
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    },
+    {
+      "schema_version": "0.1",
+      "task_id": "T2",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [
+        "T1"
+      ],
+      "inputs": [
+        {
+          "input_id": "previous",
+          "artifact_type": "report",
+          "source": {
+            "kind": "task_output",
+            "task_id": "T1",
+            "output_id": "report"
+          },
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "required_capabilities": [],
+      "constraints": {
+        "max_attempts": 2
+      },
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "output_binding_present",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT2",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "digest_matches",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT3",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "content_contract_valid",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT4",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "simulated_verdict",
+          "pass_rule": {
+            "script_key": "behavior-ok"
+          },
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    },
+    {
+      "schema_version": "0.1",
+      "task_id": "T3",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [
+        "T2"
+      ],
+      "inputs": [
+        {
+          "input_id": "previous",
+          "artifact_type": "report",
+          "source": {
+            "kind": "task_output",
+            "task_id": "T2",
+            "output_id": "report"
+          },
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "required_capabilities": [],
+      "constraints": {
+        "max_attempts": 2
+      },
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "output_binding_present",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT2",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "digest_matches",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT3",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "content_contract_valid",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT4",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "simulated_verdict",
+          "pass_rule": {
+            "script_key": "behavior-ok"
+          },
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    },
+    {
+      "schema_version": "0.1",
+      "task_id": "T4",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [
+        "T3"
+      ],
+      "inputs": [
+        {
+          "input_id": "previous",
+          "artifact_type": "report",
+          "source": {
+            "kind": "task_output",
+            "task_id": "T3",
+            "output_id": "report"
+          },
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "required_capabilities": [],
+      "constraints": {
+        "max_attempts": 2
+      },
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "output_binding_present",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT2",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "digest_matches",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT3",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "content_contract_valid",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT4",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "simulated_verdict",
+          "pass_rule": {
+            "script_key": "behavior-ok"
+          },
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    },
+    {
+      "schema_version": "0.1",
+      "task_id": "T5",
+      "objective": "Produzir um relatório verificável",
+      "task_type": "analysis",
+      "agent_role": {
+        "id": "researcher",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      },
+      "requirements": [
+        {
+          "requirement_id": "REQ1",
+          "description": "O relatório deve cobrir o objetivo",
+          "required": true
+        }
+      ],
+      "dependencies": [
+        "T4"
+      ],
+      "inputs": [
+        {
+          "input_id": "previous",
+          "artifact_type": "report",
+          "source": {
+            "kind": "task_output",
+            "task_id": "T4",
+            "output_id": "report"
+          },
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "required_capabilities": [],
+      "constraints": {
+        "max_attempts": 2
+      },
+      "expected_output": [
+        {
+          "output_id": "report",
+          "artifact_type": "report",
+          "description": "Relatório estruturado",
+          "content_contract_ref": {
+            "id": "simulated-output",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+            }
+          }
+        }
+      ],
+      "knowledge_requirements": [],
+      "evaluation_criteria": [
+        {
+          "criterion_id": "CRIT1",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "output_binding_present",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT2",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "digest_matches",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT3",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "content_contract_valid",
+          "pass_rule": {
+            "output_ids": [
+              "report"
+            ]
+          },
+          "required": true,
+          "verifier_ref": null
+        },
+        {
+          "criterion_id": "CRIT4",
+          "requirement_ids": [
+            "REQ1"
+          ],
+          "method": "simulated_verdict",
+          "pass_rule": {
+            "script_key": "behavior-ok"
+          },
+          "required": true,
+          "verifier_ref": null
+        }
+      ]
+    }
+  ],
+  "requirement_coverage": [
+    {
+      "workflow_requirement_id": "WREQ1",
+      "task_id": "T1",
+      "task_requirement_id": "REQ1"
+    }
+  ],
+  "outputs": [
+    {
+      "output_id": "final-report",
+      "artifact_type": "report",
+      "source_task_id": "T5",
+      "source_output_id": "report"
+    }
+  ],
+  "evaluation_criteria": [
+    {
+      "criterion_id": "WCRIT1",
+      "method": "output_binding_present",
+      "pass_rule": {
+        "output_ids": [
+          "final-report"
+        ]
+      },
+      "required": true,
+      "verifier_ref": null,
+      "workflow_requirement_ids": [
+        "WREQ1"
+      ],
+      "output_ids": [
+        "final-report"
+      ]
+    },
+    {
+      "criterion_id": "WCRIT2",
+      "method": "digest_matches",
+      "pass_rule": {
+        "output_ids": [
+          "final-report"
+        ]
+      },
+      "required": true,
+      "verifier_ref": null,
+      "workflow_requirement_ids": [
+        "WREQ1"
+      ],
+      "output_ids": [
+        "final-report"
+      ]
+    },
+    {
+      "criterion_id": "WCRIT3",
+      "method": "content_contract_valid",
+      "pass_rule": {
+        "output_ids": [
+          "final-report"
+        ]
+      },
+      "required": true,
+      "verifier_ref": null,
+      "workflow_requirement_ids": [
+        "WREQ1"
+      ],
+      "output_ids": [
+        "final-report"
+      ]
+    },
+    {
+      "criterion_id": "WCRIT4",
+      "method": "simulated_verdict",
+      "pass_rule": {
+        "script_key": "workflow-behavior-ok"
+      },
+      "required": true,
+      "verifier_ref": null,
+      "workflow_requirement_ids": [
+        "WREQ1"
+      ],
+      "output_ids": [
+        "final-report"
+      ]
+    }
+  ],
+  "execution_policy_ref": {
+    "id": "policy-reference",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "451690ce4ee32aba0171364e72107249c0f9d2932cc5dc03671135f7e87167c6"
+    }
+  },
+  "constraints": {
+    "max_concurrency": 1,
+    "max_run_duration_ms": 600000,
+    "max_attempts": 2,
+    "attempt_timeout_ms": 60000,
+    "max_evaluations_per_attempt": 2,
+    "evaluation_timeout_ms": 20000,
+    "reconciliation_timeout_ms": 15000
+  }
+}
