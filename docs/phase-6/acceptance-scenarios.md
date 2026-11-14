@@ -1,6 +1,6 @@
 # Cenários de aceitação da Fase 6
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md)). Os 63 cenários S01–S63 ainda não são testes do runner executados. O 6A implementa contratos e tem 276 testes aprovados de schemas, fixtures, hashes e igualdade local de critérios globais; a automação dos cenários segue nos incrementos 6B–6E, somente com executor simulado, avaliador determinístico, relógio injetado e fixtures locais.
+Estado: 6E implementado em 2026-11-14, com **os 63 cenários automatizados** em `tests/test_runner_scenarios.py`. S04 foi revisado em 2026-11-14 (decisão do orquestrador): o checkpoint passa a ser a transição TK05 (tarefa `running → evaluating`), porque logo após o último `output_bound` AT06/TK05 ainda não foram gravadas; a interrupção logo após `output_bound` continua testada como caso de retomada sem novo despacho. S02 termina `succeeded` com retry de T3; S03 compara o journal inteiro e seus digests em dois diretórios novos.
 
 ## Estratégia
 
@@ -24,7 +24,7 @@ Convenções:
 | S01 | Workflow mínimo com uma tarefa; roteiro `default` | O run é executado | Eventos em ordem: `run_intent_recorded`, `planning_recorded`, `run_manifest_closed`, seleção, decisão, contexto, reservas, `dispatch_requested`, término, `output_bound`, `evaluation_report_recorded` (`pass`), `outputs_accepted`, avaliação global `pass`, `run_closed`. Run `succeeded` | C02 |
 | S02 | Workflow T1–T5; roteiro reprova T3/1 e aprova T3/2 | O run é executado | T3 tem duas tentativas, duas RoutingDecisions e dois ContextManifests; T3/2 parte da base limpa; T4 consome somente os bindings de T3/2; run `succeeded` | Cenário completo da Fase 1, C18 |
 | S03 | Mesmo roteiro, fixtures e relógio | O run de S02 é executado duas vezes em diretórios novos | `event_hash` final idêntico; todos os `record_hash` idênticos | ADR 0001 |
-| S04 | T1 `completed`, avaliação ainda não gravada | O harness interrompe após `output_bound` e projeta o estado | T1 em `evaluating`; T2 continua `pending` | C62, X07 |
+| S04 | T1 `completed`, avaliação ainda não gravada | O harness interrompe após a transição TK05 de T1 (`running → evaluating`) e projeta o estado. Revisado em 2026-11-14: antes dizia "após `output_bound`", ponto em que AT06/TK05 ainda não existem | T1 em `evaluating`, tentativa `completed`, nenhum `evaluation_requested`; T2 continua `pending`. Interrompido logo após `output_bound`, a retomada grava AT06/TK05 e conclui sem novo despacho | C62, X07 |
 | S05 | Roteiro informa `resolved_model_id: null` | A tentativa termina | `execution_target_snapshot.model_ref` do cabeçalho identifica o modelo solicitado; `result_collected` grava `resolved_model_id: null`; a projeção AttemptState mantém `resolved_model_id: null`, sem inferência a partir de `model_ref` | ModelProfile, RoutingPolicy |
 
 ## Preparação e admissão
@@ -137,3 +137,79 @@ Cenários acrescentados para cobrir transições que não apareciam em S01–S51
 Os cenários devem corresponder às tabelas de transição de [runner-state-machine.md](runner-state-machine.md) e aos contratos de [run-contracts.md](run-contracts.md). Toda transição AT, TK e RN precisa aparecer em pelo menos um cenário antes do fim do incremento 6C; transições sem cenário são lacunas a corrigir na especificação, não no código.
 
 O fechamento só inclui tarefas terminais. Códigos de erro e motivos de rejeição seguem os enums de `run-contracts.md`, incluindo os códigos de limites/lock da ADR 0007. A avaliação global usa os artefatos aceitos da tentativa vencedora; nos três métodos de outputs, IDs do critério e do pass rule devem ser iguais, conforme `validate_instance` do 6A.
+
+## Cobertura executada no 6E
+
+Os testes usam `SequentialRunner`, os componentes anteriores sem rede, o mesmo relógio injetado e `HookController` com disparos persistidos pelo harness. Não há skips para esconder cenários. Asserções verificam efeitos, evidências, bindings, custos e ausência de novos despachos. S04 segue a revisão de 2026-11-14: TK05 é o checkpoint; o corte após output_bound verifica T1 running, T2 pending e retomada sem redespacho.
+
+| Cenário | Automatizado fielmente | Evidência / motivo |
+| --- | --- | --- |
+| S01 | Sim | Dois relatórios pass (local/global) na ordem completa até run_closed; resumo succeeded. |
+| S02 | Sim | T1–T5 succeeded; T3/2 com workspace distinto; T4 usa somente T3/2. |
+| S03 | Sim | Dois diretórios novos: bytes, digest final e record_hash idênticos. |
+| S04 | Sim | Dois testes: TK05 projeta evaluating/completed sem avaliação e T2 pending; após output_bound, T1 running e T2 pending, retomada succeeded com um despacho de T1. |
+| S05 | Sim | Modelo solicitado preservado e resolved_model_id null sem inferência. |
+| S06 | Sim | PlanningRecord not_applicable, manifesto planning_failed, zero tentativas e moeda null. |
+| S07 | Sim | RoutingDecision no_eligible_target, seleção efetiva nula, rejeição e tarefa failed; zero tentativas. |
+| S08 | Sim | KnowledgeSelection unsatisfied persistida; rejeição knowledge_unsatisfied, zero tentativas. |
+| S09 | Sim | Fonte selecionada e revogada: knowledge_revoked, duas reservas liberadas e nenhum despacho; revogação futura passa. |
+| S10 | Sim | Conhecimento real nos dois retries com catálogo fixo; revisão externa no retry rejeitada antes de contexto/despacho 2; snapshot divergente na reabertura também recusado. |
+| S11 | Sim | Bundle adulterado: contexto persistido, integrity_mismatch, duas reservas liberadas e zero tentativas. Adicional: context_budget_exceeded antes de contexto/reservas. |
+| S12 | Sim | Referência divergente após materialização: integrity_mismatch em admission, rejeição sem tentativa/reserva; nenhum ContextManifest inválido persistido. |
+| S13 | Sim | Digest ingerido igual ao calculado dos bytes e diferente do declarado; integrity_mismatch, failed, sem output_bound nem completed. |
+| S14 | Sim | Bytes adulterados antes da avaliação: digest_matches fail sem aceite. |
+| S15 | Sim | Relatório com subjects divergentes e aceite com bindings divergentes recusados antes da escrita; dependente pending. |
+| S16 | Sim | Corrupção intermediária recusa reabertura sem reparar bytes. |
+| S17 | Sim | Tentativa 1 failed/retryable/confirmed; retry_wait → ready, cadeia de IDs e workspace novo. |
+| S18 | Sim | T2 failed, uma tentativa; T3–T5 blocked; run failed. |
+| S19 | Sim | Duas seleções, decisões e dispatch_requested; nenhuma terceira admissão/rejeição; tarefa failed. |
+| S20 | Sim | output_missing e tentativa failed, sem completed/aceite/binding. |
+| S21 | Sim | output_contract_mismatch e tentativa failed; nenhum output_bound ou aceite. |
+| S22 | Sim | Relatório fail, tarefa failed e uma tentativa quando retry de avaliação está desabilitado. |
+| S23 | Sim | Fail válido persistido; uma única avaliação, sem reavaliar os mesmos subjects. |
+| S24 | Sim | Inconclusive seguido de pass, IDs distintos e subjects iguais; succeeded/outputs_accepted citam o segundo relatório. |
+| S25 | Sim | Todos os relatórios mantêm método desconhecido not_run e verdict inconclusive; nenhum aceite. |
+| S26 | Sim | Todas as tarefas succeeded/aceitas; relatório global fail e run failed. |
+| S27 | Sim | Deadline → cancel_requested → termination_confirmed(timeout); timed_out e tentativa 2. |
+| S28 | Sim | running → unknown, tarefa running → reconciling; prazo esgotado, chave original só no payload, um despacho. |
+| S29 | Sim | unknown → completed na mesma tentativa; tarefa reconciling → evaluating; um despacho. |
+| S30 | Sim | Tentativa unknown, tarefa/run indeterminate no prazo fixo; um único workspace/chamada e nenhuma tentativa 2. |
+| S31 | Sim | queued → unknown → running na mesma tentativa com um despacho. |
+| S32 | Sim | dispatch_not_executed retryable, tentativa 1 failed e contada; tentativa 2 admitida. |
+| S33 | Sim | Sem controle, not_found vira unknown; prazo esgotado, tarefa/run indeterminate e nenhum retry. |
+| S34 | Sim | Hook após dispatch_requested; instância nova reconcilia sem redespachar a intenção antiga. Um despacho efetivo, na tentativa seguinte após ausência autoritativa. |
+| S35 | Sim | Reserva abandonada liberada antes do novo despacho; primeira tentativa ainda é a número 1 e executa uma vez. |
+| S36 | Sim | Cauda sem LF preservada em discarded, auditada e execução retomada. |
+| S37 | Sim | Repetição idempotente retorna evento existente, sem linha adicional. |
+| S38 | Sim | Payload divergente produz idempotency_conflict, ErrorRecord e stopping. |
+| S39 | Sim | From divergente recusado sem escrita. |
+| S40 | Sim | Pedido interrompido produz failed/not_run com os mesmos subjects; avaliação 2 só com capacidade. Com limite 1: failed sem nova avaliação. |
+| S41 | Sim | Custo unavailable de T3/2 permanece null; subtotal 0.50, lacuna 1 e reservas locais liberadas. |
+| S42 | Sim | budget_unknown persistido/rejeitado antes de qualquer reserva ou tentativa. |
+| S43 | Sim | Reserva 0.30 settled com UsageRecord unavailable/null; compromisso 0.30 impede próxima admissão e resumo conserva a lacuna. |
+| S44 | Sim | Execução mais avaliação excedem saldo; budget_exceeded sem reserva ou tentativa. |
+| S45 | Sim | Reserva de execução settled; resumo e compromisso incluem somente usage 0.20. |
+| S46 | Sim | Validação estrutural recusa unavailable com amount zero. |
+| S47 | Sim | usage_attached depois de run_closed/cutoff muda só custo corrente; estado/resumo/cutoff publicados preservados. |
+| S48 | Sim | Hook antes do manifesto: cancelled_before_ready, sem tentativa e moeda null. |
+| S49 | Sim | Tentativa/todas as tarefas cancelled; não iniciadas com run_cancelled; uma admissão e nenhum retry. |
+| S50 | Sim | Tarefa e run indeterminate após prazo de reconciliação, sem aceite. |
+| S51 | Sim | deadline_exceeded, running → stopping → failed, zero decisão de roteamento ou tentativa. |
+| S52 | Sim | dispatch_failed retryable/confirmed, queued → failed; retry_wait → ready, segunda tentativa e uma execução efetiva. |
+| S53 | Sim | Tentativa e tarefa failed com limite 1, uma decisão/admissão, dependentes blocked. |
+| S54 | Sim | queued → cancelled e running → cancelled; zero chamadas dispatch, não iniciadas cancelled/run_cancelled. |
+| S55 | Sim | running → unknown → timed_out; reconciling → retry_wait, segunda tentativa e um despacho da primeira. |
+| S56 | Sim | found_stopped: unknown → cancelled e reconciling → cancelled, uma admissão, reservas encerradas e nenhum retry. |
+| S57 | Sim | not_found autoritativo em stopping: tentativa/tarefa cancelled, uma admissão, reservas encerradas e nenhuma tentativa 2. |
+| S58 | Sim | found_failed non_retryable na reconciliação bloqueia dependentes. |
+| S59 | Sim | Uma avaliação sem relatório; evaluating → reconciling → indeterminate, sem aceite/retry; run indeterminate. |
+| S60 | Sim | Dois relatórios inconclusive, subjects iguais, evaluating → waiting_evaluation → evaluating → failed/evaluation_inconclusive; duas requisições. |
+| S61 | Sim | Relatório pass sem aceite, evaluating → cancelled; dependentes cancelled/run_cancelled. |
+| S62 | Sim | Baixa confiança usa fallback e mantém destino consistente em contexto/despacho. |
+| S63 | Sim | RoutingDecision low_confidence com effective_selection nula; rejeição low_confidence e zero tentativas. |
+
+Além da matriz, regressões cobrem outras fronteiras de crash, efeito persistido antes do acknowledgement, falha de gravação da intenção, outputs recuperados inválidos, relógio monotônico na retomada, IDs injetados, avaliação global incerta e exaustão financeira da reavaliação/global. A cobertura por cenário não é contagem de casos pytest: parametrizações e regressões acrescentam casos.
+
+Auditoria de 2026-11-14: reforçados os 19 cenários da revisão: **S01, S04, S07–S13, S17–S19, S21, S28, S30, S55–S57 e S63**. A conferência dos demais reforçou também **S20, S22–S27, S29, S32–S33, S35, S38, S40, S42–S45, S47, S49–S54 e S59–S61**. S02, S03, S05, S06, S14–S16, S31, S34, S36–S37, S39, S41, S46, S48, S58 e S62 foram conferidos e mantidos.
+
+Regressões por problema 1–9 nas [Notas 6E](runner-state-machine.md#revisão-independente-do-6e--2026-11-14). Verificados `tests/test_runner_scenarios.py`, `tests/test_runner_cli.py`, `tests/test_projections.py` e `tests/test_state_machine.py`: **364 testes aprovados, nenhum ignorado**. A suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows).

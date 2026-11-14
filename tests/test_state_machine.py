@@ -576,3 +576,23 @@ def test_confirmed_timeout_retry_follows_on_confirmed_timeout(allowed):
         h.transition("task", "T1", "retry_wait", "ready")
         second = h.dispatch(number=2, ready=False)
         assert h.project().attempts[second].state == "queued"
+
+
+def test_TK24_from_evaluating_requires_report_in_evidence():
+    h = History().prepare()
+    aid = h.dispatch()
+    h.start(aid)
+    h.finish(aid)
+    stopping(h)
+    h.transition('task', 'T1', 'evaluating', 'cancelled', 'run_cancelled')
+    with pytest.raises(ProjectionError, match='transition_evidence_missing'):
+        h.project()
+
+
+def test_TK24_cannot_omit_existing_report_from_evidence():
+    h = task_case('TK24', 'evaluating')
+    report_id = next(e['event_id'] for e in h.events if e['event_type'] == 'evaluation_report_recorded')
+    h.events[-1]['payload']['evidence_event_ids'].remove(report_id)
+    rechain(h.events)
+    with pytest.raises(ProjectionError, match='transition_evidence_missing'):
+        h.project()

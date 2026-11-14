@@ -1,6 +1,6 @@
 # Fase 6 — Runner sequencial do Orchestrator e executor simulado
 
-Estado: especificação aceita em 2026-11-10 ([ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md), seção "Decisões do dono"). Incrementos 6A (schemas/fixtures), 6B (journal/artefatos), 6C (projeções/validador) e 6D (executor simulado/avaliador, duas revisões corrigidas) implementados; próximo passo: 6E. Runner e CLI de execução ainda não implementados.
+Estado: 6A–6E implementados, com runner sequencial e `orq run simulate` entregues em 2026-11-14. **Fase 6 concluída** (suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows)): os 63 cenários têm automação fiel ([cobertura](acceptance-scenarios.md#cobertura-executada-no-6e)); o checkpoint de S04 foi revisado em 2026-11-14 para a transição TK05. S02 termina `succeeded` e S03 prova journal idêntico em dois diretórios novos.
 
 ## Problema
 
@@ -73,8 +73,8 @@ Estas lacunas das fases anteriores têm soluções aceitas na ADR 0007; o 6A for
 | 6A — implementado | Schemas de JournalEvent, RunIntent, RunManifest, DispatchIntent, AttemptHeader, EvaluationReport, UsageRecord e ErrorRecord mínimos | Meta-schema, fixtures válidas e inválidas, hashes reproduzíveis em `tests/test_phase6_schemas.py`; [escolhas de implementação](run-contracts.md#notas-de-implementação-6a) |
 | 6B — implementado | Journal append-only e armazenamento de artefatos | Antes desta correção: suíte completa com 432 aprovados e 1 ignorado; após correções, 119 aprovados e 3 ignorados nos testes de armazenamento; decisões nas [notas do 6B](run-contracts.md#notas-de-implementação-6b) |
 | 6C — implementado; revisão 1–13 corrigida | Projeções e máquina de estados (validador de transições), com ações puras de retomada | 217 testes próprios aprovados após revisão: 49 linhas AT/TK/RN, saltos proibidos, guardas negativas, vínculos/invariantes e integração com RunJournal; suíte integral pós-revisão pelo orquestrador; [decisões e API](runner-state-machine.md#notas-de-implementação-6c) |
-| 6D — implementado; duas revisões corrigidas | Interface de executor, roteiro versionado fechado, executor simulado e avaliador determinístico | Interface, simulado e avaliador completos e roteiros representativos validados (`simulation-script.json` e `simulation-script-recovery.json`, inclusive contra o WorkflowSpec), sem rede. Segunda revisão: 332 testes de executor/avaliador/schemas aprovados, sem ignorados; nova suíte integral com o orquestrador. [Decisões e API](executor-choice.md#notas-de-implementação-6d). A execução dos cenários S01–S63 como testes fica no gate do 6E ([decisão de 2026-11-10](#decisão-do-orquestrador-de-2026-11-10-gate-do-6d)) |
-| 6E | Runner ponta a ponta e CLI aceita `orq run simulate` | Cenário completo reproduzível com o mesmo digest final do journal; cenários S01–S63 executados como testes automatizados |
+| 6D — implementado; duas revisões corrigidas | Interface de executor, roteiro versionado fechado, executor simulado e avaliador determinístico | Interface, simulado e avaliador completos e roteiros representativos validados (`simulation-script.json` e `simulation-script-recovery.json`, inclusive contra o WorkflowSpec), sem rede. Segunda revisão: 332 testes de executor/avaliador/schemas aprovados, sem ignorados; suíte integral após a segunda revisão: 1032 aprovados e 4 ignorados. [Decisões e API](executor-choice.md#notas-de-implementação-6d). A execução dos cenários S01–S63 como testes fica no gate do 6E ([decisão de 2026-11-10](#decisão-do-orquestrador-de-2026-11-10-gate-do-6d)) |
+| 6E — implementado; revisão corrigida | Runner ponta a ponta e CLI `orq run simulate`; fixture T1–T5 fecha achado 11 do 6A | S02 succeeded e S03 byte a byte; os 63 cenários automatizados (S04 revisado para o checkpoint TK05). [Decisões/API](runner-state-machine.md#notas-de-implementação-6e) |
 
 Cada incremento termina com testes, atualização do HANDOFF e commit próprio, conforme AGENTS.md.
 
@@ -111,4 +111,10 @@ O fechamento normal só libera o lock se o token ainda for o mesmo. Se a persist
 
 ## Critério de saída da fase
 
-Um run simulado do workflow de referência T1–T5 percorre planejamento, roteamento, contexto, tentativa, avaliação, retry de T3 e avaliação global, terminando `succeeded`. O journal é reproduzível byte a byte com o mesmo roteiro, relógio e fixtures. Os cenários de falha, timeout, reconciliação, custo desconhecido, divergência de digest e cancelamento da [matriz](acceptance-scenarios.md) passam como testes automatizados. Até lá, os cenários são especificação, não testes executados.
+Um run simulado do workflow de referência T1–T5 percorre planejamento, roteamento, contexto, tentativa, avaliação, retry de T3 e avaliação global, terminando `succeeded`. O journal é reproduzível byte a byte com o mesmo roteiro, relógio e fixtures. **Essas duas condições foram executadas e aprovadas no 6E.** Os cenários de falha, timeout, reconciliação, custo desconhecido, divergência de digest e cancelamento têm testes locais. Os 63 cenários passam como testes automatizados.
+
+## Executar a referência local
+
+Após instalar o pacote, `orq` é um alias da CLI existente `orq-contracts`. Alternativamente use `PYTHONPATH=src python -m orq_contracts`.
+
+Revisão independente do 6E: problemas 1–9 corrigidos com regressões em runner/projeções/guardas; 46 cenários reforçados e os demais 17 auditados. S04 cobre TK05 e a retomada após output_bound com T1 running/T2 pending. Verificação dos quatro arquivos de runner/CLI/projeções/máquina de estados: **364 testes aprovados, nenhum ignorado**; suíte integral verificada pelo orquestrador em 2026-11-14: **1180 aprovados e 4 ignorados** (symlinks sem privilégio no Windows). [Decisões](runner-state-machine.md#revisão-independente-do-6e--2026-11-14) e [evidências por cenário](acceptance-scenarios.md#cobertura-executada-no-6e).

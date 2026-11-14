@@ -1,0 +1,237 @@
+{
+  "schema_version": "0.1",
+  "catalog_id": "catalog-simulation",
+  "version": "1",
+  "created_at": "2026-09-29T14:00:00Z",
+  "targets": [
+    {
+      "target_id": "target-fast",
+      "version": "1",
+      "status": "active",
+      "model_ref": {
+        "id": "model-fast",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "provider_ref": {
+        "id": "provider-local",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "runtime_ref": {
+        "id": "runtime-simulated",
+        "version": "0.1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2abff576fe6f0d0aa81e3c54bff7db04beecd28c7438754549696df740e773bc"
+        }
+      },
+      "executor_ref": {
+        "id": "executor-simulated",
+        "version": "0.1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "45da38c2a0ed160993ca4e26b2f6df5d8a842c2e38948655f35ba3feec5e56bb"
+        }
+      },
+      "execution_config_ref": {
+        "id": "config-fast",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "supported_role_refs": [
+        {
+          "id": "researcher",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      ],
+      "supported_task_types": [
+        "analysis"
+      ],
+      "capabilities": [],
+      "permission_ids": [
+        "workspace-read"
+      ],
+      "controls": [
+        {
+          "id": "timeout",
+          "support": "supported",
+          "evidence_refs": [
+            {
+              "id": "simulation-controls",
+              "version": "0.1",
+              "content_digest": {
+                "algorithm": "sha256",
+                "value": "9d59944f3fe46e32620941ea5beb41d7c19d7925b7f380b4e20551f8c46d1ee8"
+              }
+            }
+          ]
+        },
+        {
+          "id": "cancellation",
+          "support": "supported",
+          "evidence_refs": [
+            {
+              "id": "simulation-controls",
+              "version": "0.1",
+              "content_digest": {
+                "algorithm": "sha256",
+                "value": "9d59944f3fe46e32620941ea5beb41d7c19d7925b7f380b4e20551f8c46d1ee8"
+              }
+            }
+          ]
+        }
+      ],
+      "output_contract_refs": [
+        {
+          "id": "simulated-output",
+          "version": "0.1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+          }
+        }
+      ],
+      "accepted_classifications": [
+        "internal"
+      ],
+      "context_limit_tokens": 8192,
+      "max_output_tokens": 2048,
+      "priority": 10,
+      "routing_description": "Destino de menor latência para análises simples",
+      "specialization_tags": [
+        "fast-analysis"
+      ]
+    },
+    {
+      "target_id": "target-quality",
+      "version": "1",
+      "status": "active",
+      "model_ref": {
+        "id": "model-quality",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      },
+      "provider_ref": {
+        "id": "provider-local",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "runtime_ref": {
+        "id": "runtime-simulated",
+        "version": "0.1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2abff576fe6f0d0aa81e3c54bff7db04beecd28c7438754549696df740e773bc"
+        }
+      },
+      "executor_ref": {
+        "id": "executor-simulated",
+        "version": "0.1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "45da38c2a0ed160993ca4e26b2f6df5d8a842c2e38948655f35ba3feec5e56bb"
+        }
+      },
+      "execution_config_ref": {
+        "id": "config-quality",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      },
+      "supported_role_refs": [
+        {
+          "id": "researcher",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      ],
+      "supported_task_types": [
+        "analysis"
+      ],
+      "capabilities": [],
+      "permission_ids": [
+        "workspace-read"
+      ],
+      "controls": [
+        {
+          "id": "timeout",
+          "support": "supported",
+          "evidence_refs": [
+            {
+              "id": "simulation-controls",
+              "version": "0.1",
+              "content_digest": {
+                "algorithm": "sha256",
+                "value": "9d59944f3fe46e32620941ea5beb41d7c19d7925b7f380b4e20551f8c46d1ee8"
+              }
+            }
+          ]
+        },
+        {
+          "id": "cancellation",
+          "support": "supported",
+          "evidence_refs": [
+            {
+              "id": "simulation-controls",
+              "version": "0.1",
+              "content_digest": {
+                "algorithm": "sha256",
+                "value": "9d59944f3fe46e32620941ea5beb41d7c19d7925b7f380b4e20551f8c46d1ee8"
+              }
+            }
+          ]
+        }
+      ],
+      "output_contract_refs": [
+        {
+          "id": "simulated-output",
+          "version": "0.1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "c922f3fad89336ebea4c47b536d9f87d627141d15df12909d4b113941a82be62"
+          }
+        }
+      ],
+      "accepted_classifications": [
+        "internal"
+      ],
+      "context_limit_tokens": 16384,
+      "max_output_tokens": 4096,
+      "priority": 5,
+      "routing_description": "Destino para análises que priorizam qualidade",
+      "specialization_tags": [
+        "deep-analysis",
+        "reporting"
+      ]
+    }
+  ],
+  "catalog_hash": {
+    "algorithm": "sha256",
+    "value": "e16b772ea97a5cd9cbe238346e8886769a20aff2638c6668cc35e4d55a45e6ba"
+  }
+}

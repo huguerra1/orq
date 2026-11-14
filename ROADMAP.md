@@ -9,7 +9,8 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 - [x] Testes automatizados (histórico integral verificado: 6A = 366 aprovados e 1 ignorado, CI verde no PR #8; 6B = 485 aprovados e 4 ignorados após a revisão; ver HANDOFF)
 - [x] Licença (MIT)
 - [x] README com diagrama da arquitetura (Mermaid) e exemplo ponta a ponta da CLI (validação, digest e cadeia do Vault)
-- [ ] Fase 6: runner sequencial do Orchestrator com executor simulado (especificação aceita em 2026-11-10; implementação em incrementos 6A–6E)
+- [x] Fase 6: runner sequencial e `orq run simulate` (6A–6E); 63/63 cenários automatizados; suíte integral com 1180 aprovados e 4 ignorados
+- [x] Incremento 6E: runner ponta a ponta, `orq run simulate`, T1–T5 succeeded com retry de T3 e journal reproduzível
 - [ ] Primeiro adaptador real de executor/provedor
 - [x] Dependabot ativo (pip + GitHub Actions; PRs semanais na `dev`)
 - [x] Descrição e tópicos no repositório
@@ -22,6 +23,8 @@ O estado técnico detalhado e o próximo passo ficam em `docs/HANDOFF.md`. Este 
 5. Exemplo reproduzível no README (`orq plan` → `orq route` → execução simulada)
 
 ## Log
+- 2026-11-14 — Revisão 6E: problemas 1–9 corrigidos com regressões; 19 cenários da revisão e outros 27 reforçados, 17 auditados e mantidos. S04 revisado para TK05, preservando o teste após output_bound. Notas e tabela de cobertura atualizadas; 364 testes dos quatro arquivos aprovados, nenhum ignorado; suíte integral verificada pelo orquestrador em 2026-11-14: 1180 aprovados e 4 ignorados (symlinks sem privilégio no Windows).
+- 2026-11-14 — 6E implementado: runner sequencial, CLI exclusiva, checkpoints duráveis e fixture T1–T5. 101 testes novos aprovados, nenhum ignorado; S02 succeeded e S03 idêntico byte a byte; 62 cenários automatizados fielmente. S04 permanece aberto por incompatibilidade do checkpoint output_bound com evaluating (AT06/TK05 ainda não gravadas); teste diagnóstico e cobertura explícita. Sem commit/push por instrução do usuário.
 - 2026-11-14 — Segunda revisão do 6D: achados 1–6 e cinco itens de testes/documentação corrigidos. Reconciliação roteirizada, rollback de persistência, restauração sem leitura de artefatos, integridade/produtor/IDs finais, limites efetivos mínimos e hooks validados. 332 testes de executor/avaliador/schemas aprovados, nenhum ignorado; fixtures/digests inalterados. Suíte integral: 1032 aprovados, 4 ignorados. Próximo incremento: 6E.
 - 2026-11-10 — Achados 1–14 da revisão 6D corrigidos: reconciliação sem negar chave desconhecida (estado durável reconstruível), releitura de todos os bindings antes dos critérios, hooks com escopo e disparo único, schema versionado do envelope simulado, roteiro validado na carga e contra o WorkflowSpec, relógio obrigatório. Gate do 6D redefinido pelo orquestrador (S01–S63 passam ao 6E). Suíte integral: 932 aprovados, 4 ignorados. Próximo: 6E.
 - 2026-11-10 — 6D implementado: interface de executor, roteiro versionado fechado, simulado e avaliador determinísticos; 148 testes próprios aprovados, sem rede/dependências novas. Decisões nas Notas 6D; próximo: 6E (runner e CLI).

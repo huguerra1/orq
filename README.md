@@ -6,7 +6,7 @@
 
 **Plataforma experimental de orquestração de agentes de IA em Python com MCP, projetada para desacoplar papéis, modelos, provedores, runtimes e executores sob contratos verificáveis, contexto auditável e avaliação determinística.**
 
-O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis em JSON Schema, Vault Markdown com CLI atômica, servidor MCP somente leitura, Task Planner determinístico e Model Router com baselines `fixed`/`rules` e adaptador opcional TypeSafe/Jev. A especificação da Fase 6 foi aceita (ADR 0007). Os incrementos 6A–6D entregam schemas de execução, journal append-only e armazenamento de artefatos, projeções e máquina de estados, interface de executor, executor simulado e avaliador determinístico; ainda não há runner do Orchestrator nem chamadas reais a provedores.
+O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis, Vault Markdown, MCP somente leitura, planner, router e runner sequencial com executor simulado e avaliador determinístico. O 6E entrega `orq run simulate` e prova T1–T5 com retry e journal reproduzível. A revisão do 6E está corrigida e os 63 cenários foram auditados; a suíte integral tem 1180 testes aprovados e 4 ignorados; [cobertura e execução local](docs/phase-6/README.md). Nenhum provedor real é chamado.
 
 ---
 
@@ -31,7 +31,7 @@ Orquestrar múltiplos agentes e modelos de IA em tarefas reais de engenharia de 
 
 ## Arquitetura
 
-O diagrama abaixo representa os módulos **já implementados (Fases 1–5)** e o **runner sequencial previsto na especificação aceita da Fase 6**. Os incrementos 6A–6D já implementam contratos, armazenamento, máquina de estados, executor simulado e avaliador; o runner que os encadeia é o 6E:
+O diagrama abaixo representa os módulos implementados nas Fases 1–6. O runner do 6E encadeia contratos, armazenamento, máquina de estados, executor simulado e avaliador:
 
 ```mermaid
 flowchart TD
@@ -50,7 +50,7 @@ flowchart TD
         MCP -.->|"orq://catalog/summary e orq://knowledge/{source}/{rev}/{unit}"| CTX_MAT
     end
 
-    subgraph Fase6["Fase 6 — 6A a 6D implementados; runner em 6E"]
+    subgraph Fase6["Fase 6 — concluída"]
         CTX_MAT -->|"Contexto imutável e auditado"| RUNNER["Runner Sequencial do Orchestrator (RunManifest + DispatchIntent)"]
         RUNNER -->|"Despacho controlado"| EXEC["Executor (simulado inicial / adaptadores de CLI)"]
         EXEC -->|"AttemptRecord + ArtifactRef"| EVAL["Evaluator Determinístico (EvaluationReport: pass / fail)"]
@@ -59,7 +59,7 @@ flowchart TD
 ```
 
 - **Onde entra o MCP:** o servidor `orq-knowledge-mcp` (Fase 3) recebe a raiz do Vault e um `KnowledgeCatalogSnapshot` imutável na inicialização, expondo apenas *resources* somente leitura (`orq://catalog/summary` sem caminhos físicos e `orq://knowledge/{source_id}/{revision}/{unit_id}` com reconfirmação de digest SHA-256). O modelo não faz busca livre nem altera a política de seleção do Orchestrator.
-- **O que ainda não existe no código:** o runner sequencial do DAG que encadeia journal, máquina de estados, executor simulado e avaliador, a emissão em tempo de execução de `RunManifest`, `AttemptRecord` e `EvaluationReport` e a CLI `orq run simulate` pertencem ao incremento 6E. Nenhum adaptador real de executor existe ainda.
+- **Próxima integração:** adaptador real de executor, após fechar o gate da Fase 6 e verificar controles com versão fixada.
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TD
 | **Fase 3** | Concluída | Servidor MCP local somente leitura (`orq-knowledge-mcp`, SDK oficial `mcp==2.2.0` via `stdio`) expondo resumo sanitizado do catálogo e unidades exatas com verificação de integridade. |
 | **Fase 4** | Concluída | Schemas de planejamento (`PlanningRequest`, `PlanningRecord`), interface `Planner`, baseline `FixedTemplatePlanner` e gate central de admissão (`plan_and_validate`) que impede planos inválidos de avançarem. |
 | **Fase 5** | Concluída | Schemas e núcleo do `Model Router` (`route_and_finalize`) com filtro determinístico de elegibilidade, modos `fixed`/`rules`, interface `DecisionEngine`, motor simulado e adaptador opcional TypeSafe/Jev (`typesafe-sdk==0.7.2`). |
-| **Fase 6** | Especificação aceita; 6A–6D implementados | 6A: oito schemas fechados e fixtures. 6B: journal JCS append-only e armazenamento de artefatos por SHA-256. 6C: projeções e máquina de estados. 6D: interface de executor, executor simulado roteirizado (roteiro e envelope de saída com schemas versionados) e avaliador determinístico; revisão do 6D corrigida. Gate do 6D redefinido pelo orquestrador em 2026-11-10: os cenários S01–S63 como testes ficam no gate do 6E. Próximo: runner com `orq run simulate` (6E). |
+| **Fase 6** | Concluída | Contratos, journal/artefatos, projeções/guardas, executor simulado, avaliador e runner com `orq run simulate`. S02 succeeded, S03 reproduzível byte a byte; 63 cenários auditados. Revisão 6E corrigida e S04 ajustado para TK05; suíte integral com 1180 testes aprovados. |
 
 Verificação após as duas revisões do 6D: suíte integral com 1032 aprovados e 4 ignorados (symlinks sem privilégio no Windows). Detalhes em [HANDOFF](docs/HANDOFF.md).
 
@@ -178,6 +178,23 @@ Os subcomandos `vault` operam com escrita exclusiva (não sobrescrevem arquivos 
 
 ---
 
+## Executar um run simulado
+
+O workflow de referência T1–T5 roda inteiro com o executor simulado, sem rede. A primeira tentativa de T3 é reprovada e a segunda é aprovada:
+
+```bash
+F=fixtures/v0.1
+orq run simulate --store-root /tmp/orq-store   --workflow $F/valid/workflow-reference.json --request $F/run-request.json   --catalog $F/run-catalog.json --policy $F/run-policy.json   --script $F/valid/simulation-script-reference.json   --knowledge-catalog $F/vault/catalog-snapshot.json --vault-root $F/vault
+```
+
+Saída real (2026-11-14):
+
+```json
+{"journal_digest":{"algorithm":"sha256","value":"2e571353f5f6a19eb8049e70cde2d93c7f6f2d5f93d93bb6da1b5aa0393af64c"},"run_id":"run-reference","state":"succeeded"}
+```
+
+Rodar de novo em outro `--store-root` produz o mesmo `journal_digest`, porque o journal é reproduzível byte a byte. O código de saída é 0 só quando o run termina `succeeded`. Repetir o comando no mesmo diretório falha com `run_exists`.
+
 ## Retomar em outra conversa
 
 Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de continuar. Eles registram as regras de trabalho, as decisões fechadas, o estado atual e o próximo passo concreto. O checklist de acompanhamento do portfólio está em [ROADMAP.md](ROADMAP.md).
@@ -188,10 +205,9 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 
 Coerentes com o [ROADMAP.md](ROADMAP.md) e o [docs/HANDOFF.md](docs/HANDOFF.md):
 
-1. **6E — Runner sequencial:** encadear journal (6B), máquina de estados (6C), executor simulado e avaliador (6D) no fluxo completo `planner → router → contexto → tentativa → avaliação`, com CLI aceita `orq run simulate` e os cenários S01–S63 executados como testes.
-2. **Verificação do 6D:** preencher os digests fixados em `tests/test_simulated_executor.py` e rodar a suíte integral após as correções da revisão.
-3. **Adaptadores de executor para CLIs de agentes:** integrar adaptadores reais para **Claude Code**, **Codex**, **Gemini / Antigravity** e **Kiro**, mantendo a separação estrita entre papel, modelo, provedor, runtime e executor.
-4. **Fases seguintes do roadmap (Fases 7–12):** segundo provedor/runtime para comparação experimental, Evaluator e Execution Memory ampliados, relatórios de métricas/custos, execução concorrente do DAG e scheduling experimental.
+1. **Fase 7 — hub de assinaturas pessoais** ([ADR 0008](docs/adr/0008-phase-7-subscription-hub-and-family-memory.md), aceita): adaptadores reais para **Claude Code**, **Codex**, **Gemini / Antigravity** e **Kiro** em modo não interativo, roteamento ciente de cota e memória por família em Postgres com Row-Level Security.
+2. **Experimento 7F:** memória compartilhada × memória por família e roteamento por cota, visando um artigo.
+3. **Fases seguintes do roadmap (Fases 8–12):** segundo provedor/runtime para comparação experimental, Evaluator e Execution Memory ampliados, relatórios de métricas/custos, execução concorrente do DAG e scheduling experimental.
 
 ---
 

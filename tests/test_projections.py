@@ -66,7 +66,8 @@ class History:
             routing_policy_ref={"id": self.policy["routing_policy_id"], "version": self.policy["version"],
                                 "content_digest": canonical_digest(self.policy)})
         self.manifest["resolved_limits"].update(max_attempts=max_attempts, max_evaluations_per_attempt=max_evaluations)
-        self.manifest["budget_snapshot"].update(cap_mandatory=cap, max_cost="10.00" if cap else None)
+        self.manifest["budget_snapshot"].update(cap_mandatory=cap, max_cost="10.00" if cap else None,
+                                                unknown_cost_action="reject" if cap else "admit_with_estimate")
         self.manifest["executor_snapshot"]["executor_ref"] = self.catalog["targets"][1]["executor_ref"]
         target = self.catalog["targets"][1]
         self.manifest["budget_snapshot"]["cost_estimates"][0]["subject_ref"] = {
@@ -472,7 +473,7 @@ def test_s48_cancel_before_ready_and_s54_cancel_before_dispatch_effect():
     h = History().prepare()
     aid = h.dispatch()
     h.emit("cancel_requested", {"reason": "human"})
-    assert recovery_actions(h.project())[0].kind == "stop_run"
+    assert [a.kind for a in recovery_actions(h.project())] == ["reconcile_dispatch", "stop_run"]
     h.transition("run", h.run_id, "running", "stopping")
     assert recovery_actions(h.project())[0].kind == "reconcile_dispatch"
     h.transition("attempt", aid, "queued", "cancelled")
@@ -1006,3 +1007,79 @@ def test_dispatch_defensively_rejects_attempts_exhausted():
     s.manifest["resolved_limits"]["max_attempts"] = 1
     with pytest.raises(StateMachineError, match="attempts_exhausted"):
         _dispatch(s, dispatch)
+
+
+@pytest.mark.parametrize('source', ['evaluating', 'waiting_evaluation'])
+def test_recovery_repairs_evaluation_before_stop_run(source):
+    h = History().prepare()
+    aid = h.dispatch()
+    h.start(aid)
+    h.finish(aid)
+    if source == 'waiting_evaluation':
+        h.evaluate(verdict='inconclusive')
+        h.transition('task', 'T1', 'evaluating', 'waiting_evaluation')
+    eid = h.evaluate(number=2 if source == 'waiting_evaluation' else 1, report=False)
+    if source == 'waiting_evaluation':
+        h.events.pop()  # crash entre a intenção e TK22
+    h.emit('cancel_requested', {'reason': 'human'})
+    actions = recovery_actions(h.project())
+    assert [a.kind for a in actions] == ['record_interrupted_evaluation', 'stop_run']
+    assert actions[0].aggregate_id == eid
+
+
+@pytest.mark.parametrize('scope', ['attempt', 'evaluation'])
+def test_optional_budget_reject_policy_disallows_unavailable_reservation(scope):
+    h = History()
+    h.manifest['budget_snapshot'].update(cap_mandatory=False, unknown_cost_action='reject')
+    h.prepare()
+    h.reserve(scope, 'unknown-estimate')
+    with pytest.raises(ProjectionError, match='budget_unknown'):
+        h.project()
+
+
+def test_optional_budget_reservation_enforces_known_subtotal_with_gap():
+    h = History()
+    h.manifest['budget_snapshot'].update(max_cost='0.50')
+    h.prepare()
+    h.reserve('attempt', 'unknown-estimate')
+    h.reserve('evaluation', 'known-estimate', '0.60')
+    with pytest.raises(ProjectionError, match='budget_exceeded'):
+        h.project()
+
+
+@pytest.mark.parametrize('unknown_action,estimate,known,expected', [
+    ('reject', None, '0.00', False),
+    ('admit_with_estimate', None, '0.60', False),
+    ('admit_with_estimate', '0.10', '0.45', False),
+    ('admit_with_estimate', '0.10', '0.30', True),
+])
+def test_evaluation_capacity_respects_unknown_policy_and_known_subtotal(unknown_action, estimate, known, expected):
+    h = History()
+    h.manifest['budget_snapshot'].update(max_cost='0.50')
+    h.prepare()
+    aid = h.dispatch()
+    h.start(aid)
+    h.finish(aid)
+    s = h.project()
+    # Isola o gate puro sobre uma projeção com custo conhecido e lacuna.
+    s.manifest['budget_snapshot']['unknown_cost_action'] = unknown_action
+    s.manifest['budget_snapshot']['cost_estimates'] = [] if estimate is None else [{
+        'scope': 'evaluation', 'subject_ref': s.manifest['evaluator_snapshot']['evaluator_ref'], 'amount': estimate}]
+    s.reservations['known'] = deepcopy(next(iter(s.reservations.values())))
+    s.reservations['known'].reservation.update(scope_type='evaluation', scope_ref='known', amount=known)
+    assert s.budget_committed is None and s.budget_gaps
+    assert s.evaluation_capacity('T1') is expected
+
+
+def test_global_uncertain_evaluation_recovery_does_not_fabricate_report():
+    h = History().prepare()
+    aid = h.dispatch()
+    h.start(aid)
+    h.finish(aid)
+    h.evaluate()
+    h.accept()
+    eid = h.evaluate(task=None, report=False)
+    h.error(eid, 'evaluator_failed', retryability='unknown', certainty='unknown', kind='evaluation')
+    actions = recovery_actions(h.project())
+    assert 'record_interrupted_evaluation' not in [a.kind for a in actions]
+    assert [a.kind for a in actions] == ['preserve_uncertain_evaluation', 'stop_run']
