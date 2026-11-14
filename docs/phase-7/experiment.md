@@ -1,6 +1,6 @@
 # Experimento 7F — Memória compartilhada × particionada por família e roteamento ciente de cota
 
-Estado: Proposta em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Especifica o desenho experimental do incremento `7F`, visando a produção de um artigo científico empírico sobre orquestração multiagente sob assinaturas pessoais.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Especifica o desenho experimental do incremento `7F`, visando a produção de um artigo científico empírico sobre orquestração multiagente sob assinaturas pessoais.
 
 ## Motivação e lacuna científica
 
@@ -63,6 +63,8 @@ Todas as métricas são extraídas deterministicamente dos artefatos imutáveis 
 | Honestidade financeira | `unavailable_cost_integrity` | Verificação de que 100% dos `UsageRecord.cost` de assinaturas têm `status: "unavailable"` e `amount: null` | Booleano (invariante = `true`) |
 
 ## Desenho experimental reproduzível
+
+**Configuração inicial aprovada pelo dono (2026-11-14):** 10 tarefas × 3 repetições × 2 condições (memória compartilhada × memória por família), totalizando 60 runs, distribuídos em alguns dias para caber nas janelas de cota das assinaturas sem atrapalhar o uso diário. A condição de roteamento ciente de cota é observada nesses mesmos runs quando um limite aparece; ela não ganha runs próprios nesta configuração inicial.
 
 ### 1. Corpus de conhecimento e distratores controlados
 

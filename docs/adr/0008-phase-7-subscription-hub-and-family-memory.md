@@ -1,6 +1,6 @@
 # ADR 0008 — Hub de assinaturas pessoais, roteamento por cota e memória por família em Postgres
 
-Estado: Proposta em 2026-11-14 (aguardando revisão do dono; implementação somente após o encerramento do incremento 6E).
+Estado: Aceita em 2026-11-14 (proposta e aceite no mesmo dia; ver "Decisões do dono"). Implementação somente depois que o incremento 6E estiver na `main`.
 
 Substitui parcialmente a [ADR 0002](0002-vault-layout-and-markdown-parsing.md) (somente no trecho em que excluía banco de dados e embeddings do projeto), mantendo o parser Markdown seguro e o ranking BM25 local (`bm25-v1`) como **modo offline**. Estende a fronteira de conhecimento da [ADR 0004](0004-mcp-knowledge-boundary.md) e o roteamento da [ADR 0006](0006-router-boundary-and-typed-decision.md).
 
@@ -70,13 +70,17 @@ Operar sobre assinaturas pessoais por meio de suas CLIs oficiais introduz três 
 | Indisponibilidade que não é cota (rede, DNS ou login expirado). Observado em 14/11/2026: com o DNS do WSL quebrado, o Kiro CLI respondeu "Not logged in" | Classificar separadamente de `quota_exhausted` (motivo próprio, sem `reset_at`), marcar o destino indisponível só para o run atual e nunca confundir com limite de assinatura | Q07, Q10 |
 | Divergência entre Vault Markdown e banco Postgres | Ingestão no Postgres usa o mesmo chunker/digest JCS da Fase 2 e o preflight confere `content_digest` antes do despacho | Q18, Q26, Q27 |
 
-## Decisões que dependem do dono
+## Decisões do dono (aceitas em 2026-11-14)
 
-Antes de iniciar qualquer implementação do incremento 7A (e após o fechamento do 6E), o dono precisa revisar e confirmar:
+O dono aceitou as seis decisões abertas ("Aceito todas"), com estas respostas:
 
-1. **Taxonomia inicial de famílias (`AgentFamily`):** a chave primária da família será composta por `(subscription_family, role_id)` — por exemplo, `claude:backend_engineer` herdando da família `claude` e do papel `backend_engineer` — ou existirão dois eixos independentes combinados por interseção/união nas regras de audiência?
-2. **Janela padrão de cooldown quando a CLI não informa o horário de reset:** qual valor conservador adotar quando a saída indicar esgotamento de cota sem timestamp explícito (por exemplo, `60` minutos, `180` minutos ou bloqueio até o fim do run atual)?
-3. **Ordem de prioridade entre as quatro assinaturas no baseline `rules`:** qual a ordem padrão desejada entre `claude` (Claude Enterprise), `codex` (ChatGPT Plus), `gemini` (`agy`) e `kiro` (Kiro Power) por tipo de tarefa (arquitetura, implementação, testes, revisão)?
-4. **Forma de entrega da escolha final pelo agente no incremento 7E:** o agente deve invocar as tools MCP (`search_family_knowledge` e `select_family_units`) durante a própria execução da CLI (com o runner auditando o log/transação do servidor MCP ao final para lacrar o `ContextManifest` efetivo), ou em um passo curto de pré-seleção antes da execução principal?
-5. **Política de escrita para o Kiro CLI via WSL:** confirmar se o diretório de workspace temporário de cada tentativa deve residir no filesystem Windows montado (`/mnt/c/...`) ou se ambos (runner e Kiro) compartilharão um caminho confinado configurável.
-6. **Escopo e tamanho amostral do experimento 7F:** quantas tarefas e repetições por condição experimental cabem confortavelmente nas janelas de cota reais das quatro assinaturas pessoais sem interromper o uso diário do autor?
+1. **Famílias em dois eixos independentes:** assinatura (`claude`, `codex`, `gemini`, `kiro`) e papel (`AgentRoleProfile`). Uma unidade de conhecimento declara a audiência em cada eixo, e a visibilidade combina os dois. Não existe chave composta `assinatura:papel`.
+2. **Cooldown padrão de 60 minutos** quando a CLI confirma o limite de uso sem informar o horário de reset (`reset_source: "cooldown_policy"`). Depois do cooldown, o destino volta como candidato por meio de uma nova tentativa leve (sondagem barata da CLI) antes de receber tarefa real.
+3. **Prioridade no baseline `rules`, por tipo de tarefa:**
+   - arquitetura e especificação: `claude` → `kiro`;
+   - implementação e testes: `codex` → `claude`;
+   - revisão: uma família diferente da que implementou (`kiro` ou `gemini`);
+   - documentação: `gemini`.
+4. **Escolha da memória durante a execução:** o agente chama as tools MCP durante a própria execução da CLI. O runner audita o que foi consultado e escolhido (log do servidor MCP escopado) e lacra o `ContextManifest` efetivo da tentativa.
+5. **Workspaces do Kiro:** enquanto o Kiro CLI rodar no WSL, os workspaces ficam em `C:\dev\...`, vistos pelo WSL como `/mnt/c/...`. Se o Kiro passar a rodar nativo no Windows (instalador MSI, ainda em avaliação), o adaptador deixa de usar `wsl.exe`.
+6. **Experimento 7F inicial:** 10 tarefas × 3 repetições × 2 condições (memória compartilhada × memória por família), distribuídas em alguns dias para caber nas janelas de cota.

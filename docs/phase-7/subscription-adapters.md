@@ -1,6 +1,6 @@
 # Adaptadores de assinatura por CLI
 
-Estado: Proposta em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Estende a interface `ExecutorAdapter`, as observações de uso real de 10/11/2026 e as Notas 6D registradas em [executor-choice.md](../phase-6/executor-choice.md).
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Estende a interface `ExecutorAdapter`, as observações de uso real de 10/11/2026 e as Notas 6D registradas em [executor-choice.md](../phase-6/executor-choice.md).
 
 ## Problema
 
@@ -57,7 +57,7 @@ Baseado na observação real da versão `agy 1.5.3` ([executor-choice.md](../pha
 Baseado na observação real da versão `3.1.0` rodando no Ubuntu/WSL ([executor-choice.md](../phase-6/executor-choice.md#observações-de-uso-real-10112026)):
 
 - **Invocação não interativa:**
-  No Linux nativo, executa diretamente `kiro-cli`; quando o runner roda no Windows, invoca via `wsl.exe` sem shell interativo:
+  No Linux nativo, executa diretamente `kiro-cli`; quando o runner roda no Windows, invoca via `wsl.exe` sem shell interativo. Os workspaces ficam em `C:\dev\...`, vistos pelo WSL como `/mnt/c/...` (decisão do dono de 2026-11-14). Se o Kiro passar a rodar nativo no Windows (instalador MSI, ainda em avaliação), o adaptador deixa de usar `wsl.exe`:
   ```text
   wsl.exe --cd <workspace_dir> -- kiro-cli chat --no-interactive --trust-workspace --trust-tools=<lista_fechada> --model <native_model_id> "<prompt_envelope>"
   ```

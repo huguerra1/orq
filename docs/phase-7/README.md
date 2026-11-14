@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: Proposta em 2026-11-14 (aguardando revisão do dono na [ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md); início somente após a conclusão do incremento 6E). Nenhum código, schema executável, container ou fixture da Fase 7 foi implementado.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); a implementação começa depois que o 6E estiver na `main`. Nenhum código, schema executável, container ou fixture da Fase 7 foi implementado.
 
 ## Problema
 

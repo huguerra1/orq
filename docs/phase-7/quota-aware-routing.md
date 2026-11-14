@@ -1,6 +1,6 @@
 # Roteamento ciente de cota e fallback entre famílias
 
-Estado: Proposta em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Estende a [decisão de roteamento](../phase-1/routing-context-contract.md), a [fronteira do Router](../adr/0006-router-boundary-and-typed-decision.md) e os [contratos de execução da Fase 6](../phase-6/run-contracts.md).
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Estende a [decisão de roteamento](../phase-1/routing-context-contract.md), a [fronteira do Router](../adr/0006-router-boundary-and-typed-decision.md) e os [contratos de execução da Fase 6](../phase-6/run-contracts.md).
 
 ## Problema
 
@@ -36,7 +36,7 @@ You've hit your usage limit ... try again at 22:05
 2. **Proteção contra falso positivo por conteúdo do projeto:** a detecção só é acionada quando a invocação da CLI falha (código de saída diferente de zero ou ausência de resposta estruturada final de conclusão) **e** o padrão aparece no canal de erro/status da própria CLI, nunca dentro do conteúdo de arquivos lidos pelo agente.
 3. **Resolução do instante de reset (`reset_at`):**
    - Quando a mensagem informa um horário de relógio (como `10:05 PM` ou `22:05`), o detector resolve esse horário no fuso horário configurado do ambiente do host (por exemplo, `America/Sao_Paulo`, `-03:00`) relativo ao instante observado `observed_at` do relógio do runner: se `22:05` do mesmo dia for posterior a `observed_at`, usa o mesmo dia; se já tiver passado (por exemplo, chamada às `23:10` com reset à `01:05 AM`), usa o dia seguinte, convertendo o resultado para `utcTimestamp` (`reset_at`).
-   - Quando a mensagem confirma o limite de uso mas **não** informa horário de reset, `reset_at` permanece `null` e o Orchestrator aplica `blocked_until = observed_at + default_cooldown_ms` (valor definido na política do run), registrando `reset_source: "cooldown_policy"` em vez de `"cli_reported"`.
+   - Quando a mensagem confirma o limite de uso mas **não** informa horário de reset, `reset_at` permanece `null` e o Orchestrator aplica `blocked_until = observed_at + default_cooldown_ms` (padrão de 60 minutos, `3600000` ms, decisão do dono de 2026-11-14; a política do run pode sobrescrevê-lo), registrando `reset_source: "cooldown_policy"` em vez de `"cli_reported"`.
 
 ## Estado de disponibilidade por destino até o reset
 
@@ -49,7 +49,7 @@ O estado de cota é mantido pelo runner em um registro auditável (`QuotaStateSn
 | `cooldown` | Limite reportado pela CLI sem horário exato (`now < blocked_until`) | Destino **indisponível** até `blocked_until`; mesmo efeito de bloqueio temporário |
 | `unknown` | Estado inicial antes de qualquer falha de cota, ou quando a observação foi inconclusiva | Permitido quando a política não exigir saldo prévio comprovado; qualquer bloqueio observado transita para `quota_exhausted` ou `cooldown` |
 
-Quando o relógio do runner atinge `now >= blocked_until` (onde `blocked_until` é `reset_at` ou o fim do cooldown), o pool volta ao estado `available`, emitindo o evento `quota_reset_observed` no journal antes da próxima decisão de roteamento.
+Quando o relógio do runner atinge `now >= blocked_until` (onde `blocked_until` é `reset_at` ou o fim do cooldown), o pool volta ao estado `available`, emitindo o evento `quota_reset_observed` no journal antes da próxima decisão de roteamento. Quando o bloqueio veio do cooldown (`reset_source: "cooldown_policy"`), o destino só recebe tarefa real depois de uma **nova tentativa leve**: uma sondagem barata da CLI, em modo não interativo, que confirma que o limite saiu. Se a sondagem ainda mostrar o limite, o cooldown recomeça.
 
 ## Fallback para outra família
 
@@ -61,6 +61,17 @@ O roteamento ciente de cota opera em dois momentos complementares, sempre respei
 2. Qualquer `ExecutionTarget` cujo `quota_pool_id` esteja em `quota_exhausted` ou `cooldown` com `blocked_until > now` é marcado como inelegível pelo motivo determinístico `quota_exhausted` (registrando a referência ao evento que bloqueou a cota).
 3. O baseline `rules` (ou `fixed` com lista de fallback ordenada) seleciona o próximo destino elegível pertencente a **outra família de assinatura** (por exemplo, se `family_codex` atingiu o limite até `22:05`, seleciona `family_claude`, `family_gemini` ou `family_kiro`).
 4. A `RoutingDecision` registra o candidato original bloqueado em `candidates` (com `eligible: false`, `reasons: ["quota_exhausted"]`) e, quando aplicável, preenche `effective_selection` com `used_fallback: true` e razão `quota_fallback`.
+
+### Prioridade do baseline `rules` (decisão do dono de 2026-11-14)
+
+A ordem de preferência entre as famílias de assinatura depende do tipo de tarefa. O fallback por cota percorre a mesma lista, pulando os destinos bloqueados:
+
+| Tipo de tarefa | Ordem |
+| --- | --- |
+| Arquitetura e especificação | `claude` → `kiro` |
+| Implementação e testes | `codex` → `claude` |
+| Revisão | Uma família diferente da que implementou: `kiro` ou `gemini` |
+| Documentação | `gemini` |
 
 ### 2. Durante a execução de uma tentativa (após o despacho)
 

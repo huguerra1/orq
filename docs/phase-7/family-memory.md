@@ -1,6 +1,6 @@
 # Memória por família em Postgres, Row-Level Security e entrega via MCP
 
-Estado: Proposta em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Substitui parcialmente a restrição da [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md) sobre banco de dados, estende o [contrato de metadata de conhecimento](../phase-1/knowledge-metadata-contract.md), a [materialização de contexto](../adr/0003-context-bundle-materialization.md) e a [fronteira MCP da Fase 3](../phase-3/README.md). O Vault Markdown com `bm25-v1` permanece ativo como **modo offline**.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Substitui parcialmente a restrição da [ADR 0002](../adr/0002-vault-layout-and-markdown-parsing.md) sobre banco de dados, estende o [contrato de metadata de conhecimento](../phase-1/knowledge-metadata-contract.md), a [materialização de contexto](../adr/0003-context-bundle-materialization.md) e a [fronteira MCP da Fase 3](../phase-3/README.md). O Vault Markdown com `bm25-v1` permanece ativo como **modo offline**.
 
 ## Problema
 
@@ -14,7 +14,7 @@ Nas Fases 2 e 3, todo o conhecimento vive em arquivos Markdown locais e o seleto
 
 ### Definição de `AgentFamily`
 
-Uma **família de agentes** identifica o agrupamento lógico ao qual uma tentativa pertence no momento da execução. Ela combina dois eixos declarados no catálogo:
+Uma **família de agentes** identifica o agrupamento lógico ao qual uma tentativa pertence no momento da execução. Ela combina dois eixos **independentes** declarados no catálogo (decisão do dono de 2026-11-14: não existe chave composta `assinatura:papel`; a audiência de cada unidade declara cada eixo, e a visibilidade combina os dois):
 
 - **Eixo de modelo/assinatura (`family_id`):** `family_claude`, `family_codex`, `family_gemini` ou `family_kiro` (além de `family_simulated` nos testes do executor simulado).
 - **Eixo de papel (`role_id`):** identificador do `AgentRoleProfile` da tarefa (por exemplo, `backend_engineer`, `software_architect`, `security_reviewer`).
@@ -177,6 +177,7 @@ Regras da fronteira MCP na Fase 7:
 - O processo `orq-knowledge-mcp` é iniciado pelo runner para uma tentativa específica, recebendo `run_id`, `task_id`, `attempt_number`, `catalog_id`, `project_id`, `family_id`, `role_id` e o orçamento de contexto por configuração confiável do processo host (fora dos argumentos MCP).
 - O servidor continua **estritamente somente leitura** quanto ao catálogo e ao Vault: não cria fontes, não altera audiência, não modifica políticas e não escreve artefatos de tarefa.
 - Toda chamada a `search_family_knowledge` e `select_family_knowledge` fica registrada em trilha auditável vinculada à tentativa.
+- **Escolha durante a execução (decisão do dono de 2026-11-14):** o agente chama essas tools durante a própria execução da CLI, sem passo de pré-seleção. Ao final da tentativa, o runner audita a trilha do servidor MCP escopado (o que foi consultado e o que foi escolhido) e lacra o `ContextManifest` efetivo com os digests das unidades realmente entregues.
 
 ## Consolidação em `ContextManifest` com digests
 
