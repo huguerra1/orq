@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "quota_consumption_id": "quota-use-T3-2",
+  "run_id": "run-demo-001",
+  "task_id": "T3",
+  "attempt_id": "attempt-T3-2",
+  "subscription_id": "sub-chatgpt-plus",
+  "quota_pool_id": "pool-chatgpt-plus",
+  "family_id": "family_codex",
+  "usage_record_ref": {
+    "id": "usage-T3-2",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "c48e35c0d0e64f81bf0810b99e56551ab25e73f0bc889103ae92be55284c9674"
+    }
+  },
+  "messages_consumed": -1,
+  "input_tokens": 1200,
+  "output_tokens": null,
+  "credit_multiplier": "1.3",
+  "quota_outcome": "quota_exhausted_on_call",
+  "recorded_at": "2026-11-14T23:15:00Z",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "d98883c40579534312ca5f206ef5ef40dc65246f053a1b7addb498c730f5aa99"
+  }
+}

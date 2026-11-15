@@ -112,6 +112,9 @@
     },
     "record_hash": {
       "$ref": "common.schema.json#/$defs/digest"
+    },
+    "subscription_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
     }
   },
   "additionalProperties": false,
@@ -138,7 +141,10 @@
           ]
         },
         "currency": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[A-Z]{3}$"
         },
         "status": {
@@ -188,6 +194,10 @@
               "amount": {
                 "type": "string",
                 "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
               }
             }
           }
@@ -281,5 +291,49 @@
       "type": "string",
       "pattern": "^[A-Z]{3}$"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "subscription_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "scope_type": {
+            "const": "attempt"
+          },
+          "cost_lines": {
+            "items": {
+              "$ref": "common.schema.json#/$defs/subscriptionCost"
+            }
+          },
+          "coverage": {
+            "properties": {
+              "unavailable": {
+                "contains": {
+                  "const": "cost"
+                }
+              },
+              "reported": {
+                "not": {
+                  "contains": {
+                    "const": "cost"
+                  }
+                }
+              },
+              "estimated": {
+                "not": {
+                  "contains": {
+                    "const": "cost"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

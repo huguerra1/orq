@@ -13,7 +13,9 @@ from referencing import Registry, Resource
 
 SCHEMA_DIRECTORY = Path(__file__).resolve().parents[2] / "schemas" / "v0.1"
 SCHEMA_FILES = {
+    "agent_family": "agent-family.schema.json",
     "attempt_header": "attempt-header.schema.json",
+    "audience_metadata": "audience-metadata.schema.json",
     "common": "common.schema.json",
     "context_manifest": "context-manifest.schema.json",
     "dispatch_intent": "dispatch-intent.schema.json",
@@ -25,6 +27,8 @@ SCHEMA_FILES = {
     "knowledge_source": "knowledge-source.schema.json",
     "planning_record": "planning-record.schema.json",
     "planning_request": "planning-request.schema.json",
+    "quota_consumption_record": "quota-consumption-record.schema.json",
+    "quota_state_record": "quota-state-record.schema.json",
     "routing_decision": "routing-decision.schema.json",
     "routing_policy": "routing-policy.schema.json",
     "routing_request": "routing-request.schema.json",
@@ -33,6 +37,7 @@ SCHEMA_FILES = {
     "run_manifest": "run-manifest.schema.json",
     "simulation_script": "simulation-script.schema.json",
     "simulated_output": "simulated-output.schema.json",
+    "subscription_profile": "subscription-profile.schema.json",
     "task": "task.schema.json",
     "usage_record": "usage-record.schema.json",
     "workflow": "workflow.schema.json",

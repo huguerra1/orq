@@ -1,0 +1,37 @@
+{
+  "actor": {
+    "kind": "orchestrator",
+    "ref": "orq-runner"
+  },
+  "aggregate_id": "run-demo-001",
+  "aggregate_sequence": 2,
+  "aggregate_type": "run",
+  "causation_event_id": "event-1",
+  "correlation_id": "run-demo-001",
+  "event_hash": {
+    "algorithm": "sha256",
+    "value": "756e6de8ff84ed9cfe16b8b01f064d0d346d1b9650b61705b9541da5d6d9451e"
+  },
+  "event_id": "event-subscription-reserved",
+  "event_type": "budget_reserved",
+  "global_sequence": 2,
+  "idempotency_key": "run-demo-001",
+  "occurred_at": "2026-11-14T23:15:00Z",
+  "payload": {
+    "reservation_id": "reservation-sub-T3-2",
+    "scope_type": "attempt",
+    "scope_ref": "attempt-T3-2",
+    "amount": null,
+    "currency": null,
+    "method": "personal_subscription",
+    "status": "unavailable",
+    "subscription_id": "sub-chatgpt-plus"
+  },
+  "previous_event_hash": {
+    "algorithm": "sha256",
+    "value": "716bbc514f39fda354aaa2adc30bd7c1fb61ec9cb702f8d4437458b73fa5e4fd"
+  },
+  "recorded_at": "2026-11-14T23:15:00Z",
+  "run_id": "run-demo-001",
+  "schema_version": "0.1"
+}

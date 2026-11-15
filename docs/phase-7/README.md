@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); a implementação começa depois que o 6E estiver na `main`. Nenhum código, schema executável, container ou fixture da Fase 7 foi implementado.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
 
 ## Problema
 
@@ -70,6 +70,50 @@ Especificar e, após a conclusão do 6E e o aceite da [ADR 0008](../adr/0008-pha
 | **7F** | Execução do desenho experimental (memória compartilhada × particionada por família; roteamento fixo × ciente de cota), scripts de agregação determinística e pacote de reprodutibilidade para o artigo | Cenários `Q28`–`Q30` verificados, protocolo experimental executado sem intervenção manual, journals/manifestos íntegros e tabelas de resultados consolidadas |
 
 Cada incremento exige testes automatizados verdes, atualização do [HANDOFF](../HANDOFF.md) e do [ROADMAP](../../ROADMAP.md) e revisão antes do próximo passo, conforme [AGENTS.md](../../AGENTS.md).
+
+## Notas de implementação 7A
+
+- Cinco schemas fechados: `AgentFamily`, `AudienceMetadata`, `SubscriptionProfile`, `QuotaStateRecord` e `QuotaConsumptionRecord`. Família e papel são campos independentes; audiência restrita nos dois eixos significa interseção. Família/audiência usam o digest do contêiner; os três registros têm `record_hash` JCS sem o próprio hash.
+- Extensões opcionais preservam o baseline: `audience` na fonte/unidade; família/assinatura/pool no destino; `subscription_id` em uso/reserva; `reason` na decisão/preflight. Mantidos os nomes executáveis **`cost_lines`** e **`code`**. Com assinatura, custo exige `unavailable`, valor/moeda nulos e cobertura indisponível; a moeda conhecida das fixtures antigas continua aceita sem assinatura.
+- `quota_exhausted_recorded`/`quota_reset_observed` usam agregado `run`; `quota_consumption_recorded`, `attempt`. Payloads são os registros novos. `quota_limit_reached` exige erro retryable de provedor, término confirmado e `quota_state` ligado ao mesmo run/tentativa. Motivos de roteamento conservam `{code, subject, evidence_refs}`; fallback usa `effective_selection.rule: quota_fallback`, e rejeição total, `reason.code: all_eligible_families_quota_exhausted`.
+- `unknown` permanece disponibilidade inicial/inconclusiva, sem fabricar evento. Bloqueios exigem tentativa de origem e excerto de até 512 caracteres. `cli_reported` exige `reset_at = blocked_until > observed_at`; `cooldown_policy`, reset nulo e 60 minutos, salvo `default_cooldown_ms` positivo explícito. Overrides do perfil/run são lacrados no registro; validação não insere defaults.
+- Reativação limpa os horários de bloqueio, usa `clock_expired` e registra `previous_status`. Após cooldown, exige `probe_evidence_refs` não vazio (ArtifactRefs). Verificar a sondagem e o prazo contra o evento anterior permanece no 7E.
+- `subscription_rules` opcional registra as seis categorias/ordens aceitas e revisão por família diferente. O Router atual não interpreta essa política; mapeamento de tarefas e execução ficam no 7E. Perfis restringem CLI/família e rejeitam configuração de credenciais/web com `subscription_policy_violation`; evidências V01–V12 ficam no 7C.
+- `validate_instance` confere hashes, datas e invariantes temporais, inclusive payloads. `validate_quota_consumption_record(record, usage_record=...)` resolve digest e run/tentativa/assinatura sem I/O; sem o uso, não afirma resolver a referência. Sem banco, adaptador, busca, MCP ou dependência nova.
+
+Verificação: **378 testes aprovados, nenhum ignorado**, em `tests/test_phase7_contracts.py`, `tests/test_phase6_schemas.py` e `tests/test_schemas.py`; 17 fixtures válidas com `PINNED_DIGESTS` e dez inválidas, cada uma reparável por uma única correção. Suíte integral verificada pelo orquestrador: 1280 aprovados e 4 ignorados. Revisão independente (Gemini 4 Argon Medium) sem problemas.
+
+| Cenários | Cobertura executada no 7A |
+| --- | --- |
+| Q02 | Rejeição de configuração de credenciais/web e CLI/família incompatível; sem despacho real |
+| Q07 | Forma e vínculos de erro/bloqueio, reset em UTC e término confirmado; sem detector de CLI |
+| Q08, Q12 | Decisões serializadas de fallback/esgotamento total e invariantes locais; sem roteamento/admissão executáveis por cota |
+| Q09, Q10 | Contratos de reset/cooldown, default/override e exigência de evidência de sondagem; sem relógio/runtime de recuperação |
+| Q13 | Consumo, desconhecidos, referência ao uso e custo indisponível; agregação de RunSummary permanece no 7E |
+| Q14 | Rejeição de `"0"`/`"0.00"` no uso e na reserva de assinatura, com `invalid_subscription_cost_zero` |
+
+Audiência tem testes estruturais dos dois eixos, listas vazias/duplicadas e incorporação no catálogo. Isso não executa Q15/Q16 (RLS), nem os demais cenários Q de runtime, busca, MCP ou experimento. Próximo passo: revisar 7A e iniciar **7B**, conforme seu gate de isolamento/paridade/offline.
+
+## Notas de implementação 7B
+
+- **Pacote `orq_contracts.memory_store`:** `config` (backend e escopo), `ddl` + `schema.sql` (DDL versionado), `sync` (plano puro) e `postgres` (único módulo que importa o driver). Importar `orq_contracts` ou `memory_store` não carrega o psycopg.
+- **Configuração:** `ORQ_MEMORY_DSN` liga o backend `postgres`; sem DSN vale `offline_markdown_bm25`. `ORQ_KNOWLEDGE_BACKEND=offline_markdown_bm25` força o offline mesmo com DSN; `=postgres` sem DSN falha com `memory_dsn_missing`. O DSN fica fora do `repr` e das mensagens de erro. As variáveis `ORQ_PG_*` do rascunho em [family-memory.md](family-memory.md) foram trocadas por um DSN único.
+- **DDL (versão 1):** schema `orq_memory` com `knowledge_catalogs`, `knowledge_sources` e `knowledge_units` (audiência do 7A desnormalizada em cada linha: `area_scope`, `target_families`, `target_roles`, mais escopo de projeto e status). `ENABLE` e `FORCE ROW LEVEL SECURITY` nas três. Roles sem login, sem `SUPERUSER` e sem `BYPASSRLS`: `orq_memory_owner` (dono, sem política, portanto não lê nada), `orq_memory_writer` (só `SELECT`/`INSERT`, usado pela sincronização) e `orq_memory_reader` (só `SELECT`, política por escopo). A versão e o SHA-256 do arquivo ficam em `schema_migrations`; outro digest para a mesma versão é recusado (`memory_schema_version_conflict`). Índices GIN `tsvector` (português) e `pg_trgm` já existem, sem API de busca (7D). Um `CHECK` recalcula no banco o SHA-256 dos bytes UTF-8 de cada unidade.
+- **Política de leitura:** exige as quatro variáveis (`app.catalog_id`, `app.current_project_id`, `app.current_family_id`, `app.current_role_id`); escopo ausente ou incompleto não lê nada. Só status ativo; projeto exato ou operacional global; área comum ou família compatível nos dois eixos (eixo vazio não restringe; dois eixos exigem interseção). Fontes com escopo de coleção ficam gravadas, mas invisíveis no 7B, porque não há variável de coleções.
+- **Audiência:** a da unidade prevalece sobre a da fonte; sem nenhuma, a unidade entra na área comum (mesma visibilidade das Fases 2–6). Toda audiência passa pelo schema do 7A.
+- **Sincronização:** `build_sync_plan(vault_root, snapshot)` confere o `catalog_hash`, reingere cada fonte com `ingest_markdown_source`, exige unidades idênticas às do snapshot, lê o conteúdo com `materialize_unit` e grava `canonical_digest` da metadata e de cada unidade. `sync_catalog` insere tudo numa transação como `orq_memory_writer`. O snapshot é imutável por `catalog_id`: repetir devolve `unchanged` sem duplicar; conteúdo diferente aborta com `catalog_sync_integrity_error`. CLI: `orq-contracts vault sync-db --root <vault> --catalog <snapshot.json>` (aplica o DDL e sincroniza).
+- **Acesso com escopo:** `MemoryScope` (validado, imutável) é montado pelo host; `scoped_transaction`/`ScopedMemoryReader` abrem `READ ONLY`, fazem `SET LOCAL ROLE orq_memory_reader` e fixam o escopo com `set_config(..., true)` (o `SET LOCAL` parametrizado), recusando a transação se a role efetiva puder ignorar RLS. Os métodos de leitura não recebem família, papel nem projeto.
+- **Dependência nova:** `psycopg[binary]==3.3.9` no `pyproject.toml`; `psycopg`, `psycopg-binary` e `tzdata` (dependência do psycopg no Windows) fixados no `requirements.lock`.
+- **Docker e CI:** `docker-compose.memory.yml` opcional (`postgres:16-alpine`, só em `127.0.0.1`, `pg_trgm` no init, senha de teste `orq_test`). O job `testes` do CI ganhou um service container `postgres:16` com healthcheck e exporta `ORQ_MEMORY_DSN`; nome do job e matriz 3.12/3.13 mantidos. A migração exige login superusuário (cria roles do cluster).
+
+Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuração, escopo, DDL, plano, paridade de digests do plano, rejeições e modo offline) e `tests/test_memory_store_postgres.py` (33 testes contra Postgres: isolamento entre famílias, área comum, eixo de papel, escopo ausente/incompleto, sem bypass, `FORCE` para o dono, somente leitura, paridade de digests no banco e idempotência). Os testes de banco rodam no CI quando não há `ORQ_MEMORY_DSN`. Suíte local: 1321 aprovados e 37 ignorados (os 4 anteriores e os 33 de banco).
+
+| Cenários | Cobertura executada no 7B |
+| --- | --- |
+| Q15, Q16 | RLS entre famílias e interseção família × papel, com testes negativos |
+| Q17 | Escopo validado e valores sempre como parâmetros; a busca em si fica no 7D |
+| Q18 | Mesmos digests/ordinais da Fase 2 no banco e segunda sincronização sem duplicar |
+| Q22 | Parcial: cadeia offline intacta sem DSN; o filtro de audiência em memória e o `backend` no `KnowledgeSelectionRecord` ficam para o 7D |
 
 ## Documentos da Fase 7
 

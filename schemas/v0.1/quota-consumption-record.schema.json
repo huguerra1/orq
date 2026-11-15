@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/quota-consumption-record.schema.json",
+  "title": "ORQ QuotaConsumptionRecord v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "quota_consumption_id",
+    "run_id",
+    "task_id",
+    "attempt_id",
+    "subscription_id",
+    "quota_pool_id",
+    "family_id",
+    "usage_record_ref",
+    "messages_consumed",
+    "input_tokens",
+    "output_tokens",
+    "credit_multiplier",
+    "quota_outcome",
+    "recorded_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "quota_consumption_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "task_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "attempt_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "subscription_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "quota_pool_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "family_id": {
+      "$ref": "common.schema.json#/$defs/familyId"
+    },
+    "usage_record_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "messages_consumed": {
+      "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+    },
+    "input_tokens": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_tokens": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "credit_multiplier": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quota_outcome": {
+      "enum": [
+        "accepted",
+        "quota_exhausted_on_call",
+        "unknown"
+      ]
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp",
+      "format": "date-time"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false
+}

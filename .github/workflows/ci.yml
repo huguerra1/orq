@@ -15,6 +15,24 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.12', '3.13']
+    # Postgres efêmero para os testes de RLS/sincronização da memória por família (7B).
+    # A senha é só de teste: o container existe apenas durante o job e não guarda dado real.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: orq_memory
+          POSTGRES_USER: orq_admin
+          POSTGRES_PASSWORD: orq_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orq_admin -d orq_memory"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      ORQ_MEMORY_DSN: postgresql://orq_admin:orq_test@localhost:5432/orq_memory
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

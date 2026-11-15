@@ -56,6 +56,9 @@
         "token_estimates", "derivation", "oversized"
       ],
       "properties": {
+        "audience": {
+          "$ref": "audience-metadata.schema.json"
+        },
         "unit_id": {"$ref": "common.schema.json#/$defs/identifier"},
         "source_ref": {"$ref": "#/$defs/sourceRef"},
         "ordinal": {"type": "integer", "minimum": 0},

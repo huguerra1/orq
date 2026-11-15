@@ -1,6 +1,6 @@
 # Cenários de aceitação da Fase 7
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Os 30 cenários `Q01`–`Q30` abaixo são especificação documental; nenhum deles foi executado ainda. Sua implementação como testes automatizados ocorrerá nos incrementos `7A` a `7F`, depois que o incremento `6E` estiver na `main`.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Os 30 cenários `Q01`–`Q30` abaixo são a especificação documental. O 7A executou Q14 no contrato de assinatura e partes contratuais de Q02, Q07–Q10 e Q12–Q13; [cobertura e limites nas Notas 7A](README.md#notas-de-implementação-7a). Os cenários completos de runtime, RLS, busca, MCP e experimento continuam pendentes dos incrementos seguintes.
 
 ## Estratégia e convenções
 
