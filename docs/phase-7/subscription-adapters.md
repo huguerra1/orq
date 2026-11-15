@@ -81,19 +81,80 @@ Baseado na observação real da versão `3.1.0` rodando no Ubuntu/WSL ([executor
 
 Conforme a [ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md) e [executor-choice.md](../phase-6/executor-choice.md#checklist-de-verificação-de-um-adaptador-real), cada item abaixo exige a captura de um `ArtifactRef` de evidência na sessão de verificação do incremento `7C` antes de mudar de `unknown` para `supported`:
 
-| ID | Controle verificado | Claude Code (`family_claude`) | Codex CLI (`family_codex`) | Gemini CLI / `agy` (`family_gemini`) | Kiro CLI (`family_kiro`) |
-| --- | --- | --- | --- | --- | --- |
-| **V01** | Versão identificável e fixada | `claude --version` gravado na evidência e fixado no `ExecutorProfile` | Observado `0.167.0` via `codex --version` | Observado `1.5.3` via `agy --version` | Observado `3.1.0` via `kiro-cli --version` no WSL |
-| **V02** | Execução sem terminal (`stdin` fechado) | `-p` com `stdin=DEVNULL` termina sem prompt | Observado com `codex exec` e `stdin=DEVNULL` | Observado com `agy -p` e `stdin=DEVNULL` | Observado com `kiro-cli chat --no-interactive` |
-| **V03** | Saída estruturada parseável | `--output-format json` validado contra schema do adaptador + arquivos de output | `--json` (eventos JSONL) + `-o <arquivo>` validados por schema | Artefato gravado no workspace + parser que descarta ruído `google.Init` no `stderr` | Artefato gravado no workspace + parser que separa linhas `[tool] ...` da saída final |
-| **V04** | Escrita fora do workspace negada | Restrição de ferramentas ao `cwd` + verificação pós-execução de paths, symlinks e `.git` | Sandbox `-s read-only` / `-s workspace-write` + verificação do host sobre `.git` e symlinks | Modo `--mode plan` ou regras `permissions.allow` restritas ao path do workspace | `--trust-tools=fs_read` (sem `fs_write`) ou workspace isolado com checagem de integridade |
-| **V05** | Rede fora da lista negada | `WebFetch`/`WebSearch` em `--disallowedTools`; tráfego restrito ao endpoint de inferência da assinatura | Sandbox bloqueia rede arbitrária de ferramentas; comunicação apenas com o backend do Codex | Sem permissão de ferramentas de busca web ou comandos de rede em `permissions.allow` | Sem `execute_bash` e sem ferramentas MCP de rede externas |
-| **V06** | Ferramenta não autorizada negada sem prompt | Ferramenta fora de `--allowedTools` é recusada imediatamente em `-p` | Comandos fora da política de sandbox falham sem abrir prompt interativo | Observado: ferramenta sem regra em `settings.json` é negada automaticamente em modo headless | Observado: ferramenta fora de `--trust-tools` (ex.: omitir `execute_bash`) não é executada |
-| **V07** | Timeout imposto pelo host mata processo e filhos | Host aplica `attempt_timeout_ms` via Job Object / process group e verifica ausência de órfãos | Mesmo mecanismo do host sobre `codex exec` e processos filhos | Mesmo mecanismo do host sobre `agy` (além de `--print-timeout` como defesa secundária) | Host encerra o processo no WSL e confirma término da árvore Linux |
-| **V08** | Cancelamento confirmável | Encerramento da árvore local confirmado por inspeção de PID/process group após `cancel()` | Mesma verificação de árvore de processos após `cancel()` | Mesma verificação de árvore de processos após `cancel()` | Confirmação de término dos processos dentro da instância WSL |
-| **V09** | Uso de tokens e custo (`reported`/`estimated`/`unavailable`) | Tokens `reported` no JSON; custo monetário da assinatura fixado como `unavailable` (`amount: null`) | Observado: contagem de tokens no fim do log (`reported`); custo monetário `unavailable` (`amount: null`) | Tokens `unavailable` (se não impressos em `text`); custo monetário `unavailable` (`amount: null`) | Multiplicador de créditos e consumo registrados em cota; custo monetário `unavailable` (`amount: null`) |
-| **V10** | Modelo resolvido reportado | Lido do JSON de saída quando presente; caso contrário `resolved_model_id: null` | Lido dos eventos JSONL quando presente; caso contrário `null` | `resolved_model_id: null` se a saída texto confirmar apenas o solicitado | `resolved_model_id: null` se a saída não explicitar revisão interna |
-| **V11** | ID de chamada/sessão e reconciliação | `session_id` capturado quando emitido; antes do spawn, reconciliação usa o estado durável do adaptador | ID de sessão dos eventos JSONL + estado durável local do adaptador | Estado durável local do adaptador (`state_hash` JCS antes e depois do spawn) | Estado durável local do adaptador (`state_hash` JCS antes e depois do spawn) |
-| **V12** | Contexto adicional do runtime identificável | Inventário de `CLAUDE.md` e configurações locais; cobertura declarada como `platform_only` | Inventário de `AGENTS.md` e `~/.codex/config.toml`; cobertura `platform_only` | Inventário de `~/.gemini/antigravity-cli/settings.json`; cobertura `platform_only` | Inventário de arquivos de workspace lidos pelo Kiro; cobertura `platform_only` |
+Implementação 7C revisada em 2026-11-14: **118 testes aprovados, um ignorado** (symlink no Windows),
+nos dois arquivos de adaptadores/detector, após corrigir os oito achados da revisão.
+Os subprocessos são scripts Python sintéticos; não houve
+smoke real. A tabela separa verificações do host de comprovação das CLIs instaladas.
+Todos os nove controles de `describe()` continuam **`unknown`**, com `evidence_refs: []`.
+
+| ID | Controle | Verificado por testes no 7C | Pendente no smoke real, nas quatro CLIs |
+| --- | --- | --- | --- |
+| **V01** | Versão identificável e fixada | Versão explícita no adaptador/estado; restauração exige a mesma versão. Fixtures reais preservam Claude 2.1.319, Codex 0.169.0 e AGY 1.5.9 | Comparar binário instalado com a versão declarada e produzir ArtifactRef por runtime; recuperar versão do Kiro |
+| **V02** | Sem terminal | CLI falsa de cada família recebe EOF no stdin; supervisor e CLI usam argv e `shell=False` | Confirmar que o runtime termina sem confirmação humana |
+| **V03** | Saída parseável | Claude JSON inclusive multilinha; Codex JSONL, com erro posterior invalidando final e fallback `-o`; AGY/Kiro com marcador canônico e stdout somente textual; JSON com sufixo não cria diagnóstico; contrato local validado antes da publicação | Capturar envelopes reais, arquivo `-o` do Codex e resposta ao protocolo de outputs |
+| **V04** | Confinamento de escrita | Workspaces novos por tentativa; paths de coleta confinados; teste de symlink existe, ignorado neste Windows | Provar negação de escrita externa, symlinks e `.git` pelo runtime. Validar configuração local do AGY |
+| **V05** | Rede negada | Nomes das variáveis recebidas pelas quatro CLIs falsas comprovam exclusão das seis variáveis sensíveis testadas; listas Claude negam WebFetch/WebSearch e regras AGY não concedem rede | Provar enforcement de rede fora da política; os testes locais não demonstram firewall do runtime |
+| **V06** | Ferramentas negadas | Argv exato nos modos de leitura/escrita; comandos só entram com concessão explícita; nenhuma flag proibida | Provar negação sem prompt e precedência das regras perante configurações próprias de cada CLI |
+| **V07** | Timeout mata a árvore | Quatro CLIs falsas com filho escrevendo heartbeat: timeout autônomo para ambos; Job Object exercitado no Windows; falha de associação e espera expirada simuladas; grupo POSIX simulado só confirma quando desaparece | Repetir com binários reais; executar também o caminho POSIX e confirmar árvore Linux no WSL |
+| **V08** | Cancelamento confirmável | Mesmo teste de árvore após `cancel`; limpeza independente do Job para filho suspenso; recibo unknown se a árvore não foi confirmada e consumo remoto desconhecido | Repetir com as árvores reais, inclusive WSL e filhos das ferramentas |
+| **V09** | Uso e custo | Tokens Claude/Codex sintéticos em uso e consumo; custo sempre unavailable/null, inclusive ignorando `total_cost_usd`; registros 7A validados | Conferir telemetria real; multiplicador Kiro permanece null até fonte comprovada |
+| **V10** | Modelo resolvido | Campo presente nos envelopes sintéticos é preservado; ausência continua null | Capturar identificação efetiva, sem copiar o modelo solicitado como se fosse resolvido |
+| **V11** | Chamada e reconciliação | Sessão Claude/Codex; estado/recibo com hashes, fsync, temporários únicos e retries limitados no Windows; estresse de 25 saídas rápidas Kiro e escritores/leitor concorrentes; validação antes de criar diretórios; reconstrução, corrupção, conflito e não execução comprovada; status/sessão/evidência do mesmo recibo | Conferir IDs reais e reconciliação externa. Reinício com processo ainda incerto continua unknown |
+| **V12** | Contexto adicional | Cobertura sempre unknown; nenhum inventário de HOME nem leitura de diretórios de credenciais | Auditar somente instruções/configuração autorizadas do workspace; sem ler `~/.codex`, `~/.claude`, `~/.gemini` ou caches de login |
 
 Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas as CLIs de assinatura injetam prompt de sistema próprio do provedor não auditável byte a byte pelo ORQ. O valor máximo honesto é `platform_only` quando os arquivos locais de instrução estão sob controle do workspace limpo, ou `unknown` caso contrário.
+
+## API e decisões de implementação 7C
+
+- `orq_contracts.adapters` exporta `ClaudeCodeAdapter`, `CodexAdapter`, `AgyAdapter`,
+  `KiroAdapter`, `CLIPermissions` e `QuotaLimitDetector`. Construtores recebem
+  `SubscriptionProfile` validado, `ArtifactStore`, `state_directory`, `workspace_root`,
+  `clock` idêntico ao do journal, `runtime_version` e `ContentContractRegistry` local.
+  `CLIPermissions` é a interseção efetiva já calculada pelo host; não substitui a
+  admissão da ExecutionPolicy. Por padrão só permite leitura e não concede comandos.
+- O supervisor stdlib é lançado sem shell, fecha stdin e persiste recibos antes e
+  depois do spawn da CLI. Windows: criação suspensa, associação ao Job Object antes
+  de retomar, kill-on-close e confirmação de zero processos ativos. POSIX: sessão
+  própria, SIGKILL no grupo e sondagem limitada até seu desaparecimento; grupo
+  restante ou espera expirada produzem unknown. Falha ao associar o Job também
+  encerra e recolhe o filho direto suspenso. O supervisor aplica timeout mesmo sem `observe()`;
+  o prazo inclui sua inicialização. O relógio injetado resolve instantes do runner;
+  espera e enforcement usam relógios reais do host.
+- Kiro no Windows usa `wsl.exe --cd /mnt/c/dev/... -- python3 <supervisor> <estado>`;
+  o supervisor lança `kiro-cli chat ...` diretamente, sem shell, dentro do Linux.
+  Isso permite encerrar o grupo Linux em vez de matar apenas `wsl.exe`. Exige
+  `python3` stdlib no WSL e acesso aos caminhos `/mnt/c`; ambos pendem do smoke.
+  Linux nativo usa o Python do runner e `kiro-cli`, sem `wsl.exe`.
+- Estado fica fora do workspace, com `state_hash` compatível com JCS, fsync do
+  arquivo/diretório e substituição atômica com temporário único no mesmo diretório.
+  Leitura, criação/substituição e limpeza toleram `PermissionError` no Windows por
+  até 100 tentativas a cada 10 ms. `observe` relê o recibo após a saída do supervisor;
+  `reconcile` mantém status, sessão e evidência em um único snapshot.
+  `prepared` ou recibo `not_started`
+  permitem `not_found` autoritativo com evidência armazenada; `spawning` sem recibo,
+  PID perdido ou chave desconhecida retornam unknown e nunca autorizam redespacho.
+  O Router ainda exige o controle verificado antes de usar essa autoridade.
+- Outputs usam `ORQ_FINAL:{"outputs":{"<output_id>":<JSON>}}` na resposta final,
+  ou marcador com outputs vazio e arquivos `.orq-output/<output_id>.json`.
+  Todos os contratos são validados antes de publicar bytes no ArtifactStore.
+  JSON/JSONL de ferramenta não é fonte de cota. Texto livre de stdout também não;
+  somente erros estruturados da CLI e diagnósticos ancorados de stderr entram no
+  detector. Essa escolha conservadora evita inferir cota de texto do projeto.
+- AGY recebe regras novas em `.gemini/antigravity-cli/settings.json` **do workspace**,
+  removidas após término confirmado. O workspace precisa ser novo, sem configuração
+  anterior a restaurar. Confirmar no smoke que a versão fixada carrega e prioriza
+  esse arquivo; até lá, sandbox e demais controles permanecem unknown. Kiro
+  `execute_bash` é uma concessão ampla: a flag não prova restrição por prefixo.
+- `collect()` mantém o protocolo 6D; `quota_consumption(intent)` retorna a extensão
+  7A persistida após coleta, para o runner 7E registrar no journal. Uma invocação
+  conta `messages_consumed: 1`, sem afirmar aceitação ou cobrança pelo provedor;
+  interrupções mantêm `quota_outcome: unknown`, tokens/multiplicador desconhecidos
+  ficam null. Resultado e consumo são reconstruíveis e a coleta é idempotente.
+- Gramáticas `claude-quota-v1`, `codex-quota-v1`, `agy-quota-v1` e `kiro-cli-quota-v1`
+  resolvem relógio local/data explícita para UTC, com rollover de dia. Sem horário
+  válido, reset_at fica null e o cooldown padrão é 60 minutos, com indicação de
+  sondagem obrigatória. Login/rede têm motivo próprio e nenhum reset. O 7C produz
+  bloqueio e erro 7A; reativação, sondagem leve e fallback são responsabilidade do 7E.
+
+Não há smoke automático habilitado nesta entrega. O gate V01–V12 continua aberto
+até a sessão real com versões fixadas e ArtifactRefs; testes sintéticos não o fecham.
