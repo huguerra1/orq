@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). **7C implementado**, em revisão (smoke real das CLIs pendente). Próximo incremento: **7D**. Os incrementos 7C–7F permanecem pendentes.
 
 ## Problema
 
@@ -114,6 +114,29 @@ Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuraçã
 | Q17 | Escopo validado e valores sempre como parâmetros; a busca em si fica no 7D |
 | Q18 | Mesmos digests/ordinais da Fase 2 no banco e segunda sincronização sem duplicar |
 | Q22 | Parcial: cadeia offline intacta sem DSN; o filtro de audiência em memória e o `backend` no `KnowledgeSelectionRecord` ficam para o 7D |
+
+## Notas de implementação 7C
+
+- Quatro adaptadores em `src/orq_contracts/adapters/`, sem alterar o protocolo 6D,
+  banco, memória ou CI. Supervisor stdlib com argv explícito, stdin fechado,
+  timeout autônomo, cancelamento da árvore e estado/recibo duráveis antes do spawn.
+  Kiro usa WSL somente no Windows, com workspace `C:\dev` → `/mnt/c/dev` e
+  supervisor Python dentro do Linux. Reconciliação incerta nunca redespacha.
+- Detector por CLI, com versão no perfil 7A, usa somente diagnósticos em invocações
+  falhas; fixture real do Codex resolve 22:05 no fuso local e rollover de dia.
+  Login real do Kiro é indisponibilidade de autenticação, sem bloquear cota.
+  Sem horário válido: reset null, cooldown de 60 minutos e sondagem exigida no 7E.
+- Coleta valida contratos locais e paths antes de publicar artefatos; custo sempre
+  unavailable/null; tokens só quando reportados. `quota_consumption(intent)` expõe
+  o registro 7A sem estender `ExecutorResult`. `permission_or_empty_output` permanece
+  motivo de `execution_failed`, pois não integra o enum de códigos do 7A.
+- Verificação: **90 aprovados, um ignorado** nos dois arquivos novos (symlink no
+  Windows); subprocessos Python falsos, sem CLI real/rede. Todos os controles
+  permanecem unknown e a cobertura de contexto também. [Tabela V01–V12 e decisões](subscription-adapters.md#cumprimento-do-checklist-v01v12-por-adaptador)
+  distinguem testes do host das evidências ainda necessárias por versão real.
+  Próximo: revisão do 7C e smoke real V01–V12.
+  Fallback, reativação e sondagem permanecem no 7E; nenhum cenário Q ponta a ponta
+  foi declarado concluído por estes testes.
 
 ## Documentos da Fase 7
 
