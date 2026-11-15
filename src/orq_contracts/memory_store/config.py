@@ -41,10 +41,13 @@ SCOPE_SETTINGS = (
 )
 
 
-@dataclass(frozen=True, slots=True)
 class MemoryStoreError(Exception):
-    code: str
-    message: str
+    """Erro tipado da memória. Não é dataclass congelado: o Python precisa gravar `__traceback__`."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(code, message)
+        self.code = code
+        self.message = message
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
