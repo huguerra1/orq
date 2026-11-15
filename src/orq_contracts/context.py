@@ -169,6 +169,9 @@ def materialize_knowledge_context(
         if unit_ref["source_digest"] != source["content_digest"] or unit_ref["unit_digest"] != unit["content_digest"]:
             _fail("selected_unit_reference_mismatch", "/selection/selected_units", str(unit_key))
         content = unit_loader(source, unit).encode("utf-8")
+        # O carregador é externo (Vault ou Postgres): confere os bytes antes de publicar o content_hash.
+        if hashlib.sha256(content).hexdigest() != unit["content_digest"]["value"]:
+            _fail("unit_integrity_mismatch", "/selection/selected_units", str(unit_key))
         token_count = _token_count(unit)
         total_tokens += token_count
         item_id = f"context-item-{sequence}"

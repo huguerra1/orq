@@ -713,3 +713,24 @@ def test_candidate_from_row_rounds_and_collapses_whitespace() -> None:
     assert candidate.heading_path == ("A", "B")
     assert candidate.public()["content_digest"] == {"algorithm": "sha256", "value": "c" * 64}
     assert "family_id" not in candidate.public()
+
+
+def test_central_materializer_rejects_loader_bytes_with_a_wrong_digest(vault) -> None:
+    """Regressão (revisão do 7D): o unit_loader externo não pode publicar content_hash de bytes diferentes."""
+    root, catalog = vault
+    record = choose_both(offline(vault), vault, ["recon"])
+
+    with pytest.raises(Exception) as raised:
+        materialize_knowledge_context(root, catalog, record, unit_loader=lambda source, unit: "CONTEUDO INCORRETO",
+                                      **MATERIALIZE_ARGUMENTS)
+    assert getattr(raised.value, "code", None) == "unit_integrity_mismatch"
+
+
+def test_failed_choice_clears_a_previous_valid_selection(vault) -> None:
+    """Regressão (revisão do 7D): escolha inválida depois de uma válida não deixa a anterior publicada."""
+    choice = session(offline(vault))
+    choice.search("K1", "reconciliação", 20)
+    assert choice.choose({"K1": [unit_ref("recon", vault[1])]})
+    with pytest.raises(KnowledgeChoiceError):
+        choice.choose({})
+    assert choice.selection is None

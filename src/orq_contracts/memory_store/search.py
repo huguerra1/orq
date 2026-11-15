@@ -84,7 +84,7 @@ SELECT
     )::double precision AS score
 FROM scored
 WHERE fts_match OR trgm >= %(trgm_min)s::double precision
-ORDER BY score DESC, source_id ASC, revision ASC, ordinal ASC, unit_id ASC
+ORDER BY score DESC, source_id COLLATE "C" ASC, revision COLLATE "C" ASC, ordinal ASC, unit_id COLLATE "C" ASC
 LIMIT %(limit)s::integer
 """
 

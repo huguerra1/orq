@@ -158,6 +158,8 @@ class KnowledgeChoiceSession:
     def choose(self, selections: Mapping[str, Sequence[Mapping[str, str]]]) -> dict[str, Any]:
         """Valida a escolha do agente e devolve o `KnowledgeSelectionRecord` (também em `self.selection`)."""
 
+        # Uma escolha nova invalida a anterior: se falhar, não sobra seleção publicada.
+        self.selection = None
         if not isinstance(selections, Mapping):
             _fail("invalid_selection", "/selections", "selections deve mapear requisito para lista de unit_refs")
         chosen: dict[str, list[UnitKey]] = {}

@@ -445,7 +445,8 @@ def test_bytes_changed_in_the_database_block_materialization(admin, tmp_path) ->
 
         later = new_session(backend_for(admin, catalog, "family_gemini"))
         with pytest.raises(KnowledgeChoiceError) as at_search:
-            later.search("K1", "commits revisados", 20)
+            # "Git" continua no cabeçalho adulterado, então a unidade ainda casa na busca.
+            later.search("K1", "Git", 20)
         assert at_search.value.code == "integrity_mismatch"
     finally:
         _delete_catalog(admin, catalog["catalog_id"])
