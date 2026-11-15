@@ -203,4 +203,4 @@ Quando o PostgreSQL/Docker não estiver disponível ou quando o usuário executa
 
 - O ORQ utiliza diretamente os arquivos Markdown locais e o algoritmo `bm25-v1` da Fase 2.
 - O filtro de audiência (`area_scope = 'common'` ou compatível com `family_id`/`role_id`) é aplicado deterministicamente em memória antes do cálculo do BM25, mantendo a mesma semântica de visibilidade por família.
-- O `KnowledgeSelectionRecord` registra explicitamente `backend: "offline_markdown_bm25"`, distinguindo execuções offline das execuções sobre PostgreSQL (`backend: "postgres_rls_fts_trgm"`).
+- O `KnowledgeSelectionRecord` registra explicitamente `backend: "offline_markdown_bm25"`, distinguindo execuções offline das execuções sobre PostgreSQL (`backend: "postgres_fts_trgm"`).

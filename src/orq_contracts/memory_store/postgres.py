@@ -14,8 +14,17 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from ..knowledge_backend import KnowledgeCandidate, UnitKey
 from .config import POSTGRES_BACKEND, MemoryConfig, MemoryScope, MemoryStoreError
 from .ddl import READER_ROLE, SCHEMA_VERSION, WRITER_ROLE, load_schema_sql, schema_digest
+from .search import (
+    SEARCH_SQL,
+    UNITS_BY_KEY_SQL,
+    candidate_from_row,
+    normalize_search_query,
+    search_parameters,
+    validate_search_limit,
+)
 from .sync import SyncPlan
 
 
@@ -242,6 +251,42 @@ class ScopedMemoryReader:
             )
             row = cursor.fetchone()
             return dict(row) if row is not None else None
+
+    def search_units(self, eligible: list[UnitKey], query: str, limit: int) -> list[KnowledgeCandidate]:
+        """Busca híbrida (FTS português + trigramas) dentro do escopo fixado na construção.
+
+        `eligible` são as unidades que o catálogo do host admite para o requisito; o RLS ainda
+        decide o que é visível. `query` e `limit` são validados e entram só como parâmetros SQL.
+        """
+
+        terms = normalize_search_query(query)
+        validated = validate_search_limit(limit)
+        if not eligible:
+            return []
+        with scoped_transaction(self._connection, self._scope) as cursor:
+            cursor.execute(SEARCH_SQL, search_parameters(terms, eligible, validated))
+            return [candidate_from_row(row) for row in cursor.fetchall()]
+
+    def get_unit_contents(self, keys: list[UnitKey]) -> dict[UnitKey, dict[str, str]]:
+        """Conteúdo e digests das unidades visíveis no escopo (chave ausente = invisível ou inexistente)."""
+
+        if not keys:
+            return {}
+        parameters = {
+            "source_ids": [key[0] for key in keys],
+            "revisions": [key[1] for key in keys],
+            "unit_ids": [key[2] for key in keys],
+        }
+        with scoped_transaction(self._connection, self._scope) as cursor:
+            cursor.execute(UNITS_BY_KEY_SQL, parameters)
+            return {
+                (row["source_id"], row["revision"], row["unit_id"]): {
+                    "content": row["content"],
+                    "content_digest": row["content_digest"],
+                    "source_digest": row["source_digest"],
+                }
+                for row in cursor.fetchall()
+            }
 
     def close(self) -> None:
         self._connection.close()
