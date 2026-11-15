@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/quota-state-record.schema.json",
+  "title": "ORQ QuotaStateRecord v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "quota_event_id",
+    "run_id",
+    "quota_pool_id",
+    "subscription_id",
+    "family_id",
+    "source_attempt_id",
+    "status",
+    "observed_at",
+    "reset_at",
+    "blocked_until",
+    "reset_source",
+    "raw_message_excerpt",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "quota_event_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "quota_pool_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "subscription_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "family_id": {
+      "$ref": "common.schema.json#/$defs/familyId"
+    },
+    "source_attempt_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "enum": [
+        "available",
+        "quota_exhausted",
+        "cooldown"
+      ]
+    },
+    "observed_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp",
+      "format": "date-time"
+    },
+    "reset_at": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blocked_until": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/utcTimestamp",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reset_source": {
+      "enum": [
+        "cli_reported",
+        "cooldown_policy",
+        "clock_expired"
+      ]
+    },
+    "raw_message_excerpt": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "default_cooldown_ms": {
+      "$ref": "common.schema.json#/$defs/positiveInteger",
+      "default": 3600000
+    },
+    "previous_status": {
+      "enum": [
+        "quota_exhausted",
+        "cooldown"
+      ]
+    },
+    "probe_evidence_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactRef"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "quota_exhausted"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reset_source": {
+            "const": "cli_reported"
+          },
+          "reset_at": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp",
+            "format": "date-time"
+          },
+          "blocked_until": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp",
+            "format": "date-time"
+          },
+          "source_attempt_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "raw_message_excerpt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "default_cooldown_ms": false,
+          "previous_status": false,
+          "probe_evidence_refs": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "cooldown"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reset_source": {
+            "const": "cooldown_policy"
+          },
+          "reset_at": {
+            "type": "null"
+          },
+          "blocked_until": {
+            "$ref": "common.schema.json#/$defs/utcTimestamp",
+            "format": "date-time"
+          },
+          "source_attempt_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "raw_message_excerpt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "previous_status": false,
+          "probe_evidence_refs": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "available"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "previous_status",
+          "probe_evidence_refs"
+        ],
+        "properties": {
+          "reset_source": {
+            "const": "clock_expired"
+          },
+          "reset_at": {
+            "type": "null"
+          },
+          "blocked_until": {
+            "type": "null"
+          },
+          "source_attempt_id": {
+            "type": "null"
+          },
+          "raw_message_excerpt": {
+            "type": "null"
+          },
+          "default_cooldown_ms": false
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "previous_status": {
+                  "const": "cooldown"
+                }
+              },
+              "required": [
+                "previous_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "probe_evidence_refs": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -361,10 +361,14 @@ def test_each_event_has_a_valid_closed_payload(aggregate, event_type, payloads) 
 
 def test_journal_vocabulary_matches_the_accepted_contract() -> None:
     schema = validator_for("journal_event").schema
+    phase7_events = {
+        "run": {"quota_exhausted_recorded", "quota_reset_observed"},
+        "attempt": {"quota_consumption_recorded"},
+    }
     assert set(schema["properties"]["aggregate_type"]["enum"]) == set(VOCABULARY)
     assert set(schema["properties"]["event_type"]["enum"]) == {
         event for events in VOCABULARY.values() for event in events
-    }
+    } | {event for events in phase7_events.values() for event in events}
     contract = (ROOT / "docs/phase-6/run-contracts.md").read_text(encoding="utf-8")
     for aggregate, events in VOCABULARY.items():
         if aggregate == "attempt":
@@ -381,7 +385,7 @@ def test_journal_vocabulary_matches_the_accepted_contract() -> None:
             if rule.get("if", {}).get("properties", {}).get("aggregate_type", {}).get("const") == aggregate
             and "event_type" in rule.get("then", {}).get("properties", {})
         ]
-        assert len(rules) == 1 and set(rules[0]) == set(events)
+        assert len(rules) == 1 and set(rules[0]) == set(events) | phase7_events.get(aggregate, set())
 
 
 @pytest.mark.parametrize(("aggregate", "event_type"), FORBIDDEN_EVENT_CASES)
@@ -515,8 +519,13 @@ def test_error_codes_and_admission_reasons_match_the_documented_enums(payloads) 
     contract = (ROOT / "docs/phase-6/run-contracts.md").read_text(encoding="utf-8")
     codes = set(re.findall(r"`([^`]+)`", contract.split("Códigos iniciais do runner: ", 1)[1].split(".\n", 1)[0]))
     reasons = set(re.findall(r"`([^`]+)`", contract.split("Motivos de rejeição de admissão: ", 1)[1].split(".\n", 1)[0]))
-    assert set(validator_for("error_record").schema["properties"]["code"]["enum"]) == codes
-    assert set(validator_for("journal_event").schema["$defs"]["admission_rejected"]["properties"]["reason"]["enum"]) == reasons
+    assert set(validator_for("error_record").schema["properties"]["code"]["enum"]) == codes | {
+        "quota_limit_reached", "subscription_policy_violation",
+    }
+    assert set(validator_for("journal_event").schema["$defs"]["admission_rejected"]["properties"]["reason"]["enum"]) == reasons | {
+        "quota_exhausted", "all_eligible_families_quota_exhausted",
+        "subscription_unavailable", "subscription_policy_violation",
+    }
     assert {"journal_line_too_large", "artifact_too_large", "run_locked"} <= codes
     error = load("error-record")
     for code in codes:

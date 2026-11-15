@@ -66,6 +66,48 @@
       },
       "additionalProperties": false
     },
+    "familyId": {
+      "enum": [
+        "family_claude",
+        "family_codex",
+        "family_gemini",
+        "family_kiro",
+        "family_simulated"
+      ]
+    },
+    "quotaAvailability": {
+      "enum": [
+        "available",
+        "quota_exhausted",
+        "cooldown",
+        "unknown"
+      ]
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "subscriptionCost": {
+      "properties": {
+        "status": {
+          "const": "unavailable"
+        },
+        "amount": {
+          "type": "null"
+        },
+        "currency": {
+          "type": "null"
+        }
+      }
+    },
     "constraints": {
       "type": "object",
       "properties": {

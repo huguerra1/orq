@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/audience-metadata.schema.json",
+  "title": "ORQ AudienceMetadata v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "area_scope",
+    "target_families",
+    "target_roles"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "area_scope": {
+      "enum": [
+        "common",
+        "family"
+      ]
+    },
+    "target_families": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/familyId"
+      },
+      "uniqueItems": true
+    },
+    "target_roles": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "area_scope": {
+            "const": "common"
+          }
+        },
+        "required": [
+          "area_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "target_families": {
+            "maxItems": 0
+          },
+          "target_roles": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "area_scope": {
+            "const": "family"
+          }
+        },
+        "required": [
+          "area_scope"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "target_families": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_roles": {
+                "minItems": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); a implementação começa depois que o 6E estiver na `main`. Nenhum código, schema executável, container ou fixture da Fase 7 foi implementado.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**, para revisão. Próximo incremento: **7B**. Os incrementos 7B–7F permanecem pendentes.
 
 ## Problema
 
@@ -70,6 +70,29 @@ Especificar e, após a conclusão do 6E e o aceite da [ADR 0008](../adr/0008-pha
 | **7F** | Execução do desenho experimental (memória compartilhada × particionada por família; roteamento fixo × ciente de cota), scripts de agregação determinística e pacote de reprodutibilidade para o artigo | Cenários `Q28`–`Q30` verificados, protocolo experimental executado sem intervenção manual, journals/manifestos íntegros e tabelas de resultados consolidadas |
 
 Cada incremento exige testes automatizados verdes, atualização do [HANDOFF](../HANDOFF.md) e do [ROADMAP](../../ROADMAP.md) e revisão antes do próximo passo, conforme [AGENTS.md](../../AGENTS.md).
+
+## Notas de implementação 7A
+
+- Cinco schemas fechados: `AgentFamily`, `AudienceMetadata`, `SubscriptionProfile`, `QuotaStateRecord` e `QuotaConsumptionRecord`. Família e papel são campos independentes; audiência restrita nos dois eixos significa interseção. Família/audiência usam o digest do contêiner; os três registros têm `record_hash` JCS sem o próprio hash.
+- Extensões opcionais preservam o baseline: `audience` na fonte/unidade; família/assinatura/pool no destino; `subscription_id` em uso/reserva; `reason` na decisão/preflight. Mantidos os nomes executáveis **`cost_lines`** e **`code`**. Com assinatura, custo exige `unavailable`, valor/moeda nulos e cobertura indisponível; a moeda conhecida das fixtures antigas continua aceita sem assinatura.
+- `quota_exhausted_recorded`/`quota_reset_observed` usam agregado `run`; `quota_consumption_recorded`, `attempt`. Payloads são os registros novos. `quota_limit_reached` exige erro retryable de provedor, término confirmado e `quota_state` ligado ao mesmo run/tentativa. Motivos de roteamento conservam `{code, subject, evidence_refs}`; fallback usa `effective_selection.rule: quota_fallback`, e rejeição total, `reason.code: all_eligible_families_quota_exhausted`.
+- `unknown` permanece disponibilidade inicial/inconclusiva, sem fabricar evento. Bloqueios exigem tentativa de origem e excerto de até 512 caracteres. `cli_reported` exige `reset_at = blocked_until > observed_at`; `cooldown_policy`, reset nulo e 60 minutos, salvo `default_cooldown_ms` positivo explícito. Overrides do perfil/run são lacrados no registro; validação não insere defaults.
+- Reativação limpa os horários de bloqueio, usa `clock_expired` e registra `previous_status`. Após cooldown, exige `probe_evidence_refs` não vazio (ArtifactRefs). Verificar a sondagem e o prazo contra o evento anterior permanece no 7E.
+- `subscription_rules` opcional registra as seis categorias/ordens aceitas e revisão por família diferente. O Router atual não interpreta essa política; mapeamento de tarefas e execução ficam no 7E. Perfis restringem CLI/família e rejeitam configuração de credenciais/web com `subscription_policy_violation`; evidências V01–V12 ficam no 7C.
+- `validate_instance` confere hashes, datas e invariantes temporais, inclusive payloads. `validate_quota_consumption_record(record, usage_record=...)` resolve digest e run/tentativa/assinatura sem I/O; sem o uso, não afirma resolver a referência. Sem banco, adaptador, busca, MCP ou dependência nova.
+
+Verificação: **378 testes aprovados, nenhum ignorado**, em `tests/test_phase7_contracts.py`, `tests/test_phase6_schemas.py` e `tests/test_schemas.py`; 17 fixtures válidas com `PINNED_DIGESTS` e dez inválidas, cada uma reparável por uma única correção. Suíte integral verificada pelo orquestrador: 1280 aprovados e 4 ignorados. Revisão independente (Gemini 4 Argon Medium) sem problemas.
+
+| Cenários | Cobertura executada no 7A |
+| --- | --- |
+| Q02 | Rejeição de configuração de credenciais/web e CLI/família incompatível; sem despacho real |
+| Q07 | Forma e vínculos de erro/bloqueio, reset em UTC e término confirmado; sem detector de CLI |
+| Q08, Q12 | Decisões serializadas de fallback/esgotamento total e invariantes locais; sem roteamento/admissão executáveis por cota |
+| Q09, Q10 | Contratos de reset/cooldown, default/override e exigência de evidência de sondagem; sem relógio/runtime de recuperação |
+| Q13 | Consumo, desconhecidos, referência ao uso e custo indisponível; agregação de RunSummary permanece no 7E |
+| Q14 | Rejeição de `"0"`/`"0.00"` no uso e na reserva de assinatura, com `invalid_subscription_cost_zero` |
+
+Audiência tem testes estruturais dos dois eixos, listas vazias/duplicadas e incorporação no catálogo. Isso não executa Q15/Q16 (RLS), nem os demais cenários Q de runtime, busca, MCP ou experimento. Próximo passo: revisar 7A e iniciar **7B**, conforme seu gate de isolamento/paridade/offline.
 
 ## Documentos da Fase 7
 

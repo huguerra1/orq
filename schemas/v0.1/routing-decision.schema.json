@@ -11,6 +11,9 @@
     "preflight_checks", "usage_record_refs", "provider_extension", "record_hash"
   ],
   "properties": {
+    "reason": {
+      "$ref": "#/$defs/reason"
+    },
     "schema_version": {"const": "0.1"},
     "routing_decision_id": {"$ref": "common.schema.json#/$defs/identifier"},
     "run_id": {"$ref": "common.schema.json#/$defs/identifier"},
@@ -95,6 +98,9 @@
       "type": "object",
       "required": ["control", "status", "observed_at", "evidence_refs"],
       "properties": {
+        "reason": {
+          "$ref": "#/$defs/reason"
+        },
         "control": {"$ref": "common.schema.json#/$defs/identifier"},
         "status": {"enum": ["passed", "failed", "unknown"]},
         "observed_at": {"$ref": "common.schema.json#/$defs/utcTimestamp"},

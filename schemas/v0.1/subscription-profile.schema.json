@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/subscription-profile.schema.json",
+  "title": "ORQ SubscriptionProfile v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "subscription_id",
+    "family_id",
+    "cli_executable",
+    "quota_pool_id",
+    "billing_mode",
+    "default_cooldown_ms",
+    "local_timezone",
+    "detector_version",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "subscription_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "family_id": {
+      "enum": [
+        "family_claude",
+        "family_codex",
+        "family_gemini",
+        "family_kiro"
+      ]
+    },
+    "cli_executable": {
+      "enum": [
+        "claude",
+        "codex",
+        "agy",
+        "kiro-cli"
+      ]
+    },
+    "quota_pool_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "billing_mode": {
+      "const": "personal_subscription"
+    },
+    "default_cooldown_ms": {
+      "$ref": "common.schema.json#/$defs/positiveInteger",
+      "default": 3600000
+    },
+    "local_timezone": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128,
+      "pattern": "^(UTC|[A-Za-z_]+(?:/[A-Za-z0-9_+.-]+)+)$"
+    },
+    "detector_version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "family_id": {
+            "const": "family_claude"
+          }
+        },
+        "required": [
+          "family_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cli_executable": {
+            "const": "claude"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family_id": {
+            "const": "family_codex"
+          }
+        },
+        "required": [
+          "family_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cli_executable": {
+            "const": "codex"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family_id": {
+            "const": "family_gemini"
+          }
+        },
+        "required": [
+          "family_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cli_executable": {
+            "const": "agy"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "family_id": {
+            "const": "family_kiro"
+          }
+        },
+        "required": [
+          "family_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cli_executable": {
+            "const": "kiro-cli"
+          }
+        }
+      }
+    }
+  ]
+}

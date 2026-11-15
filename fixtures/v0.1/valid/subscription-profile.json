@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "subscription_id": "sub-chatgpt-plus",
+  "family_id": "family_codex",
+  "cli_executable": "codex",
+  "quota_pool_id": "pool-chatgpt-plus",
+  "billing_mode": "personal_subscription",
+  "default_cooldown_ms": 3600000,
+  "local_timezone": "America/Sao_Paulo",
+  "detector_version": "codex-quota-v1",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "865881f397cba466443be52185d951c4c6621f469e548494fdab3bd4567e08a7"
+  }
+}

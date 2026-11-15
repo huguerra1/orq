@@ -1,0 +1,41 @@
+{
+  "schema_version": "0.1",
+  "error_id": "error-T3-2-quota",
+  "run_id": "run-demo-001",
+  "scope_type": "attempt",
+  "scope_ref": "attempt-T3-2",
+  "phase": "collect",
+  "category": "provider",
+  "code": "quota_limit_reached",
+  "message": "Limite de assinatura confirmado pela CLI.",
+  "occurred_at": "2026-11-14T23:15:00Z",
+  "recorded_at": "2026-11-14T23:15:00Z",
+  "retryability": "retryable",
+  "termination_certainty": "confirmed",
+  "external_call_ref": null,
+  "cause_error_refs": [],
+  "diagnostic_artifact_refs": [],
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "07f3b75c967d37f136f3afa861d02e38d481df57d8f2970fd4df10a5c28449e1"
+  },
+  "quota_state": {
+    "schema_version": "0.1",
+    "quota_event_id": "quota-block-1",
+    "run_id": "run-demo-001",
+    "quota_pool_id": "pool-chatgpt-plus",
+    "subscription_id": "sub-chatgpt-plus",
+    "family_id": "family_codex",
+    "source_attempt_id": "attempt-T3-2",
+    "status": "quota_exhausted",
+    "observed_at": "2026-11-14T23:15:00Z",
+    "reset_at": "2026-11-15T01:05:00Z",
+    "blocked_until": "2026-11-15T01:05:00Z",
+    "reset_source": "cli_reported",
+    "raw_message_excerpt": "You've hit your usage limit. Upgrade to Pro or try again at 10:05 PM.",
+    "record_hash": {
+      "algorithm": "sha256",
+      "value": "172ec317c06c5616c081f4b8cdc601d566c4d2843f8a5622a437f01ae538cec5"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": "0.1",
+  "area_scope": "common",
+  "target_families": [
+    "family_claude"
+  ],
+  "target_roles": []
+}

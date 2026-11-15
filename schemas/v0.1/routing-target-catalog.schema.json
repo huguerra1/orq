@@ -33,6 +33,15 @@
         "routing_description", "specialization_tags"
       ],
       "properties": {
+        "family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "subscription_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "quota_pool_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
         "target_id": {"$ref": "common.schema.json#/$defs/identifier"},
         "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
         "status": {"enum": ["active", "deprecated", "disabled"]},
@@ -56,6 +65,16 @@
         "priority": {"type": "integer", "minimum": 0},
         "routing_description": {"$ref": "common.schema.json#/$defs/nonEmptyText"},
         "specialization_tags": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/identifier"}}
+      },
+      "dependentRequired": {
+        "subscription_id": [
+          "family_id",
+          "quota_pool_id"
+        ],
+        "quota_pool_id": [
+          "family_id",
+          "subscription_id"
+        ]
       },
       "additionalProperties": false
     }

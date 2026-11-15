@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "quota_event_id": "quota-reset-1",
+  "run_id": "run-demo-001",
+  "quota_pool_id": "pool-chatgpt-plus",
+  "subscription_id": "sub-chatgpt-plus",
+  "family_id": "family_codex",
+  "source_attempt_id": null,
+  "status": "available",
+  "observed_at": "2026-11-15T00:16:00Z",
+  "reset_at": null,
+  "blocked_until": null,
+  "reset_source": "clock_expired",
+  "raw_message_excerpt": null,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "6d2016eea3ef27ee82098e3cc56e609ca9f7c0f332da3dbd894bb448f4693c53"
+  },
+  "previous_status": "cooldown",
+  "probe_evidence_refs": [
+    {
+      "artifact_id": "probe-success-1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "90d3de53cd38005fce42617bde2bf93630ef0c12129b44ca9cc38f105de029f3"
+      }
+    }
+  ]
+}
