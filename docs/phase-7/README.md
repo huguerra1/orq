@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado**, para revisão. Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
 
 ## Problema
 
