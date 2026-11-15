@@ -62,6 +62,7 @@ class AttemptProjection(AggregateProjection):
     effect_proven: bool = False
     reconciliation_deadline: str | None = None
     failure_error_id: str | None = None
+    effective_context_manifest_ref: dict | None = None
 
     @property
     def undeclared_artifacts(self) -> list[dict]:
@@ -105,6 +106,8 @@ class RunProjection(AggregateProjection):
     published_cutoff: int | None = None
     reconcile_not_found_authoritative: bool = False
     stopping_cause: str | None = None
+    quota_states: dict[str, dict] = field(default_factory=dict)
+    quota_consumptions: dict[str, dict] = field(default_factory=dict)
 
     def aggregate(self, kind: str, id: str) -> AggregateProjection:
         if kind == "run":
@@ -225,7 +228,8 @@ class RunProjection(AggregateProjection):
         leaves = self.latest_usages()
         lines = [line for u in leaves for line in u["cost_lines"]]
         currency = (self.manifest or {}).get("budget_snapshot")
-        currencies = {line["currency"] for line in lines}
+        currencies = {line["currency"] for u in leaves for line in u["cost_lines"]
+                      if not (u.get("subscription_id") and line["currency"] is None and line["status"] == "unavailable")}
         currency = currency["currency"] if currency else (next(iter(currencies)) if currencies else None)
         require(not currencies or currencies == {currency}, "currency_mismatch", "run aceita uma moeda")
         # Precisão cresce com os operandos; o contexto Decimal padrão não pode arredondar custo.
@@ -436,6 +440,45 @@ def _apply(s: RunProjection, e: dict) -> None:
         _unique_record(s, p, "planning_record_id")
     elif type == "run_manifest_closed":
         _manifest(s, e)
+    elif type == "attempt_context_sealed":
+        _seal_attempt_context(s, e)
+    elif type in {"quota_exhausted_recorded", "quota_reset_observed"}:
+        previous = s.quota_states.get(p["quota_pool_id"])
+        if type == "quota_exhausted_recorded":
+            require(p["source_attempt_id"] in s.attempts, "quota_attempt_mismatch", "bloqueio sem tentativa")
+        else:
+            require(previous and previous["status"] == p["previous_status"] and
+                    timestamp(p["observed_at"]) >= timestamp(previous["blocked_until"]),
+                    "quota_reset_premature", "reset sem bloqueio vencido")
+            if previous["status"] == "cooldown":
+                probes = [event for event in s.events.values() if event["event_type"] == "quota_probe_observed"
+                          and event["payload"]["quota_pool_id"] == p["quota_pool_id"]]
+                require(probes and probes[-1]["payload"]["available"] is True and
+                        probes[-1]["payload"]["evidence_refs"] == p["probe_evidence_refs"],
+                        "quota_probe_required", "cooldown exige sondagem conclusiva")
+        _unique_record(s, p, "quota_event_id")
+        s.quota_states[p["quota_pool_id"]] = p
+    elif type == "quota_consumption_recorded":
+        from .validator import validate_quota_consumption_record
+        usage = s.usages.get(p["usage_record_ref"]["id"])
+        require(p["attempt_id"] == id and p["task_id"] == agg.header["task_id"] and usage and
+                not validate_quota_consumption_record(p, usage_record=usage), "quota_usage_mismatch", "consumo de outro uso/tentativa")
+        _unique_record(s, p, "quota_consumption_id")
+        s.quota_consumptions[p["quota_consumption_id"]] = p
+    elif type == "quota_probe_requested":
+        previous = s.quota_states.get(p["quota_pool_id"])
+        require(previous and previous["status"] == "cooldown" and
+                p["blocked_record_ref"] == record_ref(previous, "quota_event_id") and
+                timestamp(p["requested_at"]) >= timestamp(previous["blocked_until"]),
+                "quota_probe_premature", "sondagem sem cooldown vencido")
+        require(not any(x["payload"]["probe_id"] == p["probe_id"] for x in s.events.values()
+                        if x["event_type"] == type), "quota_probe_reused", "sondagem já pedida")
+    elif type == "quota_probe_observed":
+        requested = [x for x in s.events.values() if x["event_type"] == "quota_probe_requested"
+                     and x["payload"]["probe_id"] == p["probe_id"] and x["payload"]["quota_pool_id"] == p["quota_pool_id"]]
+        require(requested and all(ref["artifact_id"] in s.artifacts and
+                s.artifacts[ref["artifact_id"]]["content_digest"] == ref["content_digest"] for ref in p["evidence_refs"]),
+                "quota_probe_evidence_missing", "resultado sem intenção/evidência")
     elif type in {"knowledge_selection_recorded", "routing_decision_recorded", "context_manifest_recorded"}:
         require(agg.state == "ready" and s.state == "running" and not s.cancel_requested,
                 "event_out_of_order", "admissão exige tarefa ready e run ativo")
@@ -569,6 +612,8 @@ def _manifest(s: RunProjection, e: dict) -> None:
 
 def _dispatch(s: RunProjection, e: dict) -> None:
     h, d = e["payload"]["attempt_header"], e["payload"]["dispatch_intent"]
+    require(h.get("knowledge_session_ref") == d.get("knowledge_session_ref"),
+            "knowledge_session_mismatch", "sessão do cabeçalho diverge da intenção")
     _record_hash(h)
     _record_hash(d)
     require(not any(a.intent["dispatch_intent_id"] == d["dispatch_intent_id"] for a in s.attempts.values()),
@@ -606,7 +651,9 @@ def _dispatch(s: RunProjection, e: dict) -> None:
             "target_mismatch", "target_ref divergente")
     require(context["bundle_hash"] == d["bundle_hash"], "bundle_hash_mismatch", "bundle_hash divergente")
     require(context["routing_decision_ref"] == d["routing_decision_ref"] and
-            h["execution_target_snapshot"]["executor_ref"] == d["executor_ref"] == s.manifest["executor_snapshot"]["executor_ref"],
+            h["execution_target_snapshot"]["executor_ref"] == d["executor_ref"] and
+            d["executor_ref"] in [s.manifest["executor_snapshot"]["executor_ref"],
+                                  *s.manifest["executor_snapshot"].get("target_executor_refs", [])],
             "reference_mismatch", "contexto/executor divergente")
     for ref in context["knowledge_selection_refs"]:
         selection = _resolve(s, ref, "selection_id")
@@ -641,6 +688,52 @@ def _dispatch(s: RunProjection, e: dict) -> None:
     a = AttemptProjection(h["attempt_id"], "queued", header=h, intent=d, dispatch_sequence=e["global_sequence"])
     s.attempts[a.id] = a
     task.attempt_ids.append(a.id)
+
+
+def _seal_attempt_context(s, e):
+    from .family_mcp import validate_audit
+    p, aid = e["payload"], e["aggregate_id"]
+    a = s.attempts[aid]
+    config = p["session_config"]
+    task = s.tasks[a.header["task_id"]].spec
+    require(a.termination_certainty == "confirmed" and not s.history("attempt", aid, "attempt_context_sealed"),
+            "event_out_of_order", "selagem exige término confirmado e é única")
+    require(a.intent.get("knowledge_session_ref") == {"id": config["session_id"], "version": "0.1",
+            "content_digest": canonical_digest(config)}, "knowledge_session_mismatch", "sessão diverge da intenção")
+    require(config["choice"]["run_id"] == s.id and config["choice"]["task_id"] == a.header["task_id"] and
+            config["choice"]["candidate_attempt_number"] == a.header["attempt_number"] and
+            config["scope"]["project_id"] == s.intent["project_id"] and
+            config["scope"]["role_id"] == s.tasks[a.header["task_id"]].spec["agent_role"]["id"] and
+            config["scope"]["catalog_id"] == s.manifest["knowledge_catalog_snapshot_ref"]["id"] and
+            config["choice"]["workflow_ref"] == s.manifest["workflow_snapshot_ref"] and
+            config["task"] == task and config["requirements"] == task["knowledge_requirements"] and
+            config["knowledge_status_assertions"] == s.manifest["knowledge_status_assertions"],
+            "knowledge_session_mismatch", "escopo de outra tentativa/projeto/papel/catálogo")
+    try:
+        delivered = validate_audit(p["audit"], a.intent["knowledge_session_ref"])
+    except ValueError:
+        require(False, "knowledge_audit_integrity_mismatch", "trilha inválida")
+    require(p["audit_hash"] == canonical_digest(p["audit"]), "knowledge_audit_integrity_mismatch", "hash da trilha diverge")
+    require((delivered is None and p["selection"] is None and p["manifest"] is None) or
+            delivered and delivered["selection"] == p["selection"] and delivered["manifest"] == p["manifest"],
+            "knowledge_audit_integrity_mismatch", "contexto não corresponde ao entregue")
+    if delivered:
+        selection, manifest = p["selection"], p["manifest"]
+        require(not validate_instance(selection, "knowledge_selection") and not validate_context_manifest(manifest),
+                "context_manifest_invalid", "contexto efetivo inválido")
+        require(manifest["routing_decision_ref"] == a.intent["routing_decision_ref"] and
+                manifest["target_ref"] == a.intent["target_ref"] and
+                manifest["candidate_attempt_number"] == a.header["attempt_number"] and
+                manifest["task_id"] == a.header["task_id"] and
+                selection["requirement_snapshots"] == task["knowledge_requirements"] and
+                selection["catalog_snapshot_ref"] == s.manifest["knowledge_catalog_snapshot_ref"] and
+                selection["status"] in {"satisfied", "partial"} and
+                manifest["knowledge_selection_refs"] == [record_ref(selection, "selection_id")],
+                "knowledge_session_mismatch", "contexto efetivo de outra tentativa")
+        _record_hash(selection, "selection_hash")
+        _unique_record(s, selection, "selection_id")
+        _unique_record(s, manifest, "context_manifest_id")
+        a.effective_context_manifest_ref = record_ref(manifest, "context_manifest_id")
 
 
 def _check_inputs(s: RunProjection, task: TaskProjection, bindings: list[dict]) -> None:
@@ -814,7 +907,9 @@ def _attachment(s: RunProjection, e: dict) -> None:
                 "usage_supersedes_invalid", "correção deve estender cadeia do mesmo escopo")
         currency = (s.manifest or {}).get("budget_snapshot")
         if currency:
-            require(all(l["currency"] == currency["currency"] for l in p["cost_lines"]), "currency_mismatch", "moeda diferente do run")
+            require(all(l["currency"] == currency["currency"] or
+                        (p.get("subscription_id") and l["currency"] is None and l["status"] == "unavailable" and l["amount"] is None)
+                        for l in p["cost_lines"]), "currency_mismatch", "moeda diferente do run")
         s.aggregate(kind, id).usage_record_ids.append(p[field])
     else:
         s.aggregate(kind, id).error_record_ids.append(p[field])
@@ -831,7 +926,9 @@ def _budget(s: RunProjection, e: dict) -> None:
         require(rid not in s.reservations, "duplicate_id", "reserva já existe")
         require(s.state == "running" and s.manifest and not s.cancel_requested, "event_out_of_order", "run não admite reserva")
         budget = s.manifest["budget_snapshot"]
-        require(p["currency"] == budget["currency"], "currency_mismatch", "moeda da reserva diverge")
+        require(p["currency"] == budget["currency"] or
+                (p.get("subscription_id") and p["currency"] is None and p["status"] == "unavailable" and p["amount"] is None),
+                "currency_mismatch", "moeda da reserva diverge")
         require(p["amount"] is not None or not (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject"),
                 "budget_unknown", "política exige estimativa")
         s.reservations[rid] = ReservationProjection(p)

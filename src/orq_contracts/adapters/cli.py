@@ -464,7 +464,9 @@ class CLIAdapter:
             errors.append(self._error(intent, "quota_limit_reached", detection.excerpt, now, quota_state=state))
         elif observation.status != "finished" or not parsed.final:
             reason = detection.reason if detection.reason != "none" else receipt["stop_reason"] or "permission_or_empty_output"
-            errors.append(self._error(intent, "execution_failed", reason, now))
+            code = ("permission_or_empty_output" if self.cli == "agy" and not parsed.final and
+                    any("no output produced" in line.lower() for line in parsed.diagnostics) else "execution_failed")
+            errors.append(self._error(intent, code, reason, now))
         if not errors:
             pending = []
             try:

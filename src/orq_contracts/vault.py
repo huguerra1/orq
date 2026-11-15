@@ -110,6 +110,10 @@ def _frontmatter(
         raise VaultError("invalid_frontmatter_type", "/frontmatter", "frontmatter deve ser objeto textual")
     _yaml_node_count(loaded, max_nodes)
 
+    family_sensitive = sorted(set(loaded) & {"audience", "area_scope", "target_families", "target_roles"})
+    if family_sensitive:
+        raise VaultError("forbidden_frontmatter_field", "/frontmatter",
+                         "audiência atribuída somente pelo catálogo: " + ", ".join(family_sensitive))
     sensitive = sorted(set(loaded) & SENSITIVE_FRONTMATTER_FIELDS)
     if sensitive:
         raise VaultError(

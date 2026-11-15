@@ -199,6 +199,13 @@
             },
             "script_ref": {
               "$ref": "common.schema.json#/$defs/versionedRef"
+            },
+            "target_executor_refs": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              },
+              "uniqueItems": true
             }
           },
           "additionalProperties": false

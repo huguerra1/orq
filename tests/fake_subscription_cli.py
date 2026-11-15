@@ -32,7 +32,9 @@ if mode == "quota":
 if mode == "login":
     print("Could not load your login: dispatch failure (io error): an i/o error occurred", file=sys.stderr)
     sys.exit(1)
-if mode == "empty":
+if mode in {"empty", "agy_permission"}:
+    if mode == "agy_permission":
+        print("logging before google.Init", file=sys.stderr)
     print("no output produced", file=sys.stderr)
     sys.exit(0)
 if mode == "noise_only":
@@ -40,6 +42,9 @@ if mode == "noise_only":
     print("[tool] read_file: usage limit")
     sys.exit(0)
 final = 'ORQ_FINAL:{"outputs":{"report":{"ok":true}}}'
+if mode == "literal_success":
+    print(json.dumps({"type": "item.completed", "item": {"type": "command_execution",
+          "aggregated_output": "You've hit your usage limit"}}))
 if mode == "bad_contract":
     final = 'ORQ_FINAL:{"outputs":{"report":{"ok":"yes"}}}'
 if mode == "file":

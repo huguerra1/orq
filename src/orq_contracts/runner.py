@@ -57,11 +57,11 @@ class SequentialRunner:
                knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
                id_factory: Callable = deterministic_id, on_event: Callable | None = None,
                decision_engine: DecisionEngine | None = None,
-               external_inputs: dict[str, bytes] | None = None) -> SequentialRunner:
+               external_inputs: dict[str, bytes] | None = None, family_runtime=None) -> SequentialRunner:
         script.validate_against_workflow(workflow)
         journal = RunJournal.create(store_root, request["run_id"], clock=clock)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False, family_runtime)
 
     @classmethod
     def open(cls, store_root: Path, *, workflow: Record, request: Record,
@@ -69,7 +69,7 @@ class SequentialRunner:
              knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
              id_factory: Callable = deterministic_id, on_event: Callable | None = None,
              decision_engine: DecisionEngine | None = None,
-             external_inputs: dict[str, bytes] | None = None) -> SequentialRunner:
+             external_inputs: dict[str, bytes] | None = None, family_runtime=None) -> SequentialRunner:
         script.validate_against_workflow(workflow)
         def prepare_recovery(events):
             times = [parse_utc(e["recorded_at"]) for e in events]
@@ -85,11 +85,11 @@ class SequentialRunner:
                                             timedelta(milliseconds=clock.step_ms)))
         journal = RunJournal.open(store_root, request["run_id"], clock=clock, prepare_recovery=prepare_recovery)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True, family_runtime)
 
     @classmethod
     def _build(cls, journal, workflow, request, catalog, policy, script, knowledge_catalog,
-               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed):
+               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed, family_runtime):
         self = cls()
         self.journal, self.clock, self.script = journal, clock, script
         self.workflow, self.request, self.catalog, self.policy, self.knowledge_catalog = deepcopy(
@@ -97,8 +97,11 @@ class SequentialRunner:
         self.vault_root, self.ids, self.on_event = Path(vault_root), id_factory, on_event
         self.decision_engine, self.external_inputs = decision_engine, deepcopy(external_inputs or {})
         self.resumed = resumed
+        self.family_runtime = family_runtime
         self._undispatched: set[str] = set()  # prova volátil de AT04
         try:
+            if any(t.get("subscription_id") for t in self.catalog["targets"]) and not self.family_runtime:
+                raise ExecutorError("subscription_policy_violation", "catálogo de assinaturas exige FamilyRuntime")
             if not isinstance(clock, DeterministicClock) or journal.clock is not clock:
                 raise ExecutorError("clock_mismatch", "runner e journal exigem o mesmo relógio injetado")
             self.store = ArtifactStore(journal)
@@ -126,12 +129,20 @@ class SequentialRunner:
                                             timedelta(milliseconds=clock.step_ms)))
             self._input_hash = identity
             self.executor = SimulatedExecutor(script, self.store, clock=clock, state=state, persist=self._persist_executor)
+            self.simulated_executor = self.executor
             contracts = ContentContractRegistry()
             contracts.register(*simulated_output_contract())
             self.evaluator = DeterministicEvaluator(self.store, script, clock=clock, contracts=contracts)
+            if self.family_runtime:
+                self.family_runtime.attach(self)
             self._authoritative = any(c["id"] == AUTHORITATIVE_NOT_FOUND_CONTROL and c["support"] == "supported"
                                       for c in self.executor.describe().controls)
             self.projection = self._project(journal.events)
+            if self.family_runtime and self.projection.manifest:
+                if self.projection.manifest["executor_snapshot"]["executor_ref"] != self.executor.describe().executor_ref:
+                    raise ExecutorError("snapshot_mismatch", "hub da retomada divergente")
+                if self.projection.manifest["orchestrator_snapshot"]["config_ref"]["content_digest"] != canonical_digest([self.policy, self.family_runtime.snapshot]):
+                    raise ExecutorError("snapshot_mismatch", "configuração de assinatura divergente")
             return self
         except BaseException:
             journal.close()
@@ -148,6 +159,8 @@ class SequentialRunner:
         self._checkpoint_number = number
 
     def close(self) -> None:
+        if self.family_runtime:
+            self.family_runtime.close()
         self.journal.close()
 
     def __enter__(self):
@@ -202,7 +215,7 @@ class SequentialRunner:
             "state_transition", "dispatch_requested", "dispatch_acknowledged", "execution_started",
             "error_attached", "termination_confirmed", "result_collected", "artifact_ingested", "output_bound",
             "evaluation_requested", "evaluation_report_recorded", "outputs_accepted", "admission_rejected",
-            "reconciliation_observed", "cancel_requested", "deadline_exceeded", "run_manifest_closed"}]
+            "reconciliation_observed", "cancel_requested", "deadline_exceeded", "run_manifest_closed", "attempt_context_sealed"}]
         return self.append("state_transition", {"from": s.aggregate_state(kind, id), "to": to,
                                                "reason": reason, "evidence_event_ids": evidence}, kind, id)
 
@@ -293,6 +306,11 @@ class SequentialRunner:
                                      "missing": [] if ready else ["execution"], "reason": None if ready else status},
             "preparation_usage_refs": [], "preparation_error_refs": [],
         }
+        if ready and self.family_runtime:
+            manifest["executor_snapshot"]["target_executor_refs"] = list({
+                canonicalize(t["executor_ref"]): t["executor_ref"] for t in self.catalog["targets"]}.values())
+            manifest["orchestrator_snapshot"]["config_ref"]["content_digest"] = canonical_digest(
+                [self.policy, self.family_runtime.snapshot])
         self.append("run_manifest_closed", seal_record(manifest, "run_manifest"))
         if not ready:
             self._transition("run", s.id, "cancelled" if status == "cancelled_before_ready" else "failed", status)
@@ -358,6 +376,8 @@ class SequentialRunner:
     def _budget_check(self, operations):
         s = self.projection
         budget = s.manifest["budget_snapshot"]
+        if self.family_runtime and budget["cap_mandatory"] and any(scope == "attempt" for scope, _ in operations):
+            return "budget_unknown"
         estimates = [self._estimate(scope, subject) for scope, subject in operations]
         if (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject") and any(e is None for e in estimates):
             return "budget_unknown"
@@ -375,10 +395,15 @@ class SequentialRunner:
         estimate = self._estimate(scope, subject)
         # O número da sequência evita reutilizar reservas abandonadas por crash.
         rid = self.ids("reservation", id, len(self.journal.events) + 1)
-        self.append("budget_reserved", {"reservation_id": rid, "scope_type": scope, "scope_ref": id,
+        payload = {"reservation_id": rid, "scope_type": scope, "scope_ref": id,
                     "amount": estimate["amount"] if estimate else None, "status": "estimated" if estimate else "unavailable",
                     "currency": self.projection.manifest["budget_snapshot"]["currency"],
-                    "method": estimate["method"] if estimate else "unavailable"})
+                    "method": estimate["method"] if estimate else "unavailable"}
+        if self.family_runtime and scope == "attempt":
+            target = next(t for t in self.catalog["targets"] if reference(t, "target_id") == subject)
+            payload.update(subscription_id=target["subscription_id"], amount=None, currency=None,
+                           status="unavailable", method="unavailable")
+        self.append("budget_reserved", payload)
         return rid
 
     def _admit(self, task_id):
@@ -394,7 +419,9 @@ class SequentialRunner:
         except (ExecutorError, StorageError):
             return self._reject(task_id, "inputs_unavailable")
         try:
-            selection = select_knowledge(self.vault_root, self.knowledge_catalog, task["knowledge_requirements"],
+            if self.family_runtime:
+                self.family_runtime.refresh_quotas()
+            selection = select_knowledge(self.vault_root, self.knowledge_catalog, [] if self.family_runtime else task["knowledge_requirements"],
                 query=task["objective"], run_id=s.id, workflow_ref=s.manifest["workflow_snapshot_ref"], task_id=task_id,
                 candidate_attempt_number=number, project_id=s.intent["project_id"], created_at=self.clock.now(),
                 max_tokens=self.policy.get("knowledge_max_tokens", 2048),
@@ -416,7 +443,9 @@ class SequentialRunner:
                        "required_control_ids": ["timeout", "cancellation"], "created_at": self.clock.now()}
             decision = route_and_finalize(request, self.catalog, self.policy["routing_policy"],
                 preflight_checks=[{"control": c, "status": "passed", "observed_at": self.clock.now(), "evidence_refs": [self.script.reference]}
-                                  for c in ("credentials", "quota", "limits")], decision_engine=self.decision_engine)
+                                  for c in ("credentials", "quota", "limits")], decision_engine=self.decision_engine,
+                quota_snapshot=self.family_runtime.quota_snapshot if self.family_runtime else None,
+                implementation_families=self.family_runtime.implementation_families(task) if self.family_runtime else frozenset())
             self.append("routing_decision_recorded", decision, "task", task_id)
             if self.projection.cancel_requested:
                 return
@@ -424,6 +453,9 @@ class SequentialRunner:
                 return self._reject(task_id, decision["decision_status"])
             target = next(t for t in self.catalog["targets"] if t["target_id"] == decision["effective_selection"]["selected_target_id"])
             target_ref = reference(target, "target_id")
+            if self.family_runtime:
+                session = self.family_runtime.session(task, number, decision, target)
+                session.preflight()
             context = materialize_knowledge_context(self.vault_root, self.knowledge_catalog, selection,
                 routing_decision_ref=record_ref(decision, "routing_decision_id"), target_ref=target_ref,
                 target_context_limit_tokens=target["context_limit_tokens"], reserved_output_tokens=request["required_output_tokens"],
@@ -435,7 +467,10 @@ class SequentialRunner:
             if self.projection.cancel_requested:
                 return
         except (VaultError, ContextError, RoutingError) as error:
-            return self._reject(task_id, "context_rejected" if isinstance(error, ContextError) else "policy_rejected")
+            if self.family_runtime and error.code == "knowledge_unsatisfied":
+                return self._reject(task_id, "knowledge_unsatisfied")
+            code = "integrity_mismatch" if self.family_runtime and error.code in {"integrity_mismatch", "unit_integrity_mismatch", "selected_unit_missing"} else None
+            return self._reject(task_id, "context_rejected" if isinstance(error, ContextError) or code else "policy_rejected", code)
         aid = self.ids("attempt", task_id, number)
         eid = self.ids("evaluation", task_id, number, 1)
         operations = [("attempt", target_ref), ("evaluation", self.evaluator.snapshot["evaluator_ref"])]
@@ -472,6 +507,8 @@ class SequentialRunner:
                   "input_bindings": bindings, "budget_reservation_ids": reservations, "dispatch_intent_id": dispatch_id,
                   "dispatch_idempotency_key": s.id + "/" + dispatch_id, "created_at": now,
                   "deadline_at": self._deadline(s.limit("attempt_timeout_ms", task_id))}
+        if self.family_runtime:
+            common["knowledge_session_ref"] = session.reference
         header = seal_record({**common, "previous_attempt_id": s.tasks[task_id].attempt_ids[-1] if number > 1 else None,
                               "effective_policy_snapshot_ref": s.manifest["execution_policy_snapshot_ref"],
                               "execution_target_snapshot": {"target_ref": target_ref, **{k: target[k] for k in (
@@ -491,6 +528,8 @@ class SequentialRunner:
         self._undispatched.remove(aid)
         workspace = WorkspaceHandle(self.ids("workspace", task_id, number), base, tuple(task["expected_output"]), target["model_ref"]["id"])
         try:
+            if self.family_runtime:
+                self.executor.bind_knowledge_session(intent, session)
             ack = self.executor.dispatch(intent, context.bundle, workspace)
         except ExecutorError as error:
             if error.termination_certainty == "confirmed":
@@ -531,8 +570,15 @@ class SequentialRunner:
             self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
         for error in result.errors:
             self._attach_error(error, "attempt", aid)
+        if self.family_runtime:
+            self.family_runtime.record_result(aid, result)
+            if result.errors:
+                self.family_runtime.seal_context(aid)
+                self._settle_attempt(aid)
+                return self._transition("attempt", aid, "failed", "execution_failed")
         task = self.projection.tasks[a.header["task_id"]].spec
-        failed = False
+        failed = not self.family_runtime.seal_context(aid, required=True) if self.family_runtime else False
+        failed = failed or bool(self.family_runtime and result.errors)
         for file in result.produced_files:
             artifact_id = self.ids("artifact", aid, file.output_id)
             if artifact_id not in self.projection.artifacts:
@@ -598,6 +644,9 @@ class SequentialRunner:
             self._attach_error(error, "attempt", aid)
         for usage in result.usage:
             self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+        if self.family_runtime:
+            self.family_runtime.record_result(aid, result)
+            self.family_runtime.seal_context(aid)
         self._settle_attempt(aid)
         self._transition("attempt", aid, "failed", "execution_failed")
 
@@ -625,6 +674,11 @@ class SequentialRunner:
             result = self.executor.collect(a.intent)
             for usage in result.usage:
                 self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+            if self.family_runtime:
+                for error in result.errors:
+                    self._attach_error(error, "attempt", aid)
+                self.family_runtime.record_result(aid, result)
+                self.family_runtime.seal_context(aid)
             self._settle_attempt(aid)
             self._transition("attempt", aid, "timed_out" if timeout else "cancelled", "attempt_timeout" if timeout else "run_cancelled")
         elif a.state != "unknown":
@@ -670,6 +724,12 @@ class SequentialRunner:
                 errors = result.errors or errors
                 for usage in result.usage:
                     self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+                if self.family_runtime:
+                    # Mesmo caminho idempotente da coleta normal, inclusive após corte no journal.
+                    for error in errors:
+                        self._attach_error(error, "attempt", aid)
+                    self.family_runtime.record_result(aid, result)
+                    self.family_runtime.seal_context(aid)
             # Um crash pode ocorrer após o ErrorRecord e antes de AT13/AT15.
             prior = [e for e in self.projection.history("attempt", aid, "error_attached")
                      if e["global_sequence"] > observed["global_sequence"] and e["payload"]["termination_certainty"] == "confirmed"]
@@ -693,6 +753,11 @@ class SequentialRunner:
             result = self.executor.collect(a.intent)
             for usage in result.usage:
                 self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+            if self.family_runtime:
+                for error in result.errors:
+                    self._attach_error(error, "attempt", aid)
+                self.family_runtime.record_result(aid, result)
+                self.family_runtime.seal_context(aid)
             self._settle_attempt(aid)
             if timeout:
                 self._transition("attempt", aid, "timed_out", "attempt_timeout")
@@ -899,6 +964,11 @@ class SequentialRunner:
                             result = self.executor.collect(a.intent)
                             for usage in result.usage:
                                 self.append("usage_attached", usage, "attempt", a.id, key=usage["usage_id"], actor="executor")
+                            if self.family_runtime:
+                                for error in result.errors:
+                                    self._attach_error(error, "attempt", a.id)
+                                self.family_runtime.record_result(a.id, result)
+                                self.family_runtime.seal_context(a.id)
                             self._settle_attempt(a.id)
                             self._transition("attempt", a.id, {"timeout": "timed_out", "cancel": "cancelled"}[cause], cause)
             elif action.kind == "stop_run" and self.projection.manifest:

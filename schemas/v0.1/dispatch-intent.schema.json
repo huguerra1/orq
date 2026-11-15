@@ -215,6 +215,9 @@
     },
     "record_hash": {
       "$ref": "common.schema.json#/$defs/digest"
+    },
+    "knowledge_session_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
     }
   },
   "additionalProperties": false,

@@ -86,7 +86,8 @@
         "run_locked",
         "run_exists",
         "quota_limit_reached",
-        "subscription_policy_violation"
+        "subscription_policy_violation",
+        "permission_or_empty_output"
       ]
     },
     "message": {

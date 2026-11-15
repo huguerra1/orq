@@ -1,6 +1,6 @@
 # Cenários de aceitação da Fase 7
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)). Os 30 cenários `Q01`–`Q30` abaixo são a especificação documental. O 7A executou Q14 no contrato de assinatura e partes contratuais de Q02, Q07–Q10 e Q12–Q13; [cobertura e limites nas Notas 7A](README.md#notas-de-implementação-7a). Os cenários completos de runtime, RLS, busca, MCP e experimento continuam pendentes dos incrementos seguintes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md)); **7E implementado para revisão**. A [tabela de cobertura](#cobertura-automatizada-do-7e) liga Q01–Q27 a testes executáveis e explicita a ressalva temporal de Q25. Os testes de banco exigem `ORQ_MEMORY_DSN`; Q28–Q30 continuam no **7F**. Automação com CLIs falsas não substitui o smoke V01–V12 de versões reais.
 
 ## Estratégia e convenções
 
@@ -9,6 +9,52 @@ Os cenários seguem o formato `Dado / Quando / Então / Base` adotado na [Fase 6
 - O prefixo **`Q`** identifica os cenários da Fase 7 (os prefixos `C`, `P`, `R`, `E`, `A`, `X`, `K` e `S` pertencem às fases anteriores).
 - Nos cenários de adaptadores e cota (`Q01`–`Q14`), os testes automatizados de CI usam subprocessos simulados/fixtures das saídas reais das CLIs e relógio injetado (`DeterministicClock`), enquanto a sessão de verificação V01–V12 executa os binários reais instalados nas versões fixadas.
 - Nos cenários de memória por família (`Q15`–`Q27`), os testes de isolamento RLS rodam contra o container PostgreSQL configurável via Docker com a role restrita `orq_reader`, além de validar o fallback para o modo offline `bm25-v1`.
+
+A role implementada pelo 7B chama-se **`orq_memory_reader`**. `orq_reader` nos enunciados abaixo é o nome conceitual da role restrita, não uma role adicional.
+
+## Cobertura automatizada do 7E
+
+Os caminhos abaixo são relativos a `tests/`. **Automatizado** significa que as
+asserções cobrem os resultados indicados, usando executores simulados ou CLIs
+Python falsas; **Postgres** identifica testes reais de banco, pulados sem DSN e
+exigidos no CI. Isso não declara os testes de banco executados localmente.
+
+| ID | Cobertura | Testes / evidência e limites |
+| --- | --- | --- |
+| Q01 | Automatizado | `test_cli_adapters.py::test_protocol_collect_closed_stdin_and_cost` (quatro CLIs falsas) e `test_spawn_without_shell_and_state_fsynced_before_spawn`: EOF, argv sem shell e estado anterior ao spawn. |
+| Q02 | Automatizado | `test_phase7_contracts.py` (credenciais/web proibidos) e `test_phase7_scenarios.py::test_Q02_invalid_profile_never_reaches_executor`: erro `subscription_policy_violation` antes da fábrica do executor. |
+| Q03 | Automatizado | `test_phase7_scenarios.py::test_Q03_unknown_control_blocks_real_priority`: `control_unknown`, decisão sem destino, zero despachos. |
+| Q04 | Automatizado | `test_phase7_boundaries.py::test_Q04_agy_permission_error_filters_noise_and_never_completes` e `test_phase7_scenarios.py::test_Q04_agy_collect_error_finishes_attempt_failed`: diagnóstico com os dois ruídos, código específico e tentativa failed. |
+| Q05 | Automatizado | `test_cli_adapters.py::test_exact_argv` e `test_command_grants_are_explicit_and_injection_rejected`: sem `execute_bash` quando comandos não são autorizados; lista fechada e nenhuma concessão global. |
+| Q06 | Automatizado | `test_cli_adapters.py::test_timeout_and_cancel_kill_tree_even_without_observe` (quatro CLIs falsas/filhos) mais S27 em `test_runner_scenarios.py`: morte/ausência da árvore, certeza e cancelamento pelo runner. |
+| Q07 | Automatizado | `test_phase7_scenarios.py::test_Q07_Q08_Q13_Q26_quota_fallback_and_effective_context`: mensagem real, detector 7C, UTC 01:05, evento de bloqueio, erro retryable e tentativa failed. |
+| Q08 | Automatizado | Mesmo teste: candidato Codex inelegível com evidência, `quota_fallback`/`used_fallback`, retry e despacho Claude. |
+| Q09 | Automatizado | `test_phase7_scenarios.py::test_Q09_explicit_reset_restores_codex_before_new_task`: relógio em 01:06, evento de reset anterior à nova decisão, Codex elegível. |
+| Q10 | Automatizado | `test_Q10_cooldown_and_family_fallback` e `test_cooldown_requires_durable_probe_and_reblocks_when_refused`: reset nulo, 60 minutos, fallback; prova positiva, renovação e resultado inconclusivo de sondagem. |
+| Q11 | Automatizado | `test_phase7_boundaries.py::test_Q11_project_literal_and_valid_final_do_not_exhaust_quota` (quatro adaptadores): literal em saída de ferramenta, final válido, sem erros/cota. `test_quota_detector.py` também confere a proteção de código 0. |
+| Q12 | Automatizado | `test_phase7_scenarios.py::test_Q12_all_four_pools_blocked_no_fifth_dispatch`: quatro recusas/pools distintos no runner; quinta admissão rejeitada com motivo exato e nenhum quinto despacho. |
+| Q13 | Automatizado | Teste ponta a ponta Q07/Q08/Q13/Q26: consumo ligado ao uso, reservas/uso unavailable/null e resumo inexato. `test_cli_adapters.py::test_protocol_collect_closed_stdin_and_cost`: tokens reportados preservados, estimativa financeira ignorada e multiplicador ausente mantido null. |
+| Q14 | Automatizado | `test_phase7_contracts.py::test_q14_subscription_zero_is_rejected_with_specific_code`: `0` e `0.00` rejeitados em uso/reserva com `invalid_subscription_cost_zero`. |
+| Q15 | Postgres | `test_memory_store_postgres.py::test_codex_sees_common_and_own_units_only`: SELECT sem filtro de família, conjunto exato e zero unidades Claude. |
+| Q16 | Postgres | `test_memory_store_postgres.py::test_family_and_role_restriction_requires_both_axes`: backend_engineer não vê a unidade; security_reviewer da família correta vê. |
+| Q17 | Postgres | `test_knowledge_search_postgres.py::test_sql_injection_in_query_has_no_effect` e `test_scope_cannot_be_changed_by_the_search_arguments`: query hostil literal e contexto de transação preservado. |
+| Q18 | Postgres | `test_phase7_postgres.py::test_Q18_sync_db_cli_twice_has_exact_vault_digests`: invoca a CLI duas vezes, fontes operacionais/de projeto, inserted/unchanged, contagem exata e digests/ordinais do Vault. Paridade/idempotência também no 7B. |
+| Q19 | Automatizado | `test_phase7_boundaries.py::test_Q19_catalog_audience_cannot_be_changed_by_frontmatter`: campos de área/família/papel/audiência recebem `forbidden_frontmatter_field`. |
+| Q20 | Postgres | `test_knowledge_search_postgres.py::test_mixed_query_puts_the_stem_and_flag_unit_on_top`, `test_fts_matches_portuguese_inflections` e `test_trigram_matches_cli_flag`: ranking real, sem substituir Postgres por BM25. |
+| Q21 | Postgres + local | `test_knowledge_search_postgres.py::test_order_is_deterministic_and_follows_the_tie_break` e `test_knowledge_choice.py::test_ties_break_by_source_revision_ordinal_and_unit`: chave completa de desempate. |
+| Q22 | Automatizado | `test_family_mcp.py::test_Q22_offline_gemini_scope_and_record`: Markdown real, área comum + Gemini, exclusões, `offline_markdown_bm25` e `bm25-v1` no registro. Fábrica forçada sem DSN também no 7D. |
+| Q23 | Automatizado | `test_family_mcp.py::test_Q23_runner_scope_cannot_be_overridden`: servidor da tentativa Kiro, argumento estranho recusado/auditado, escopo intacto e resources filtrados. Smoke `test_scoped_stdio_server_uses_host_config` verifica também o transporte de processo. |
+| Q24 | Automatizado | `test_family_mcp.py::test_Q24_six_candidates_agent_chooses_two_and_runner_seals`: cliente MCP oficial, seis candidatos, escolha de dois, cobertura, JCS e todos os digests; runner lacra exatamente a entrega. |
+| Q25 | **Parcial: ressalva temporal** | `test_family_mcp.py::test_Q25_tool_refuses_missing_coverage_and_over_budget` cobre os dois erros exatos, sem seleção/manifesto inválido nem corte silencioso. `test_phase7_scenarios.py::test_Q25_invalid_choice_cannot_complete_attempt` comprova failed. A cláusula “impedindo despacho” não pode ser executada fielmente junto à decisão 4 do dono: a CLI já foi despachada quando escolhe a memória. Não foi simulada uma pré-seleção fictícia. O gate agora impede entrega inválida e `completed`; o despacho inicial usa somente o contexto inicial válido. O enunciado temporal requer revisão do dono. |
+| Q26 | Automatizado + Postgres | Teste ponta a ponta Q07/Q08/Q13/Q26 conserva cm-1 e gera cm-2, sem exclusividade Codex em Claude. `test_phase7_postgres.py::test_Q26_runner_fallback_rematerializes_under_real_rls` repete o fluxo completo sob RLS real. |
+| Q27 | Automatizado + Postgres | `test_phase7_scenarios.py::test_Q27_changed_vault_fails_integrity_before_any_attempt` e `test_phase7_postgres.py::test_Q27_database_mutation_blocks_runner_before_dispatch`: check real anterior ao despacho, `integrity_mismatch`, zero tentativas. |
+
+Regressões adicionais: cortes após intenção, bloqueio, consumo, selagem e intenção/
+resultado de sondagem; nenhuma intenção existente é redespachada. Auditoria
+adulterada/interrompida, reinício do servidor, prioridades do dono, revisão por
+família diferente, fallback `fixed`, hub e indisponibilidade sem cota também têm
+testes. A decisão 4 da ADR prevalece sobre o trecho temporal incompatível de Q25;
+isso permanece explícito para revisão, sem declarar cobertura integral falsa.
 
 ## 1. Adaptadores de assinatura e política de uso (Q01–Q06)
 
