@@ -1,0 +1,46 @@
+{
+  "actor": {
+    "kind": "orchestrator",
+    "ref": "orq-runner"
+  },
+  "aggregate_id": "run-demo-001",
+  "aggregate_sequence": 2,
+  "aggregate_type": "run",
+  "causation_event_id": "event-1",
+  "correlation_id": "run-demo-001",
+  "event_hash": {
+    "algorithm": "sha256",
+    "value": "17d459e9587d1ee5314ad2b75498d691610bc2a86f3465608c8bb493ca6e887f"
+  },
+  "event_id": "event-quota_exhausted_recorded",
+  "event_type": "quota_exhausted_recorded",
+  "global_sequence": 2,
+  "idempotency_key": "run-demo-001",
+  "occurred_at": "2026-11-14T23:15:00Z",
+  "payload": {
+    "schema_version": "0.1",
+    "quota_event_id": "quota-block-1",
+    "run_id": "run-demo-001",
+    "quota_pool_id": "pool-chatgpt-plus",
+    "subscription_id": "sub-chatgpt-plus",
+    "family_id": "family_codex",
+    "source_attempt_id": "attempt-T3-2",
+    "status": "quota_exhausted",
+    "observed_at": "2026-11-14T23:15:00Z",
+    "reset_at": "2026-11-15T01:05:00Z",
+    "blocked_until": "2026-11-15T01:05:00Z",
+    "reset_source": "cli_reported",
+    "raw_message_excerpt": "You've hit your usage limit. Upgrade to Pro or try again at 10:05 PM.",
+    "record_hash": {
+      "algorithm": "sha256",
+      "value": "172ec317c06c5616c081f4b8cdc601d566c4d2843f8a5622a437f01ae538cec5"
+    }
+  },
+  "previous_event_hash": {
+    "algorithm": "sha256",
+    "value": "716bbc514f39fda354aaa2adc30bd7c1fb61ec9cb702f8d4437458b73fa5e4fd"
+  },
+  "recorded_at": "2026-11-14T23:15:00Z",
+  "run_id": "run-demo-001",
+  "schema_version": "0.1"
+}

@@ -1,0 +1,202 @@
+{
+  "schema_version": "0.1",
+  "routing_decision_id": "routing-request-T1-1",
+  "run_id": "run-demo-001",
+  "workflow_ref": {
+    "id": "workflow-report",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "8888888888888888888888888888888888888888888888888888888888888888"
+    }
+  },
+  "task_id": "T3",
+  "candidate_attempt_number": 3,
+  "created_at": "2026-11-14T23:16:00Z",
+  "catalog_snapshot_ref": {
+    "id": "routing-catalog",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "5f1e7569237f476b7e1a11d1c3f79bcb1f2522ef70dad4d9bf711ced245aaa5a"
+    }
+  },
+  "execution_policy_snapshot_ref": {
+    "id": "execution-policy",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  },
+  "routing_policy_snapshot": {
+    "schema_version": "0.1",
+    "routing_policy_id": "routing-policy-rules",
+    "version": "1",
+    "mode": "rules",
+    "fixed_target_id": null,
+    "ranking_rule": "priority_then_id",
+    "decision_engine_ref": null,
+    "input_template_ref": {
+      "id": "routing-input",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    "confidence_threshold": null,
+    "low_confidence_action": "rules_fallback",
+    "invalid_response_action": "rules_fallback",
+    "provider_error_action": "rules_fallback",
+    "fallback_target_id": null,
+    "subscription_rules": {
+      "family_order_by_task_type": {
+        "architecture": [
+          "family_claude",
+          "family_kiro"
+        ],
+        "specification": [
+          "family_claude",
+          "family_kiro"
+        ],
+        "implementation": [
+          "family_codex",
+          "family_claude"
+        ],
+        "testing": [
+          "family_codex",
+          "family_claude"
+        ],
+        "review": [
+          "family_kiro",
+          "family_gemini"
+        ],
+        "documentation": [
+          "family_gemini"
+        ]
+      },
+      "review_requires_different_family": true
+    }
+  },
+  "routing_input": {
+    "snapshot": {
+      "routing_request_id": "request-T3-3",
+      "task": {
+        "task_id": "T3",
+        "objective": "Produzir um relatorio verificavel",
+        "task_type": "analysis",
+        "required_capabilities": []
+      },
+      "options": [
+        {
+          "target_id": "target-quality",
+          "model_ref": {
+            "id": "model-quality",
+            "version": "1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            }
+          },
+          "executor_ref": {
+            "id": "executor-local",
+            "version": "1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          },
+          "priority": 5,
+          "routing_description": "Destino para análises que priorizam qualidade",
+          "specialization_tags": [
+            "deep-analysis",
+            "reporting"
+          ]
+        }
+      ]
+    },
+    "input_hash": {
+      "algorithm": "sha256",
+      "value": "5c77dac654ea66e8f49832e4badcd57b5e64b2c8f4546a56b44ed7f0e07735cb"
+    },
+    "size_bytes": 670,
+    "eligible_target_ids": [
+      "target-quality"
+    ]
+  },
+  "candidates": [
+    {
+      "target_ref": {
+        "id": "target-fast",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "9d21967712a33e029eded850464d901cdd543650f9aafee2d28bc702c2cc1694"
+        }
+      },
+      "input_position": 1,
+      "eligible": false,
+      "reasons": [
+        {
+          "code": "quota_exhausted",
+          "subject": "pool-chatgpt-plus",
+          "evidence_refs": [
+            {
+              "id": "quota-block-1",
+              "version": "0.1",
+              "content_digest": {
+                "algorithm": "sha256",
+                "value": "d463c1c7f666d4206b18e01b65b271d24462acd2cc2e4a886a5a63ddb31f632c"
+              }
+            }
+          ]
+        }
+      ],
+      "rank": null
+    },
+    {
+      "target_ref": {
+        "id": "target-quality",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "c43804b89a45f2a2ba7f4bdb0d5f83b09d2adb4c0004adf70c7b3110dcd267e3"
+        }
+      },
+      "input_position": 2,
+      "eligible": true,
+      "reasons": [],
+      "rank": 1
+    }
+  ],
+  "recommendation": {
+    "target_id": "target-fast",
+    "confidence": null,
+    "scores": {},
+    "engine_call_id": null,
+    "requested_model_id": null,
+    "resolved_model_id": null
+  },
+  "effective_selection": {
+    "recommended_target_id": "target-fast",
+    "selected_target_id": "target-quality",
+    "used_fallback": true,
+    "rule": "quota_fallback"
+  },
+  "decision_status": "selected",
+  "preflight_checks": [
+    {
+      "control": "quota",
+      "status": "passed",
+      "observed_at": "2026-11-14T23:16:00Z",
+      "evidence_refs": []
+    }
+  ],
+  "usage_record_refs": [],
+  "provider_extension": null,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "c98f032e921814b63952c8431abc71080e3424d0a0b1d5a7e13e0842e3fbd1df"
+  }
+}

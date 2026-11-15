@@ -9,6 +9,68 @@
     "low_confidence_action", "invalid_response_action", "provider_error_action", "fallback_target_id"
   ],
   "properties": {
+    "subscription_rules": {
+      "type": "object",
+      "required": [
+        "family_order_by_task_type",
+        "review_requires_different_family"
+      ],
+      "properties": {
+        "family_order_by_task_type": {
+          "type": "object",
+          "required": [
+            "architecture",
+            "specification",
+            "implementation",
+            "testing",
+            "review",
+            "documentation"
+          ],
+          "properties": {
+            "architecture": {
+              "const": [
+                "family_claude",
+                "family_kiro"
+              ]
+            },
+            "specification": {
+              "const": [
+                "family_claude",
+                "family_kiro"
+              ]
+            },
+            "implementation": {
+              "const": [
+                "family_codex",
+                "family_claude"
+              ]
+            },
+            "testing": {
+              "const": [
+                "family_codex",
+                "family_claude"
+              ]
+            },
+            "review": {
+              "const": [
+                "family_kiro",
+                "family_gemini"
+              ]
+            },
+            "documentation": {
+              "const": [
+                "family_gemini"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "review_requires_different_family": {
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
     "schema_version": {"const": "0.1"},
     "routing_policy_id": {"$ref": "common.schema.json#/$defs/identifier"},
     "version": {"$ref": "common.schema.json#/$defs/nonEmptyText"},

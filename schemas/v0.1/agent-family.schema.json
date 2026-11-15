@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/agent-family.schema.json",
+  "title": "ORQ AgentFamily v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "family_id",
+    "role_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "family_id": {
+      "$ref": "common.schema.json#/$defs/familyId"
+    },
+    "role_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    }
+  },
+  "additionalProperties": false
+}

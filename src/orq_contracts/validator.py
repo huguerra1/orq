@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import datetime
+from fractions import Fraction
 from typing import Any, Iterable
 
 from .schemas import validator_for
-from .canonical import canonical_digest, canonicalize
+from .canonical import CanonicalizationError, canonical_digest, canonicalize
+
+
+DEFAULT_SUBSCRIPTION_COOLDOWN_MS = 3_600_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,20 +111,187 @@ def validate_task(task: Any) -> list[ValidationIssue]:
 
 
 def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
-    """Valida o schema local e a igualdade de outputs nos critérios globais do 6A.
+    """Valida estrutura e invariantes locais, inclusive payloads da Fase 7.
 
     Não substitui os validadores de vínculos e transições previstos no 6C.
     """
 
     issues = _structural_issues(instance, schema_name)
     if issues:
+        if schema_name == "subscription_profile":
+            issues.append(ValidationIssue(
+                "subscription_policy_violation", "", "perfil de assinatura fora do contrato fechado",
+            ))
+        issues.extend(_subscription_zero_issues(instance, schema_name))
         return issues
+    if schema_name in {"subscription_profile", "quota_state_record", "quota_consumption_record"} or (
+        schema_name == "usage_record" and "subscription_id" in instance
+    ):
+        issues.extend(_record_hash_issues(instance))
+    if schema_name == "quota_state_record":
+        timestamps = _timestamp_issues(instance, ("observed_at", "reset_at", "blocked_until"))
+        issues.extend(timestamps or _quota_state_issues(instance))
+    if schema_name == "quota_consumption_record":
+        issues.extend(_timestamp_issues(instance, ("recorded_at",)))
+    if schema_name == "routing_decision":
+        issues.extend(_quota_routing_issues(instance))
+    if schema_name == "error_record" and instance["code"] == "quota_limit_reached":
+        issues.extend(_prefixed(validate_instance(instance["quota_state"], "quota_state_record"), "/quota_state"))
+        if instance["run_id"] != instance["quota_state"]["run_id"]:
+            issues.append(ValidationIssue("semantic.quota_run_mismatch", "/quota_state/run_id", "run do bloqueio diverge"))
+        if instance["scope_ref"] != instance["quota_state"]["source_attempt_id"]:
+            issues.append(ValidationIssue("semantic.quota_attempt_mismatch", "/quota_state/source_attempt_id", "tentativa do bloqueio diverge"))
+    if schema_name == "journal_event":
+        payload_schemas = {
+            "quota_exhausted_recorded": "quota_state_record",
+            "quota_reset_observed": "quota_state_record",
+            "quota_consumption_recorded": "quota_consumption_record",
+            "error_attached": "error_record", "usage_attached": "usage_record",
+        }
+        payload_schema = payload_schemas.get(instance["event_type"])
+        if payload_schema:
+            payload = instance["payload"]
+            issues.extend(_prefixed(validate_instance(payload, payload_schema), "/payload"))
+            if instance["event_type"].startswith("quota_"):
+                if payload["run_id"] != instance["run_id"]:
+                    issues.append(ValidationIssue("semantic.quota_run_mismatch", "/payload/run_id", "run do payload diverge"))
+                expected = payload["attempt_id"] if payload_schema == "quota_consumption_record" else payload["run_id"]
+                if instance["aggregate_id"] != expected:
+                    issues.append(ValidationIssue("semantic.quota_aggregate_mismatch", "/aggregate_id", "agregado de cota diverge"))
     if schema_name == "evaluation_report":
         return _workflow_criterion_output_issues(instance)
     if schema_name == "journal_event" and instance["event_type"] in {
         "evaluation_requested", "evaluation_report_recorded",
     }:
         return _workflow_criterion_output_issues(instance["payload"], "/payload")
+    return issues
+
+
+def _prefixed(issues: list[ValidationIssue], prefix: str) -> list[ValidationIssue]:
+    return [ValidationIssue(issue.code, prefix + issue.path, issue.message) for issue in issues]
+
+
+def _record_hash_issues(record: dict[str, Any]) -> list[ValidationIssue]:
+    try:
+        digest = canonical_digest({key: value for key, value in record.items() if key != "record_hash"})
+    except CanonicalizationError as error:
+        return [ValidationIssue("semantic.invalid_jcs", "", str(error))]
+    if digest != record["record_hash"]:
+        return [ValidationIssue("semantic.record_hash_mismatch", "/record_hash", "digest JCS do registro diverge")]
+    return []
+
+
+def _utc_seconds(value: str) -> Fraction:
+    """Compara instantes UTC sem perder frações menores que um microssegundo."""
+    whole, _, fraction = value[:-1].partition(".")
+    instant = datetime.fromisoformat(whole)
+    seconds = instant.toordinal() * 86400 + instant.hour * 3600 + instant.minute * 60 + instant.second
+    return Fraction(seconds) + (Fraction("0." + fraction) if fraction else Fraction(0))
+
+
+def _timestamp_issues(record: dict[str, Any], fields: tuple[str, ...]) -> list[ValidationIssue]:
+    # FormatChecker pode não ter seu extra opcional de RFC3339 instalado.
+    issues = []
+    for field in fields:
+        if record[field] is not None:
+            try:
+                _utc_seconds(record[field])
+            except ValueError:
+                issues.append(ValidationIssue("semantic.invalid_utc_timestamp", f"/{field}", "instante UTC inválido"))
+    return issues
+
+
+def _quota_state_issues(record: dict[str, Any]) -> list[ValidationIssue]:
+    if record["status"] == "available":
+        return []  # Causa anterior e evidência de sondagem são exigidas pelo schema.
+    issues = []
+    observed = _utc_seconds(record["observed_at"])
+    blocked = _utc_seconds(record["blocked_until"])
+    if blocked <= observed:
+        issues.append(ValidationIssue("semantic.quota_block_not_future", "/blocked_until", "bloqueio deve terminar após a observação"))
+    if record["status"] == "quota_exhausted" and blocked != _utc_seconds(record["reset_at"]):
+        issues.append(ValidationIssue("semantic.quota_reset_mismatch", "/blocked_until", "bloqueio deve terminar em reset_at"))
+    if record["status"] == "cooldown":
+        cooldown = record.get("default_cooldown_ms", DEFAULT_SUBSCRIPTION_COOLDOWN_MS)
+        if blocked - observed != Fraction(cooldown, 1000):
+            issues.append(ValidationIssue("semantic.quota_cooldown_mismatch", "/blocked_until", "cooldown deve usar 60 minutos ou o override explícito"))
+    return issues
+
+
+def _subscription_zero_issues(instance: Any, schema_name: str) -> list[ValidationIssue]:
+    """Acrescenta o código de Q14 sem substituir os erros estruturais precisos."""
+    if not isinstance(instance, dict):
+        return []
+    if schema_name == "journal_event":
+        event = instance.get("event_type")
+        if event == "usage_attached":
+            return _prefixed(_subscription_zero_issues(instance.get("payload"), "usage_record"), "/payload")
+        if event == "budget_reserved":
+            payload = instance.get("payload", {})
+            lines, prefix = [payload], "/payload"
+        else:
+            return []
+    elif schema_name == "usage_record":
+        if "subscription_id" not in instance:
+            return []
+        lines, prefix = instance.get("cost_lines", []), "/cost_lines"
+    else:
+        return []
+    if not isinstance(lines, list):
+        return []
+    issues = []
+    for index, line in enumerate(lines):
+        if not isinstance(line, dict):
+            continue
+        if schema_name == "journal_event" and "subscription_id" not in line:
+            continue
+        amount = line.get("amount")
+        if isinstance(amount, str) and amount.replace(".", "", 1).isdigit() and set(amount) <= {"0", "."}:
+            path = prefix + (f"/{index}" if schema_name == "usage_record" else "") + "/amount"
+            issues.append(ValidationIssue("invalid_subscription_cost_zero", path, "custo monetário da assinatura deve ser unavailable/null"))
+    return issues
+
+
+def validate_quota_consumption_record(record: Any, *, usage_record: Any = None) -> list[ValidationIssue]:
+    """Valida o consumo e, quando fornecido, resolve o UsageRecord sem I/O.
+
+    Sem usage_record, a referência permanece estrutural; não se afirma resolução.
+    """
+    issues = validate_instance(record, "quota_consumption_record")
+    if issues or usage_record is None:
+        return issues
+    issues.extend(_prefixed(validate_instance(usage_record, "usage_record"), "/usage_record"))
+    if issues:
+        return issues
+    expected = {"id": usage_record["usage_id"], "version": usage_record["schema_version"], "content_digest": canonical_digest(usage_record)}
+    if record["usage_record_ref"] != expected:
+        issues.append(ValidationIssue("semantic.quota_usage_ref_mismatch", "/usage_record_ref", "referência/digest do uso diverge"))
+    if (record["run_id"], record["attempt_id"], record["subscription_id"]) != (
+        usage_record["run_id"], usage_record["scope_ref"], usage_record.get("subscription_id"),
+    ) or usage_record["scope_type"] != "attempt":
+        issues.append(ValidationIssue("semantic.quota_usage_scope_mismatch", "/usage_record_ref", "run, tentativa ou assinatura do uso diverge"))
+    return issues
+
+
+def _quota_routing_issues(decision: dict[str, Any]) -> list[ValidationIssue]:
+    issues = []
+    blocked_ids = set()
+    for index, candidate in enumerate(decision["candidates"]):
+        for reason in candidate["reasons"]:
+            if reason["code"] == "quota_exhausted":
+                blocked_ids.add(candidate["target_ref"]["id"])
+                if candidate["eligible"] or candidate["rank"] is not None or not reason["evidence_refs"]:
+                    issues.append(ValidationIssue("semantic.invalid_quota_candidate", f"/candidates/{index}", "cota bloqueada exige inelegibilidade, rank nulo e evidência"))
+    selection = decision["effective_selection"]
+    if selection and selection["rule"] == "quota_fallback":
+        if not selection["used_fallback"] or selection["recommended_target_id"] not in blocked_ids:
+            issues.append(ValidationIssue("semantic.invalid_quota_fallback", "/effective_selection", "fallback exige destino original bloqueado por cota"))
+    if decision.get("reason", {}).get("code") == "all_eligible_families_quota_exhausted":
+        if decision["decision_status"] != "no_eligible_target" or selection is not None or any(c["eligible"] for c in decision["candidates"]):
+            issues.append(ValidationIssue("semantic.invalid_quota_rejection", "/reason", "esgotamento total exige ausência de destino elegível e de seleção"))
+    for index, check in enumerate(decision["preflight_checks"]):
+        if check.get("reason", {}).get("code") == "quota_exhausted" and check["status"] != "failed":
+            issues.append(ValidationIssue("semantic.invalid_quota_preflight", f"/preflight_checks/{index}", "cota esgotada reprova o preflight"))
     return issues
 
 
@@ -329,6 +501,7 @@ def validate_routing_decision(decision: Any) -> list[ValidationIssue]:
             issues.append(ValidationIssue("semantic.failed_selected_preflight", "/preflight_checks", "preflight não passou"))
     if decision["decision_status"] == "preflight_rejected" and selection is not None:
         issues.append(ValidationIssue("semantic.selection_after_failed_preflight", "/effective_selection", "seleção deve ser nula"))
+    issues.extend(_quota_routing_issues(decision))
     return issues
 
 

@@ -82,7 +82,10 @@
         "run_manifest_closed",
         "state_transition",
         "termination_confirmed",
-        "usage_attached"
+        "usage_attached",
+        "quota_exhausted_recorded",
+        "quota_reset_observed",
+        "quota_consumption_recorded"
       ]
     },
     "recorded_at": {
@@ -237,7 +240,10 @@
           ]
         },
         "currency": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[A-Z]{3}$"
         },
         "method": {
@@ -249,6 +255,9 @@
             "estimated",
             "unavailable"
           ]
+        },
+        "subscription_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
         }
       },
       "additionalProperties": false,
@@ -276,8 +285,22 @@
               "amount": {
                 "type": "string",
                 "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
               }
             }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "subscription_id"
+            ]
+          },
+          "then": {
+            "$ref": "common.schema.json#/$defs/subscriptionCost"
           }
         }
       ]
@@ -543,7 +566,11 @@
             "integrity_mismatch",
             "knowledge_revoked",
             "budget_unknown",
-            "budget_exceeded"
+            "budget_exceeded",
+            "quota_exhausted",
+            "all_eligible_families_quota_exhausted",
+            "subscription_unavailable",
+            "subscription_policy_violation"
           ]
         },
         "error_record_ids": {
@@ -1212,6 +1239,15 @@
         }
       },
       "additionalProperties": false
+    },
+    "quota_exhausted_recorded": {
+      "$ref": "quota-state-record.schema.json"
+    },
+    "quota_reset_observed": {
+      "$ref": "quota-state-record.schema.json"
+    },
+    "quota_consumption_recorded": {
+      "$ref": "quota-consumption-record.schema.json"
     }
   },
   "allOf": [
@@ -1243,7 +1279,9 @@
               "error_attached",
               "journal_tail_discarded",
               "run_closed",
-              "artifact_ingested"
+              "artifact_ingested",
+              "quota_exhausted_recorded",
+              "quota_reset_observed"
             ]
           }
         }
@@ -1305,7 +1343,8 @@
               "usage_attached",
               "error_attached",
               "state_transition",
-              "late_observation"
+              "late_observation",
+              "quota_consumption_recorded"
             ]
           }
         }
@@ -2015,6 +2054,76 @@
           "idempotency_key": {
             "$ref": "common.schema.json#/$defs/nonEmptyText",
             "maxLength": 4096
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "quota_exhausted_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/quota_exhausted_recorded",
+            "properties": {
+              "status": {
+                "enum": [
+                  "quota_exhausted",
+                  "cooldown"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "quota_reset_observed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/quota_reset_observed",
+            "properties": {
+              "status": {
+                "const": "available"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "quota_consumption_recorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/quota_consumption_recorded"
           }
         }
       }

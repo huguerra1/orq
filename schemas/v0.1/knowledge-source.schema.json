@@ -11,6 +11,9 @@
     "relationships", "chunking_policy_ref", "metadata_provenance"
   ],
   "properties": {
+    "audience": {
+      "$ref": "audience-metadata.schema.json"
+    },
     "schema_version": {"const": "0.1"},
     "source_id": {"$ref": "common.schema.json#/$defs/identifier"},
     "revision": {"$ref": "common.schema.json#/$defs/nonEmptyText"},

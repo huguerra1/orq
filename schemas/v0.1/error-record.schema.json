@@ -84,7 +84,9 @@
         "journal_line_too_large",
         "artifact_too_large",
         "run_locked",
-        "run_exists"
+        "run_exists",
+        "quota_limit_reached",
+        "subscription_policy_violation"
       ]
     },
     "message": {
@@ -149,7 +151,58 @@
     },
     "record_hash": {
       "$ref": "common.schema.json#/$defs/digest"
+    },
+    "quota_state": {
+      "$ref": "quota-state-record.schema.json"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "code": {
+            "const": "quota_limit_reached"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "then": {
+        "required": [
+          "quota_state"
+        ],
+        "properties": {
+          "scope_type": {
+            "const": "attempt"
+          },
+          "category": {
+            "const": "provider"
+          },
+          "retryability": {
+            "const": "retryable"
+          },
+          "termination_certainty": {
+            "const": "confirmed"
+          },
+          "quota_state": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "quota_exhausted",
+                  "cooldown"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "quota_state": false
+        }
+      }
+    }
+  ]
 }
