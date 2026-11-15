@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). **7D implementado** (busca híbrida, escolha pelo agente e manifesto; [Notas 7D](#notas-de-implementação-7d)). Próximo incremento: **7E** (o 7C segue em paralelo). Os incrementos 7C, 7E e 7F permanecem pendentes.
 
 ## Problema
 
@@ -114,6 +114,40 @@ Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuraçã
 | Q17 | Escopo validado e valores sempre como parâmetros; a busca em si fica no 7D |
 | Q18 | Mesmos digests/ordinais da Fase 2 no banco e segunda sincronização sem duplicar |
 | Q22 | Parcial: cadeia offline intacta sem DSN; o filtro de audiência em memória e o `backend` no `KnowledgeSelectionRecord` ficam para o 7D |
+
+## Notas de implementação 7D
+
+- **Módulos:** `knowledge_backend` (interface `KnowledgeBackend`, `KnowledgeCandidate`, `EligibilityPolicy`, `OfflineMarkdownBackend`, `create_knowledge_backend`), `knowledge_choice` (`KnowledgeChoiceSession`, `materialize_chosen_context`) e, em `memory_store`, `search` (SQL, pesagem e normalização da query, sem driver), `knowledge` (`PostgresKnowledgeBackend`) e `ScopedMemoryReader.search_units`/`get_unit_contents`. Nenhuma dependência nova, DDL do 7B intocado (versão 1) e nada em `adapters/`. As Fases 2–6 não mudam: `select_knowledge` segue igual e `materialize_knowledge_context` só ganhou o argumento opcional `unit_loader` (sem ele lê o Vault como antes).
+- **Busca sob RLS:** só roda dentro de `scoped_transaction` (somente leitura, role `orq_memory_reader`). Recebe `requirement_id`, `query` e `limit` (1 a 20; fora disso `invalid_search_limit`); família, papel, projeto e catálogo nunca vêm da chamada. O host passa ao SQL as unidades que o catálogo admite para o requisito (autoridade, tipo, classificação, vigência, frescor, aplicabilidade, via `_requirement_reasons` da Fase 2); o RLS decide o que é visível. Todo valor é parâmetro nomeado (`%(nome)s`); nenhum texto vira SQL.
+- **Query saneada:** o FTS recebe só as palavras (`[^\W_]+`, sem duplicatas, até 16, unidas por ` or `), de modo que aspas, `-` e `or` do `websearch_to_tsquery` não têm efeito; os trigramas recebem pedaços separados por espaço com ao menos 3 caracteres alfanuméricos (preserva `--trust-tools=fs_read` e `QuotaStateRecord`). Query vazia, com mais de 512 caracteres ou com NUL é rejeitada (`invalid_search_query`), nunca truncada em silêncio.
+- **Ranking `pg-fts-trgm-v1`** (constante `RANKING_VERSION`; mudar pesos, limiar ou tokenização exige nova versão):
+
+  ```
+  fts   = ts_rank_cd(search_tsv, websearch_to_tsquery('portuguese', palavras), 32)   em [0, 1)
+  trgm  = max sobre os termos da query de word_similarity(termo, título + cabeçalhos + conteúdo)
+  score = round(0.70 * fts + 0.30 * trgm, 6)
+  ```
+
+  A normalização 32 do `ts_rank_cd` divide o rank por `rank + 1`. Entra como candidato quem casa no FTS ou tem `trgm >= 0.5`. Ordem: `(score DESC, source_id, revision, ordinal, unit_id)`, a mesma do Q21 e da Fase 2 (o enunciado do 7D pedia só score e `unit_id`; a chave completa é um refinamento determinístico). O candidato traz metadados, `area_scope`, `estimated_tokens`, digest, score e excerto de até 240 caracteres.
+- **Escolha pelo agente:** `KnowledgeChoiceSession.search` registra o que foi devolvido por requisito e confere cada candidato contra o catálogo do host (elegibilidade, digests e tokens). `choose({requisito: [unit_ref]})` só aceita unidades devolvidas pela busca *daquele* requisito (`unit_not_in_search_results`), exige cobertura dos obrigatórios (`mandatory_requirement_uncovered`; `all_source_refs` exige todas as fontes) e confere os orçamentos global (com margem) e por requisito (`context_budget_exceeded`). Nada é cortado: qualquer violação é erro e `session.selection` continua vazio. Requisito opcional descoberto deixa o registro `partial` (`gap_reason: not_selected_by_agent`). A ordem das unidades independe da ordem em que o agente as listou: obrigatórios primeiro e, em cada requisito, pelo rank da busca.
+- **Registro e schema:** `KnowledgeSelectionRecord` válido, com `candidates` = tudo que as buscas devolveram. O schema ganhou, de forma compatível, três campos opcionais que só valem juntos (`dependentRequired`): `backend` (`postgres_fts_trgm` ou `offline_markdown_bm25`; o rascunho da seção de memória dizia `postgres_rls_fts_trgm`, valendo o nome do 7D), `selection_mode` (`agent_mcp_choice` ou `host_bm25`) e `ranking_version`. Registros da Fase 2 sem os campos continuam válidos e com o mesmo digest.
+- **Consolidação:** `materialize_chosen_context` relê as unidades pelo backend (Postgres: sob o RLS da família, comparando `source_digest` e o SHA-256 do conteúdo com o catálogo; offline: `materialize_unit`), falha antes de qualquer manifesto com `unit_integrity_mismatch`/`selected_unit_missing`/`integrity_mismatch` e então chama `materialize_knowledge_context`: mesma ordem, digests JCS, procedência e bundle canônico da Fase 2. Com a mesma seleção, o manifesto e o bundle saem idênticos byte a byte do Postgres, do Vault e de linhas simuladas. Uma seleção só é materializada pelo backend que a produziu (`backend_mismatch`); numa troca de família, o conteúdo exclusivo da anterior fica invisível e a nova tentativa faz nova busca e novo manifesto (Q26).
+- **Modo offline:** `OfflineMarkdownBackend` aplica em memória o mesmo filtro do RLS (status ativo, projeto, audiência nos dois eixos; coleções ficam fora, como no 7B) e ranqueia com `bm25-v1` sobre as unidades elegíveis, com o mesmo formato de candidato, a mesma escolha e `backend: offline_markdown_bm25`. `create_knowledge_backend(config, ...)` escolhe o backend pela configuração do 7B (sem `ORQ_MEMORY_DSN`, offline; `ORQ_KNOWLEDGE_BACKEND` força).
+- **Fora do 7D:** servidor/tools MCP (`search_family_knowledge`, `select_family_knowledge`), log de auditoria da trilha e integração com o runner ficam no 7E.
+
+Verificação: `tests/test_knowledge_choice.py` (sem banco: validação da escolha, orçamento, reprodutibilidade, manifesto a partir de linhas simuladas, integridade, query/SQL/ranking, modo offline e schema) e `tests/test_knowledge_search_postgres.py` (relevância em português e por trigramas, fórmula do score, ordem, isolamento entre famílias, injeção de SQL, escolha inválida, orçamento, manifesto reproduzível a partir do Postgres, troca de família e integridade). Os testes de banco rodam no CI quando não há `ORQ_MEMORY_DSN`.
+
+| Cenários | Cobertura executada no 7D |
+| --- | --- |
+| Q17 | Query hostil tratada como literal: saneada em Python, parametrizada no SQL; escopo e RLS inalterados (banco) |
+| Q20 | FTS português (flexões) e `pg_trgm` (flag e identificador parcial), unidade no topo (banco) |
+| Q21 | Desempate `(score, source_id, revision, ordinal, unit_id)` na ordenação do SQL e no Python |
+| Q22 | Modo offline com filtro de audiência em memória e `backend` no registro (sem banco) |
+| Q24, Q25 | Escolha pelo agente, `KnowledgeSelectionRecord` com `agent_mcp_choice`, manifesto/bundle e erros estruturados; a tool MCP em si fica no 7E |
+| Q26 | Sem reaproveitar contexto exclusivo na troca de família, no nível da biblioteca; o runner fica no 7E |
+| Q27 | Bytes alterados no banco bloqueiam a materialização (`unit_integrity_mismatch`); o check `context_integrity` do runner fica no 7E |
+
+Próximo passo: revisar o 7D e seguir com o **7E** (tools MCP escopadas, trilha auditável e integração com o runner).
 
 ## Documentos da Fase 7
 
