@@ -1,0 +1,33 @@
+# Postgres local OPCIONAL da memória por família (Fase 7, incremento 7B). Só para desenvolvimento.
+#
+# A senha `orq_test` é de teste local: o banco escuta apenas em 127.0.0.1 e não guarda dado real.
+# Nada aqui é necessário para o modo offline (`offline_markdown_bm25`), que continua sem Docker.
+#
+# Uso:
+#   docker compose -f docker-compose.memory.yml up -d
+#   export ORQ_MEMORY_DSN="postgresql://orq_admin:orq_test@127.0.0.1:54329/orq_memory"
+#   orq-contracts vault sync-db --root <vault> --catalog <snapshot.json>
+#   docker compose -f docker-compose.memory.yml down -v   # remove o volume
+#
+# A porta do host pode ser trocada com ORQ_PG_PORT.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: orq_memory
+      POSTGRES_USER: orq_admin
+      POSTGRES_PASSWORD: orq_test
+    ports:
+      - "127.0.0.1:${ORQ_PG_PORT:-54329}:5432"
+    volumes:
+      - orq-memory-data:/var/lib/postgresql/data
+      # Habilita pg_trgm na criação do banco (a migração também executa CREATE EXTENSION IF NOT EXISTS).
+      - ./docker/memory/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orq_admin -d orq_memory"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  orq-memory-data:

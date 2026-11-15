@@ -16,6 +16,7 @@ from .planner import PlanningError
 from .runner import SequentialRunner
 from .simulated_executor import SimulationScript
 from .context import ContextError, materialize_knowledge_context
+from .memory_store import POSTGRES_BACKEND, MemoryStoreError, build_sync_plan, resolve_memory_config
 from .selection import select_knowledge
 from .validator import (
     validate_context_manifest,
@@ -114,6 +115,12 @@ def _parser() -> argparse.ArgumentParser:
     context.add_argument("--request", type=Path, required=True)
     context.add_argument("--output-dir", type=Path, required=True)
 
+    sync_db = vault_commands.add_parser(
+        "sync-db", help="sincroniza um snapshot do Vault com o Postgres de ORQ_MEMORY_DSN"
+    )
+    sync_db.add_argument("--root", type=Path, required=True)
+    sync_db.add_argument("--catalog", type=Path, required=True)
+
     run = subparsers.add_parser("run", help="executa um workflow local")
     run_commands = run.add_subparsers(dest="run_command", required=True)
     simulate = run_commands.add_parser("simulate", help="executa com o executor simulado, sem rede")
@@ -134,11 +141,36 @@ def _validate(kind: str, document: Any):
     return validators[kind](document)
 
 
+def _sync_db(arguments: argparse.Namespace) -> dict[str, Any]:
+    config = resolve_memory_config()
+    if config.backend != POSTGRES_BACKEND:
+        raise MemoryStoreError("memory_dsn_missing", "defina ORQ_MEMORY_DSN para sincronizar com o Postgres")
+    plan = build_sync_plan(arguments.root, _read_json(arguments.catalog))
+    # Import tardio: o driver só é carregado quando há banco configurado.
+    from .memory_store.postgres import apply_schema, connect, sync_catalog
+
+    with connect(config) as connection:
+        schema_status = apply_schema(connection)
+        result = sync_catalog(connection, plan)
+    return {
+        "status": "ok",
+        "schema": schema_status,
+        "sync": result.status,
+        "catalog_id": result.catalog_id,
+        "sync_digest": result.sync_digest,
+        "source_count": result.source_count,
+        "unit_count": result.unit_count,
+    }
+
+
 def _run_vault(arguments: argparse.Namespace) -> dict[str, Any]:
     if arguments.vault_command == "catalog":
         result = build_catalog_snapshot(arguments.root, _read_json(arguments.definition))
         _write_exclusive(arguments.output, _json_bytes(result))
         return {"status": "ok", "output": str(arguments.output), "catalog_hash": result["catalog_hash"]}
+
+    if arguments.vault_command == "sync-db":
+        return _sync_db(arguments)
 
     catalog = _read_json(arguments.catalog)
     request = _read_json(arguments.request)
@@ -201,6 +233,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         CanonicalizationError,
         VaultError,
         ContextError,
+        MemoryStoreError,
         StorageError,
         PlanningError,
     ) as error:

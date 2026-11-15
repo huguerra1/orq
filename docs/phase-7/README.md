@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**, para revisão. Próximo incremento: **7B**. Os incrementos 7B–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
 
 ## Problema
 
@@ -93,6 +93,27 @@ Verificação: **378 testes aprovados, nenhum ignorado**, em `tests/test_phase7_
 | Q14 | Rejeição de `"0"`/`"0.00"` no uso e na reserva de assinatura, com `invalid_subscription_cost_zero` |
 
 Audiência tem testes estruturais dos dois eixos, listas vazias/duplicadas e incorporação no catálogo. Isso não executa Q15/Q16 (RLS), nem os demais cenários Q de runtime, busca, MCP ou experimento. Próximo passo: revisar 7A e iniciar **7B**, conforme seu gate de isolamento/paridade/offline.
+
+## Notas de implementação 7B
+
+- **Pacote `orq_contracts.memory_store`:** `config` (backend e escopo), `ddl` + `schema.sql` (DDL versionado), `sync` (plano puro) e `postgres` (único módulo que importa o driver). Importar `orq_contracts` ou `memory_store` não carrega o psycopg.
+- **Configuração:** `ORQ_MEMORY_DSN` liga o backend `postgres`; sem DSN vale `offline_markdown_bm25`. `ORQ_KNOWLEDGE_BACKEND=offline_markdown_bm25` força o offline mesmo com DSN; `=postgres` sem DSN falha com `memory_dsn_missing`. O DSN fica fora do `repr` e das mensagens de erro. As variáveis `ORQ_PG_*` do rascunho em [family-memory.md](family-memory.md) foram trocadas por um DSN único.
+- **DDL (versão 1):** schema `orq_memory` com `knowledge_catalogs`, `knowledge_sources` e `knowledge_units` (audiência do 7A desnormalizada em cada linha: `area_scope`, `target_families`, `target_roles`, mais escopo de projeto e status). `ENABLE` e `FORCE ROW LEVEL SECURITY` nas três. Roles sem login, sem `SUPERUSER` e sem `BYPASSRLS`: `orq_memory_owner` (dono, sem política, portanto não lê nada), `orq_memory_writer` (só `SELECT`/`INSERT`, usado pela sincronização) e `orq_memory_reader` (só `SELECT`, política por escopo). A versão e o SHA-256 do arquivo ficam em `schema_migrations`; outro digest para a mesma versão é recusado (`memory_schema_version_conflict`). Índices GIN `tsvector` (português) e `pg_trgm` já existem, sem API de busca (7D). Um `CHECK` recalcula no banco o SHA-256 dos bytes UTF-8 de cada unidade.
+- **Política de leitura:** exige as quatro variáveis (`app.catalog_id`, `app.current_project_id`, `app.current_family_id`, `app.current_role_id`); escopo ausente ou incompleto não lê nada. Só status ativo; projeto exato ou operacional global; área comum ou família compatível nos dois eixos (eixo vazio não restringe; dois eixos exigem interseção). Fontes com escopo de coleção ficam gravadas, mas invisíveis no 7B, porque não há variável de coleções.
+- **Audiência:** a da unidade prevalece sobre a da fonte; sem nenhuma, a unidade entra na área comum (mesma visibilidade das Fases 2–6). Toda audiência passa pelo schema do 7A.
+- **Sincronização:** `build_sync_plan(vault_root, snapshot)` confere o `catalog_hash`, reingere cada fonte com `ingest_markdown_source`, exige unidades idênticas às do snapshot, lê o conteúdo com `materialize_unit` e grava `canonical_digest` da metadata e de cada unidade. `sync_catalog` insere tudo numa transação como `orq_memory_writer`. O snapshot é imutável por `catalog_id`: repetir devolve `unchanged` sem duplicar; conteúdo diferente aborta com `catalog_sync_integrity_error`. CLI: `orq-contracts vault sync-db --root <vault> --catalog <snapshot.json>` (aplica o DDL e sincroniza).
+- **Acesso com escopo:** `MemoryScope` (validado, imutável) é montado pelo host; `scoped_transaction`/`ScopedMemoryReader` abrem `READ ONLY`, fazem `SET LOCAL ROLE orq_memory_reader` e fixam o escopo com `set_config(..., true)` (o `SET LOCAL` parametrizado), recusando a transação se a role efetiva puder ignorar RLS. Os métodos de leitura não recebem família, papel nem projeto.
+- **Dependência nova:** `psycopg[binary]==3.3.9` no `pyproject.toml`; `psycopg`, `psycopg-binary` e `tzdata` (dependência do psycopg no Windows) fixados no `requirements.lock`.
+- **Docker e CI:** `docker-compose.memory.yml` opcional (`postgres:16-alpine`, só em `127.0.0.1`, `pg_trgm` no init, senha de teste `orq_test`). O job `testes` do CI ganhou um service container `postgres:16` com healthcheck e exporta `ORQ_MEMORY_DSN`; nome do job e matriz 3.12/3.13 mantidos. A migração exige login superusuário (cria roles do cluster).
+
+Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuração, escopo, DDL, plano, paridade de digests do plano, rejeições e modo offline) e `tests/test_memory_store_postgres.py` (33 testes contra Postgres: isolamento entre famílias, área comum, eixo de papel, escopo ausente/incompleto, sem bypass, `FORCE` para o dono, somente leitura, paridade de digests no banco e idempotência). Os testes de banco rodam no CI quando não há `ORQ_MEMORY_DSN`. Suíte local: 1321 aprovados e 37 ignorados (os 4 anteriores e os 33 de banco).
+
+| Cenários | Cobertura executada no 7B |
+| --- | --- |
+| Q15, Q16 | RLS entre famílias e interseção família × papel, com testes negativos |
+| Q17 | Escopo validado e valores sempre como parâmetros; a busca em si fica no 7D |
+| Q18 | Mesmos digests/ordinais da Fase 2 no banco e segunda sincronização sem duplicar |
+| Q22 | Parcial: cadeia offline intacta sem DSN; o filtro de audiência em memória e o `backend` no `KnowledgeSelectionRecord` ficam para o 7D |
 
 ## Documentos da Fase 7
 
