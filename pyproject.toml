@@ -12,6 +12,7 @@ dependencies = [
   "jsonschema==4.26.0",
   "markdown-it-py==4.2.0",
   "mcp==2.2.0",
+  "psycopg[binary]==3.3.9",
   "PyYAML==6.0.3",
   "rfc8785==0.1.4",
 ]
@@ -31,6 +32,9 @@ orq-knowledge-mcp = "orq_contracts.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"orq_contracts.memory_store" = ["*.sql"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
