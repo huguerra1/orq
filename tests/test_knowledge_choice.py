@@ -661,7 +661,7 @@ def test_sql_uses_portuguese_fts_trigrams_and_deterministic_order() -> None:
     assert "websearch_to_tsquery('portuguese'::regconfig" in SEARCH_SQL
     assert "ts_rank_cd(u.search_tsv" in SEARCH_SQL
     assert "word_similarity(" in SEARCH_SQL
-    assert "ORDER BY score DESC, source_id ASC, revision ASC, ordinal ASC, unit_id ASC" in SEARCH_SQL
+    assert 'ORDER BY score DESC, source_id COLLATE "C" ASC, revision COLLATE "C" ASC, ordinal ASC, unit_id COLLATE "C" ASC' in SEARCH_SQL
     assert "LIMIT %(limit)s::integer" in SEARCH_SQL
 
 
