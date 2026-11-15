@@ -26,7 +26,7 @@ from ..executor import (CancelObservation, DispatchAck, ExecutionObservation, Ex
                         Record, WorkspaceHandle, bytes_digest, error_record, seal_record, stable_id)
 from ..simulated_executor import CONTROL_IDS, AUTHORITATIVE_NOT_FOUND_CONTROL, format_utc, parse_utc
 from ..validator import validate_instance, validate_quota_consumption_record
-from ._supervisor import safe_environment, write_record
+from ._supervisor import read_bytes, safe_environment, write_record
 from .quota import QuotaLimitDetector, VERSIONS
 
 
@@ -54,6 +54,7 @@ class ParsedOutput:
     output_tokens: int | None = None
     model: str | None = None
     session: str | None = None
+    failed: bool = False
 
 
 def _frames(text: str):
@@ -71,13 +72,19 @@ def _frames(text: str):
             yield line, None
             offset = end + 1
         else:
-            yield line, event
-            offset = consumed
+            tail_end = text.find("\n", consumed)
+            tail_end = len(text) if tail_end < 0 else tail_end
+            if isinstance(event, dict) and not text[consumed:tail_end].strip():
+                yield line, event
+                offset = tail_end + 1
+            else:
+                # Não promove um sufixo da mesma linha a diagnóstico separado.
+                yield line, None
+                offset = end + 1
 
 
 def _read_limited(path: Path) -> bytes:
-    with path.open("rb") as stream:
-        content = stream.read(MAX_ARTIFACT_BYTES + 1)
+    content = read_bytes(path, MAX_ARTIFACT_BYTES + 1)
     if len(content) > MAX_ARTIFACT_BYTES:
         raise ExecutorError("artifact_too_large", "saída excede 8 MiB")
     return content
@@ -224,11 +231,7 @@ class CLIAdapter:
                 raise ExecutorError("idempotency_conflict", "entradas do despacho divergentes")
             # Nunca redespacha após crash, mesmo que não haja acknowledgement.
             return DispatchAck(meta["phase"] == "launched", None, now)
-        directory.mkdir()
-        fsync_directory(directory.parent)
         work = confined_path(self.workspace_root, workspace.workspace_id)
-        work.mkdir()  # workspace novo; não reutiliza estado de outra tentativa
-        ensure_directory(work / ".orq-output")
         prompt = self._prompt(bundle, workspace)
         cli_work = wsl_path(work, workspace=True) if self._wsl else str(work)
         final = work / ".orq-last-message"
@@ -238,7 +241,17 @@ class CLIAdapter:
         meta = {"intent": copy.deepcopy(intent), "profile": self.profile, "fingerprint": fingerprint,
                 "runtime_version": self.runtime_version, "phase": "prepared", "workspace": str(work), "workspace_id": workspace.workspace_id,
                 "outputs": list(workspace.expected_output), "requested_model": workspace.requested_model_id}
-        write_record(directory / "state.json", meta)
+        directory.mkdir()
+        try:
+            fsync_directory(directory.parent)
+            write_record(directory / "state.json", meta)
+        except BaseException:
+            if not (directory / "state.json").exists():
+                directory.rmdir()
+                fsync_directory(directory.parent)
+            raise
+        work.mkdir()  # workspace novo; não reutiliza estado de outra tentativa
+        ensure_directory(work / ".orq-output")
         self._prepare_permissions(work)
         try:
             if timeout_ms == 0:
@@ -279,8 +292,8 @@ class CLIAdapter:
     def _restore_permissions(self, workspace: Path) -> None:
         pass
 
-    def _status(self, directory: Path, meta: Record) -> ExecutionObservation:
-        receipt = self._receipt(directory, meta)
+    def _status(self, directory: Path, meta: Record, *, receipt: Record | None = None) -> ExecutionObservation:
+        receipt = self._receipt(directory, meta) if receipt is None else receipt
         now = self._now()
         phase = receipt["phase"]
         if phase == "terminal":
@@ -293,7 +306,7 @@ class CLIAdapter:
         if phase == "not_started":
             self._restore_permissions(Path(meta["workspace"]))
         process = self._processes.get(str(directory))
-        if phase in {"launching", "running"} and process and process.poll() is None:
+        if phase in {"launched", "launching", "running"} and process and process.poll() is None:
             return ExecutionObservation("running", "not_terminated", now)
         return ExecutionObservation("unknown", "unknown", now)
 
@@ -303,10 +316,13 @@ class CLIAdapter:
         end = time.monotonic() + seconds
         while True:
             observation = self._status(directory, meta)
-            if observation.status in {"finished", "failed", "stopped"} or time.monotonic() >= end:
+            if observation.status in {"finished", "failed", "stopped"}:
                 return observation
             process = self._processes.get(str(directory))
-            if process is None or process.poll() is not None:
+            if process is not None and process.poll() is not None:
+                process.wait(timeout=5)
+                return self._status(directory, meta)
+            if process is None or time.monotonic() >= end:
                 return observation
             time.sleep(min(.02, max(0., end - time.monotonic())))
 
@@ -339,7 +355,7 @@ class CLIAdapter:
         if receipt["phase"] in {"prepared", "not_started"}:
             self._restore_permissions(Path(meta["workspace"]))
             return ReconciliationObservation("not_found", None, "confirmed", self._now(), evidence, True)
-        observation = self._status(directory, meta)
+        observation = self._status(directory, meta, receipt=receipt)
         outcome = {"finished": "found_finished", "failed": "found_failed", "stopped": "found_stopped", "running": "found_running"}.get(observation.status, "unknown")
         return ReconciliationObservation(outcome, session, observation.termination_certainty, self._now(), evidence)
 
@@ -349,7 +365,9 @@ class CLIAdapter:
             path = directory / name
             if not path.exists():
                 continue
-            for line, event in _frames(_read_limited(path).decode("utf-8", errors="replace")):
+            text = _read_limited(path).decode("utf-8", errors="replace")
+            frames = ((line.strip(), None) for line in text.splitlines()) if name == "stdout" and self.cli in {"agy", "kiro-cli"} else _frames(text)
+            for line, event in frames:
                 if not line or line.startswith(("[tool]", "logging before google.Init")):
                     continue
                 if event is None:
@@ -363,12 +381,14 @@ class CLIAdapter:
                     continue
                 kind = event.get("type")
                 if kind in {"error", "turn.failed"}:
+                    parsed.final, parsed.failed = None, True
                     detail = event.get("error")
                     message = event.get("message") or (detail.get("message") if isinstance(detail, dict) else None)
                     if isinstance(message, str):
                         parsed.diagnostics.append(message)
                 elif self.cli == "claude" and kind == "result":
                     if event.get("is_error") or event.get("subtype", "success") != "success":
+                        parsed.final, parsed.failed = None, True
                         details = event.get("errors", [event.get("result", "")])
                         parsed.diagnostics.extend(e for e in (details if isinstance(details, list) else [details]) if isinstance(e, str))
                     elif isinstance(event.get("result"), str) and event["result"].strip():
@@ -387,7 +407,7 @@ class CLIAdapter:
                         if isinstance(text, str) and text.strip():
                             parsed.final = text
         # -o é controlado pela CLI, mas não serve como fonte de erro/cota.
-        if self.cli == "codex" and not parsed.final:
+        if self.cli == "codex" and not parsed.final and not parsed.failed:
             final = confined_path(Path(meta["workspace"]), ".orq-last-message")
             if final.is_file():
                 parsed.final = _read_limited(final).decode("utf-8", errors="replace").strip() or None
@@ -431,7 +451,12 @@ class CLIAdapter:
         observation = self._status(directory, meta)
         parsed = self._parse(directory, meta)
         now = self._now()
-        detection = self.detector.detect(returncode=receipt["returncode"], final_response=bool(parsed.final),
+        try:
+            envelope = json.loads((parsed.final or "").removeprefix("ORQ_FINAL:"))
+            final_response = isinstance(envelope, dict) and isinstance(envelope.get("outputs"), dict)
+        except ValueError:
+            final_response = False
+        detection = self.detector.detect(returncode=receipt["returncode"], final_response=final_response,
                                          diagnostics=tuple(parsed.diagnostics), observed_at=now)
         errors, files = [], []
         if detection.reason == "quota_exhausted":

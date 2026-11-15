@@ -13,7 +13,30 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import tempfile
 import time
+
+
+WINDOWS = os.name == "nt"
+PERMISSION_ATTEMPTS = 100
+
+
+def retry_permission(operation):
+    """Sharing violations do Windows são transitórias; outras falhas propagam."""
+    for attempt in range(PERMISSION_ATTEMPTS):
+        try:
+            return operation()
+        except PermissionError:
+            if not WINDOWS or attempt == PERMISSION_ATTEMPTS - 1:
+                raise
+            time.sleep(.01)
+
+
+def read_bytes(path: Path, limit: int = -1) -> bytes:
+    def read():
+        with path.open("rb") as stream:
+            return stream.read(limit)
+    return retry_permission(read)
 
 
 def safe_environment() -> dict[str, str]:
@@ -51,21 +74,17 @@ def write_record(path: Path, body: dict) -> None:
     # Subconjunto JCS fechado: chaves ASCII, strings, inteiros seguros, bool/null.
     data = json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     record = {**body, "state_hash": {"algorithm": "sha256", "value": hashlib.sha256(data).hexdigest()}}
-    temporary = path.with_suffix(".pending")
-    with temporary.open("wb") as stream:
-        stream.write(json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-        stream.flush()
-        os.fsync(stream.fileno())
-    # Leitor Windows pode segurar brevemente o destino sem FILE_SHARE_DELETE.
-    for attempt in range(100):
-        try:
-            os.replace(temporary, path)
-            break
-        except PermissionError:
-            if attempt == 99:
-                raise
-            time.sleep(.01)
-    sync_directory(path.parent)
+    descriptor, name = retry_permission(lambda: tempfile.mkstemp(prefix=f".{path.name}.", suffix=".pending", dir=path.parent))
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+            stream.flush()
+            os.fsync(stream.fileno())
+        retry_permission(lambda: os.replace(temporary, path))
+        retry_permission(lambda: sync_directory(path.parent))
+    finally:
+        retry_permission(lambda: temporary.unlink(missing_ok=True))
 
 
 class WindowsJob:
@@ -151,13 +170,28 @@ class WindowsJob:
         self.kernel.CloseHandle(self.handle)
 
 
+def group_gone(pid: int, timeout: float = 2.) -> bool:
+    end = time.monotonic() + timeout
+    while True:
+        try:
+            os.killpg(pid, 0)
+        except ProcessLookupError:
+            return True
+        except OSError:
+            return False
+        if time.monotonic() >= end:
+            return False
+        time.sleep(.02)
+
+
 def main(directory: Path):
-    config = json.loads((directory / "launch.json").read_text(encoding="utf-8"))
+    config = json.loads(read_bytes(directory / "launch.json"))
     receipt = directory / "receipt.json"
     common = {"fingerprint": config["fingerprint"]}
     write_record(receipt, {**common, "phase": "launching"})
-    job = WindowsJob() if os.name == "nt" else None
+    job = WindowsJob() if WINDOWS else None
     process = None
+    recorded = False
     try:
         with (directory / "stdout").open("wb") as stdout, (directory / "stderr").open("wb") as stderr:
             if time.time_ns() // 1000000 >= config["budget_deadline_ms"]:
@@ -166,8 +200,8 @@ def main(directory: Path):
             try:
                 process = subprocess.Popen(config["argv"], cwd=config["cwd"], stdin=subprocess.DEVNULL,
                                            stdout=stdout, stderr=stderr, shell=False,
-                                           env=safe_environment(), start_new_session=os.name != "nt",
-                                           creationflags=(0x4 | subprocess.CREATE_NO_WINDOW) if os.name == "nt" else 0)
+                                           env=safe_environment(), start_new_session=not WINDOWS,
+                                           creationflags=(0x4 | subprocess.CREATE_NO_WINDOW) if WINDOWS else 0)
                 if job:
                     job.attach_and_resume(process)
             except OSError:
@@ -199,19 +233,41 @@ def main(directory: Path):
                     pass
                 except OSError:
                     confirmed = False
-            code = process.wait(timeout=5)
+            try:
+                code = process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                confirmed, code = False, None
+            if not job:
+                confirmed = group_gone(process.pid) and confirmed
             for stream in (stdout, stderr):
                 stream.flush()
                 os.fsync(stream.fileno())
             write_record(receipt, {**common, "phase": "terminal" if confirmed else "unknown",
                                    "returncode": code, "stop_reason": reason,
                                    "remote_consumption": "unknown"})
+            recorded = True
     finally:
-        if job:
-            job.close()
-        elif process and process.poll() is None:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+        try:
+            if job:
+                job.close()
+        finally:
+            try:
+                # AssignProcessToJobObject pode falhar antes de o Job possuir o filho.
+                if process and process.poll() is None:
+                    if job:
+                        process.kill()
+                    else:
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
+            finally:
+                if process is not None and not recorded:
+                    write_record(receipt, {**common, "phase": "unknown", "remote_consumption": "unknown"})
 
 
 if __name__ == "__main__":

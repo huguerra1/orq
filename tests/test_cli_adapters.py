@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import copy
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
 from conftest import load_fixture
 from orq_contracts.adapters import AgyAdapter, ClaudeCodeAdapter, CodexAdapter, KiroAdapter, CLIPermissions
 from orq_contracts.adapters.cli import _read_state, wsl_path
+from orq_contracts.adapters import cli as cli_module, _supervisor as supervisor
 from orq_contracts.adapters._supervisor import write_record, safe_environment
 from orq_contracts.adapters.quota import VERSIONS
 from orq_contracts.artifact_store import ArtifactStore
@@ -40,7 +43,7 @@ def build(tmp_path, monkeypatch):
     # Rede bloqueada também no processo pytest; as CLIs falsas não importam clientes de rede.
     monkeypatch.setattr(socket, "create_connection", lambda *a, **k: pytest.fail("rede proibida"))
 
-    def create(adapter_class=CodexAdapter, mode="success", timeout_ms=5000, permissions=CLIPermissions(), fake=True, clock=None):
+    def create(adapter_class=CodexAdapter, mode="success", timeout_ms=10000, permissions=CLIPermissions(), fake=True, clock=None):
         root = tmp_path / str(len(resources))
         root.mkdir()
         clock = clock if clock is not None else lambda: NOW
@@ -77,7 +80,7 @@ def build(tmp_path, monkeypatch):
 
 def finish(adapter, intent, bundle, workspace):
     assert adapter.dispatch(intent, bundle, workspace).acknowledged
-    observation = adapter.observe(intent, "2026-11-15T00:30:08Z")
+    observation = adapter.observe(intent, "2026-11-15T00:30:20Z")
     return observation, adapter.collect(intent)
 
 
@@ -155,10 +158,16 @@ def test_spawn_without_shell_and_state_fsynced_before_spawn(build, monkeypatch):
     assert "env" not in launch
 
 
-@pytest.mark.parametrize("name", ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "AWS_SECRET_ACCESS_KEY", "WSLENV"])
-def test_paid_api_variables_are_not_forwarded(monkeypatch, name):
-    monkeypatch.setenv(name, "secret-not-to-forward")
-    assert name not in safe_environment()
+@pytest.mark.parametrize("cls", ADAPTERS)
+def test_paid_api_variables_are_not_forwarded(build, monkeypatch, cls):
+    names = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "AWS_SECRET_ACCESS_KEY", "WSLENV"}
+    for name in names:
+        monkeypatch.setenv(name, "secret-not-to-forward")
+    assert names.isdisjoint(safe_environment())
+    adapter, intent, bundle, workspace = build(cls)
+    finish(adapter, intent, bundle, workspace)
+    invocation = json.loads((adapter.workspace_root / workspace.workspace_id / "invocation.json").read_bytes())
+    assert names.isdisjoint(invocation["environment_names"])
 
 
 def test_never_reads_credentials(build, monkeypatch):
@@ -177,7 +186,7 @@ def test_never_reads_credentials(build, monkeypatch):
 @pytest.mark.parametrize("cls", ADAPTERS)
 @pytest.mark.parametrize("stop", ["timeout", "cancel"])
 def test_timeout_and_cancel_kill_tree_even_without_observe(build, cls, stop):
-    adapter, intent, bundle, workspace = build(cls, mode="hang", timeout_ms=800 if stop == "timeout" else 5000)
+    adapter, intent, bundle, workspace = build(cls, mode="hang", timeout_ms=5000)
     adapter.dispatch(intent, bundle, workspace)
     work = adapter.workspace_root / workspace.workspace_id
     end = time.monotonic() + 5
@@ -188,7 +197,8 @@ def test_timeout_and_cancel_kill_tree_even_without_observe(build, cls, stop):
         assert adapter.cancel(intent, "teste").termination_certainty == "confirmed"
     else:
         # Supervisor aplica o timeout mesmo se o runner nunca chamar observe.
-        time.sleep(1)
+        directory = adapter._directory(intent["dispatch_idempotency_key"])
+        adapter._processes[str(directory)].wait(timeout=10)
     observation = adapter.observe(intent, NOW)  # prazo vencido retorna imediatamente
     assert observation.status == "stopped"
     assert observation.termination_certainty == "confirmed"
@@ -359,7 +369,7 @@ def test_rehashed_inconsistent_state_is_rejected(build):
 def test_symlink_output_outside_workspace_is_never_published(build, monkeypatch, tmp_path):
     adapter, intent, bundle, workspace = build(mode="file")
     adapter.dispatch(intent, bundle, workspace)
-    adapter.observe(intent, "2026-11-15T00:30:08Z")
+    adapter.observe(intent, "2026-11-15T00:30:20Z")
     path = adapter.workspace_root / workspace.workspace_id / ".orq-output/report.json"
     external = tmp_path / "outside.json"
     external.write_text('{"ok":true}', encoding="utf-8")
@@ -421,6 +431,13 @@ def test_kiro_windows_launch_uses_wsl_supervisor_without_shell(build, monkeypatc
     adapter.platform = "win32"
     captured = []
 
+    # Simula a montagem WSL; paths reais de teste podem estar em qualquer volume/SO.
+    def mounted(path, *, workspace=False):
+        relative = Path(path).relative_to(adapter.workspace_root) if workspace else Path(path).name
+        return "/mnt/c/dev/test/" + str(relative).replace("\\", "/")
+
+    monkeypatch.setattr(cli_module, "wsl_path", mounted)
+
     def capture(argv, **kwargs):
         captured.append(argv)
         assert kwargs["shell"] is False
@@ -429,7 +446,7 @@ def test_kiro_windows_launch_uses_wsl_supervisor_without_shell(build, monkeypatc
 
     monkeypatch.setattr(subprocess, "Popen", capture)
     adapter.dispatch(intent, bundle, workspace)
-    work = wsl_path(adapter.workspace_root / workspace.workspace_id, workspace=True)
+    work = mounted(adapter.workspace_root / workspace.workspace_id, workspace=True)
     assert captured[0][:5] == ["wsl.exe", "--cd", work, "--", "python3"]
     config = _read_state(adapter._directory(intent["dispatch_idempotency_key"]) / "launch.json")
     assert config["argv"][0:5] == ["kiro-cli", "chat", "--no-interactive", "--trust-workspace", "--trust-tools=fs_read"]
@@ -444,3 +461,351 @@ def test_command_grants_are_explicit_and_injection_rejected(build):
         assert any("execute_bash" in a if cls == KiroAdapter else "Bash(python -m pytest:*)" in a for a in argv)
     with pytest.raises(ExecutorError):
         CLIPermissions(command_prefixes=(("echo", "$(secret)"),))
+
+
+@pytest.mark.parametrize("mode", ["intermediate_quota", "final_then_quota", "intermediate_stderr_quota"])
+def test_codex_message_before_quota_does_not_hide_failure(build, mode):
+    adapter, intent, bundle, workspace = build(mode=mode)
+    _, result = finish(adapter, intent, bundle, workspace)
+    assert result.errors[0]["code"] == "quota_limit_reached"
+    assert not result.produced_files
+
+
+def test_codex_valid_final_after_recovered_error_is_preserved(build):
+    adapter, intent, bundle, workspace = build(mode="error_then_final")
+    observation, result = finish(adapter, intent, bundle, workspace)
+    assert observation.status == "finished"
+    assert not result.errors
+    assert result.produced_files[0].content == b'{"ok":true}'
+
+
+@pytest.mark.parametrize("cls", [AgyAdapter, KiroAdapter])
+def test_text_stdout_project_error_is_not_cli_quota(build, cls):
+    adapter, intent, bundle, workspace = build(cls, mode="project_json_error")
+    _, result = finish(adapter, intent, bundle, workspace)
+    assert result.errors[0]["code"] == "execution_failed"
+    assert "quota_state" not in result.errors[0]
+
+
+def test_json_literal_or_object_with_suffix_keeps_whole_diagnostic_line(build):
+    adapter, intent, bundle, workspace = build(mode="json_prefix_noise")
+    _, result = finish(adapter, intent, bundle, workspace)
+    assert result.errors[0]["code"] == "execution_failed"
+    assert "quota_state" not in result.errors[0]
+
+
+@pytest.mark.parametrize("failure", ["bundle", "wsl_path", "argv"])
+def test_dispatch_validates_before_creating_state_or_workspace(build, monkeypatch, failure):
+    adapter, intent, bundle, workspace = build(KiroAdapter)
+    original_argv = adapter._argv
+    if failure == "bundle":
+        bundle = b"\xff"
+        intent["bundle_hash"] = bytes_digest(bundle)
+        seal(intent)
+    elif failure == "wsl_path":
+        adapter.platform = "win32"
+        monkeypatch.setattr(cli_module, "wsl_path", lambda *a, **k: (_ for _ in ()).throw(ExecutorError("invalid_workspace", "test")))
+    else:
+        monkeypatch.setattr(adapter, "_argv", lambda *a: (_ for _ in ()).throw(ExecutorError("invalid_workspace", "test")))
+    with pytest.raises(ExecutorError, match="invalid_bundle" if failure == "bundle" else "invalid_workspace"):
+        adapter.dispatch(intent, bundle, workspace)
+    assert not adapter._directory(intent["dispatch_idempotency_key"]).exists()
+    assert not (adapter.workspace_root / workspace.workspace_id).exists()
+    assert adapter.reconcile(intent["dispatch_idempotency_key"], None).outcome == "unknown"
+    # Uma falha de validação não deixa um despacho impossível de corrigir.
+    adapter.platform = "linux"
+    monkeypatch.setattr(adapter, "_argv", original_argv)
+    valid = canonicalize({"context": "corrigido"})
+    intent["bundle_hash"] = bytes_digest(valid)
+    seal(intent)
+    assert finish(adapter, intent, valid, workspace)[0].status == "finished"
+
+
+def test_prepared_state_exists_before_workspace_creation(build, monkeypatch):
+    adapter, intent, bundle, workspace = build()
+    original = Path.mkdir
+    work = adapter.workspace_root / workspace.workspace_id
+
+    def checked(path, *args, **kwargs):
+        if path == work:
+            meta = _read_state(adapter._directory(intent["dispatch_idempotency_key"]) / "state.json")
+            assert meta["phase"] == "prepared"
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", checked)
+    finish(adapter, intent, bundle, workspace)
+
+
+def test_initial_state_write_failure_does_not_leave_empty_dispatch(build, monkeypatch):
+    adapter, intent, bundle, workspace = build()
+    original = cli_module.write_record
+    monkeypatch.setattr(cli_module, "write_record", lambda *a: (_ for _ in ()).throw(OSError("fsync failed")))
+    with pytest.raises(OSError, match="fsync failed"):
+        adapter.dispatch(intent, bundle, workspace)
+    assert not adapter._directory(intent["dispatch_idempotency_key"]).exists()
+    assert not (adapter.workspace_root / workspace.workspace_id).exists()
+    monkeypatch.setattr(cli_module, "write_record", original)
+    assert finish(adapter, intent, bundle, workspace)[0].status == "finished"
+
+
+def test_launched_without_receipt_is_running_while_supervisor_lives(build, monkeypatch):
+    adapter, intent, bundle, workspace = build()
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: SimpleNamespace(poll=lambda: None))
+    adapter.dispatch(intent, bundle, workspace)
+    observation = adapter.observe(intent, NOW)
+    assert observation.status == "running"
+    assert observation.termination_certainty == "not_terminated"
+
+
+def test_observe_rereads_receipt_after_supervisor_exits(build, monkeypatch):
+    adapter, intent, bundle, workspace = build()
+    finish(adapter, intent, bundle, workspace)
+    directory = adapter._directory(intent["dispatch_idempotency_key"])
+    _, meta = adapter._metadata(intent)
+    running = {"fingerprint": meta["fingerprint"], "phase": "running"}
+    terminal = {**running, "phase": "terminal", "returncode": 0, "stop_reason": None}
+    write_record(directory / "receipt.json", running)
+    polls = []
+
+    def poll():
+        polls.append(True)
+        if len(polls) == 1:
+            return None  # _status viu running antes da saída.
+        write_record(directory / "receipt.json", terminal)
+        return 0
+
+    waited = []
+    adapter._processes[str(directory)] = SimpleNamespace(poll=poll, wait=lambda **k: waited.append(True))
+    assert adapter.observe(intent, "2026-11-15T00:30:20Z").status == "finished"
+    assert waited
+
+
+def test_reconcile_uses_single_receipt_snapshot(build, monkeypatch):
+    adapter, intent, bundle, workspace = build()
+    finish(adapter, intent, bundle, workspace)
+    directory, meta = adapter._metadata(intent)
+    terminal = adapter._receipt(directory, meta)
+    running = {"fingerprint": meta["fingerprint"], "phase": "running"}
+    calls = []
+
+    def racing_receipt(*args):
+        calls.append(True)
+        return running if len(calls) == 1 else terminal
+
+    monkeypatch.setattr(adapter, "_receipt", racing_receipt)
+    adapter._processes[str(directory)] = SimpleNamespace(poll=lambda: None)
+    found = adapter.reconcile(intent["dispatch_idempotency_key"], None)
+    assert len(calls) == 1
+    assert found.outcome == "found_running"
+    assert found.external_call_id is None
+    ref = found.evidence_refs[0]
+    assert ref["content_digest"] == bytes_digest(canonicalize({"state": meta, "receipt": running}))
+
+
+def test_atomic_record_retries_creation_replace_and_read(tmp_path, monkeypatch):
+    monkeypatch.setattr(supervisor, "WINDOWS", True)
+    path = tmp_path / "receipt.json"
+    write_record(path, {"phase": "launching"})
+    original_create, original_replace, original_open = supervisor.tempfile.mkstemp, supervisor.os.replace, Path.open
+    created, replaced, opened = [], [], []
+    fsynced = []
+    original_fsync = supervisor.os.fsync
+
+    def fsync(fd):
+        fsynced.append(fd)
+        return original_fsync(fd)
+
+    def create(**kwargs):
+        created.append(kwargs)
+        if len(created) == 1:
+            raise PermissionError("temporary locked")
+        return original_create(**kwargs)
+
+    def replace(source, target):
+        replaced.append(source)
+        assert source.parent == path.parent
+        assert source.name.startswith(".receipt.json.") and source.suffix == ".pending"
+        assert fsynced  # temporário foi sincronizado antes de substituir o destino.
+        assert _read_state(path)["phase"] == "launching"
+        if len(replaced) == 1:
+            raise PermissionError("destination locked")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(supervisor.tempfile, "mkstemp", create)
+    monkeypatch.setattr(supervisor.os, "replace", replace)
+    monkeypatch.setattr(supervisor.os, "fsync", fsync)
+    write_record(path, {"phase": "terminal"})
+    assert len(created) == len(replaced) == 2
+    assert not list(tmp_path.glob("*.pending"))
+
+    def read_open(target, *args, **kwargs):
+        if target == path:
+            opened.append(True)
+            if len(opened) < 3:
+                raise PermissionError("delete pending")
+        return original_open(target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", read_open)
+    assert _read_state(path)["phase"] == "terminal"
+    assert len(opened) == 3
+
+
+def test_record_retry_is_bounded_and_failed_replace_cleans_temporary(tmp_path, monkeypatch):
+    monkeypatch.setattr(supervisor, "WINDOWS", True)
+    monkeypatch.setattr(supervisor, "PERMISSION_ATTEMPTS", 3)
+    path = tmp_path / "state.json"
+    write_record(path, {"phase": "prepared"})
+    attempts = []
+
+    def denied(*args, **kwargs):
+        attempts.append(True)
+        raise PermissionError("locked")
+
+    monkeypatch.setattr(supervisor.os, "replace", denied)
+    with pytest.raises(PermissionError):
+        write_record(path, {"phase": "spawning"})
+    assert len(attempts) == 3
+    assert _read_state(path)["phase"] == "prepared"
+    assert not list(tmp_path.glob("*.pending"))
+    attempts.clear()
+    monkeypatch.setattr(Path, "open", denied)
+    with pytest.raises(PermissionError):
+        _read_state(path)
+    assert len(attempts) == 3
+
+
+def test_atomic_records_allow_concurrent_writers_and_reader(tmp_path):
+    path = tmp_path / "state.json"
+    write_record(path, {"writer": -1, "index": -1})
+
+    def writer(identity):
+        for index in range(30):
+            write_record(path, {"writer": identity, "index": index})
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = [pool.submit(writer, identity) for identity in range(2)]
+        for _ in range(150):
+            record = _read_state(path)
+            assert record["writer"] in {-1, 0, 1}
+        for future in futures:
+            future.result()
+    assert not list(tmp_path.glob("*.pending"))
+
+
+def test_kiro_fast_exit_receipt_stress(build):
+    # Repete launching -> running -> terminal com outro leitor concorrente.
+    for _ in range(25):
+        adapter, intent, bundle, workspace = build(KiroAdapter, mode="noise_only")
+        directory = adapter._directory(intent["dispatch_idempotency_key"])
+        assert adapter.dispatch(intent, bundle, workspace).acknowledged
+
+        def read_while_running():
+            process = adapter._processes[str(directory)]
+            while process.poll() is None:
+                _read_state(directory / "state.json")
+                try:
+                    _read_state(directory / "receipt.json")
+                except FileNotFoundError:
+                    pass
+                time.sleep(.001)
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            reading = pool.submit(read_while_running)
+            observation = adapter.observe(intent, "2026-11-15T00:30:20Z")
+            reading.result(timeout=10)
+        assert observation.status == "finished"
+        assert _read_state(directory / "receipt.json")["phase"] == "terminal"
+        result = adapter.collect(intent)
+        assert result.errors[0]["code"] == "execution_failed"
+        assert not result.produced_files
+
+
+@pytest.fixture
+def supervisor_case(tmp_path, monkeypatch):
+    write_record(tmp_path / "launch.json", {"argv": ["fake"], "cwd": str(tmp_path), "timeout_ms": 0,
+                                          "fingerprint": "test", "budget_deadline_ms": time.time_ns() // 1000000 + 10000})
+
+    class Process:
+        pid = 123
+        alive = True
+        killed = False
+        waits = 0
+
+        def poll(self):
+            return None if self.alive else 0
+
+        def kill(self):
+            self.killed = True
+            self.alive = False
+
+        def wait(self, timeout):
+            assert timeout == 5
+            self.waits += 1
+            if self.alive:
+                raise subprocess.TimeoutExpired("fake", timeout)
+            return -9 if self.killed else 0
+
+    class Job:
+        closed = False
+
+        def attach_and_resume(self, process):
+            pass
+
+        def stop(self):
+            return False
+
+        def close(self):
+            self.closed = True
+
+    process, job = Process(), Job()
+    monkeypatch.setattr(supervisor, "WINDOWS", True)
+    monkeypatch.setattr(supervisor, "WindowsJob", lambda: job)
+    monkeypatch.setattr(subprocess, "CREATE_NO_WINDOW", 0, raising=False)
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: process)
+    return tmp_path, process, job
+
+
+def test_supervisor_cleans_suspended_child_if_job_attachment_fails(supervisor_case, monkeypatch):
+    directory, process, job = supervisor_case
+    monkeypatch.setattr(job, "attach_and_resume", lambda p: (_ for _ in ()).throw(OSError("AssignProcessToJobObject")))
+    with pytest.raises(OSError, match="AssignProcessToJobObject"):
+        supervisor.main(directory)
+    assert job.closed and process.killed and process.waits == 1
+    receipt = _read_state(directory / "receipt.json")
+    assert receipt["phase"] == "unknown"
+    assert receipt["remote_consumption"] == "unknown"
+
+
+def test_supervisor_wait_timeout_persists_unknown_and_bounds_cleanup(supervisor_case):
+    directory, process, job = supervisor_case
+    supervisor.main(directory)
+    receipt = _read_state(directory / "receipt.json")
+    assert receipt["phase"] == "unknown"
+    assert receipt["returncode"] is None
+    assert receipt["stop_reason"] == "timeout"
+    assert job.closed and process.killed and process.waits == 2
+
+
+@pytest.mark.parametrize("disappears", [False, True])
+def test_posix_receipt_waits_for_entire_process_group(supervisor_case, monkeypatch, disappears):
+    directory, process, _ = supervisor_case
+    process.alive = False
+    monkeypatch.setattr(supervisor, "WINDOWS", False)
+    probes = []
+
+    def killpg(pid, sig):
+        assert pid == process.pid
+        if sig == 0:
+            probes.append(True)
+            if disappears and len(probes) == 3:
+                raise ProcessLookupError()
+
+    monkeypatch.setattr(supervisor.os, "killpg", killpg, raising=False)
+    monkeypatch.setattr(supervisor.signal, "SIGKILL", 9, raising=False)
+    ticks = iter([0., 0., .5, 1., 2.])
+    monkeypatch.setattr(supervisor.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(supervisor.time, "sleep", lambda s: None)
+    supervisor.main(directory)
+    assert len(probes) == 3
+    receipt = _read_state(directory / "receipt.json")
+    assert receipt["phase"] == ("terminal" if disappears else "unknown")

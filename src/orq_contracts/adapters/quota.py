@@ -53,15 +53,16 @@ class QuotaLimitDetector:
         """
         if returncode == 0 and final_response:
             return QuotaDetection("none", self.version)
-        for raw in diagnostics:
+        fallback = None
+        for raw in (line for diagnostic in diagnostics for line in diagnostic.splitlines()):
             line = _ANSI.sub("", raw).strip()
             line = re.sub(r"^(?:ERROR|Error|error|status):\s*", "", line)
             # Login/DNS/rede não bloqueiam o pool de assinatura.
-            if re.match(r"(?:Could not load your login|Not logged in|login expired|authentication failed|"
-                        r"session expired|unauthorized|please log in)", line, re.I):
-                return QuotaDetection("authentication_unavailable", self.version, line[:512])
-            if re.match(r"(?:network error|DNS|ENOTFOUND|EAI_AGAIN|connection (?:failed|refused|timed out))", line, re.I):
-                return QuotaDetection("network_unavailable", self.version, line[:512])
+            if re.search(r"\b(?:Could not load your login|Not logged in|login expired|authentication failed|"
+                         r"session expired|unauthorized|please log in)\b", line, re.I):
+                fallback = fallback or QuotaDetection("authentication_unavailable", self.version, line[:512])
+            if re.search(r"\b(?:network error|DNS|ENOTFOUND|EAI_AGAIN|connection (?:failed|refused|timed out))\b", line, re.I):
+                fallback = fallback or QuotaDetection("network_unavailable", self.version, line[:512])
             if not self.pattern.fullmatch(line):
                 continue
             now = parse_utc(observed_at)
@@ -71,7 +72,7 @@ class QuotaLimitDetector:
                 format_utc(reset or now + timedelta(milliseconds=self.cooldown_ms)),
                 "cli_reported" if reset else "cooldown_policy",
             )
-        return QuotaDetection("none", self.version)
+        return fallback or QuotaDetection("none", self.version)
 
     def _reset(self, line: str, now: datetime) -> datetime | None:
         match = re.search(r"(?:try again at|resets? at)\s+(\d{4}-\d\d-\d\d[T ][0-9:+.Z-]+)", line, re.I)

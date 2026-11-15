@@ -64,7 +64,8 @@ def test_real_kiro_login_is_not_quota(file):
     assert result.reset_at is result.blocked_until is result.reset_source is None
 
 
-@pytest.mark.parametrize("message", ["DNS lookup failed", "ENOTFOUND host", "network error: unavailable", "connection refused"])
+@pytest.mark.parametrize("message", ["DNS lookup failed", "ENOTFOUND host", "network error: unavailable", "connection refused",
+                                    "Error: getaddrinfo ENOTFOUND api.openai.com", "dispatch failure: connection refused"])
 def test_network_is_not_quota(message):
     result = detect(message)
     assert result.reason == "network_unavailable"
@@ -81,3 +82,20 @@ def test_success_and_unanchored_project_quotes_do_not_trigger():
 def test_grammars_are_cli_specific():
     assert detect("RESOURCE_EXHAUSTED", cli="codex").reason == "none"
     assert detect("monthly limit exceeded", cli="claude").reason == "none"
+
+
+def test_prefixed_login_is_not_quota():
+    assert detect("kiro-cli: Not logged in", cli="kiro-cli").reason == "authentication_unavailable"
+    assert detect("authentication failedness").reason == "none"
+    assert detect("noENOTFOUNDhere").reason == "none"
+
+
+@pytest.mark.parametrize("first", ["connection failed, retrying...", "kiro-cli: Not logged in"])
+@pytest.mark.parametrize("multiline", [False, True])
+def test_quota_has_precedence_over_transient_diagnostics(first, multiline):
+    lines = [first, "You've hit your usage limit. Try again at 22:05"]
+    diagnostics = ("\n".join(lines),) if multiline else tuple(lines)
+    result = QuotaLimitDetector("codex", local_timezone="America/Sao_Paulo").detect(
+        returncode=1, final_response=False, diagnostics=diagnostics, observed_at=local(21, 30))
+    assert result.reason == "quota_exhausted"
+    assert result.reset_at == "2026-11-15T01:05:00.000000Z"

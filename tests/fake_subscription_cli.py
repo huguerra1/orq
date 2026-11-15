@@ -1,5 +1,6 @@
 """CLI sintética de teste, sem rede; recebe o argv oficial depois do nome da CLI."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -16,7 +17,8 @@ if sys.argv[1] == "child":
         time.sleep(.03)
 
 cli, mode, *args = sys.argv[1:]
-Path("invocation.json").write_text(json.dumps({"argv": args, "stdin": sys.stdin.read(), "cwd": str(Path.cwd())}), encoding="utf-8")
+Path("invocation.json").write_text(json.dumps({"argv": args, "stdin": sys.stdin.read(), "cwd": str(Path.cwd()),
+                                             "environment_names": sorted(os.environ)}), encoding="utf-8")
 if mode == "hang":
     child = subprocess.Popen([sys.executable, __file__, "child", str(Path.cwd() / "heartbeat")], stdin=subprocess.DEVNULL)
     Path("child.pid").write_text(str(child.pid), encoding="utf-8")
@@ -49,6 +51,24 @@ if mode == "project_quota":
 if mode == "json_quota":
     print(json.dumps({"type": "turn.failed", "error": {"message": "You've hit your usage limit"}}))
     sys.exit(0)  # ausência de resposta final também aciona o detector
+if mode in {"intermediate_quota", "final_then_quota", "intermediate_stderr_quota"}:
+    text = final if mode == "final_then_quota" else "Vou conferir os arquivos."
+    print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": text}}))
+    Path(".orq-last-message").write_text(final, encoding="utf-8")
+    if mode == "intermediate_stderr_quota":
+        print("You've hit your usage limit", file=sys.stderr)
+    else:
+        print(json.dumps({"type": "turn.failed", "error": {"message": "You've hit your usage limit"}}))
+    sys.exit(0)
+if mode == "project_json_error":
+    print(json.dumps({"type": "error", "message": "usage limit reached"}))
+    sys.exit(1)
+if mode == "json_prefix_noise":
+    print('["tool"] usage limit', file=sys.stderr)
+    print('{"type":"error","message":"usage limit"} usage limit', file=sys.stderr)
+    sys.exit(1)
+if mode == "error_then_final":
+    print(json.dumps({"type": "error", "message": "connection failed, retrying..."}))
 print("progresso sem JSON")
 if cli == "claude":
     print(json.dumps({"type": "result", "subtype": "success", "result": final, "session_id": "session-claude",

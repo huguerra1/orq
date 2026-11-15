@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). **7C implementado**, em revisão (smoke real das CLIs pendente). Próximo incremento: **7D**. Os incrementos 7C–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). **7C implementado, com os oito achados da revisão corrigidos** (suíte integral e smoke real das CLIs pendentes). Próximo incremento: **7D**. O gate V01–V12 do 7C e os incrementos 7D–7F permanecem pendentes.
 
 ## Problema
 
@@ -134,9 +134,41 @@ Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuraçã
   Windows); subprocessos Python falsos, sem CLI real/rede. Todos os controles
   permanecem unknown e a cobertura de contexto também. [Tabela V01–V12 e decisões](subscription-adapters.md#cumprimento-do-checklist-v01v12-por-adaptador)
   distinguem testes do host das evidências ainda necessárias por versão real.
-  Próximo: revisão do 7C e smoke real V01–V12.
+  Próximo: validar a revisão do 7C na suíte integral e executar smoke real V01–V12.
   Fallback, reativação e sondagem permanecem no 7E; nenhum cenário Q ponta a ponta
   foi declarado concluído por estes testes.
+
+### Revisão independente do 7C — 2026-11-14
+
+Os oito achados foram corrigidos sem alterar interfaces públicas, schemas,
+dependências, memória, banco ou CI. Mantida a substituição atômica dos registros,
+com temporário exclusivo no mesmo diretório, flush/fsync antes de `os.replace` e
+sincronização do diretório. Criação, substituição, limpeza e leitura repetem apenas
+`PermissionError` no Windows, até 100 tentativas com intervalo de 10 ms; falha
+persistente continua explícita. Preferiu-se esse mecanismo a um lock compartilhado
+entre host e supervisor: evita coordenação adicional e mantém leitores vendo um
+registro completo. Temporários são removidos em `finally`.
+
+| Achado | Correção e regressão |
+| --- | --- |
+| 1 — corrida nos arquivos e observação | Leitura tolerante e escrita com temporários únicos; `launched` com supervisor vivo conta como running. Após sua saída, `observe` espera e relê o recibo. Testes injetam acessos negados transitórios/persistentes, verificam fsync/limpeza, exercitam dois escritores concorrentes e repetem 25 despachos Kiro `noise_only` com leitor concorrente. |
+| 2 — origem dos eventos e resposta final | AGY/Kiro tratam stdout como texto; Codex não promove mensagem intermediária a final válida nem recupera `-o` após erro estruturado. JSON com sufixo na mesma linha permanece texto inteiro. Regressões cobrem mensagem intermediária, final seguida de erro, sucesso após recuperação de erro, JSON de projeto e literais com sufixo de cota. |
+| 3 — diagnóstico de cota | Diagnósticos multilinha são separados; login/rede aceitam prefixos com fronteiras de palavra; cota fatal tem precedência sobre avisos anteriores. Testes incluem ENOTFOUND com contexto, login Kiro prefixado e cota após rede/autenticação. |
+| 4 — limpeza no Windows | Fechar o Job não dispensa matar/recolher o filho direto que ficou suspenso fora dele. `TimeoutExpired` produz recibo unknown, sem espera ilimitada. Testes simulam falha de associação e timeout de término. |
+| 5 — árvore POSIX/WSL | Após SIGKILL e espera do filho, sonda o grupo até desaparecer; prazo esgotado preserva unknown. Testes simulam netos ainda presentes, desaparecimento posterior e expiração, inclusive quando o pai já saiu. |
+| 6 — preparação do despacho | Bundle UTF-8, caminhos WSL, argv e prazo são preparados antes de criar diretórios. `state.json` é escrito antes do workspace; falha inicial sem estado publicado remove o diretório vazio. Regressões provam ausência de resíduos, correção da entrada e novo despacho válido. |
+| 7 — evidência da reconciliação | Status, sessão e ArtifactRef usam o mesmo snapshot de recibo. Teste alterna recibos running/terminal e exige uma única leitura. |
+| 8 — fidelidade dos testes | Montagem WSL simulada independe do basetemp; CLI falsa registra apenas nomes das variáveis recebidas, comprovando nas quatro famílias a exclusão das seis variáveis sensíveis injetadas juntas. Casos de rede/login incluem prefixos realistas. O teste de árvore dá margem para iniciar o neto e aguarda o supervisor com prazo limitado, sem `observe`, em vez de depender de um sleep fixo. |
+
+Os testes POSIX/WSL com processos simulados comprovam a lógica do supervisor;
+enforcement com os binários reais continua pendente no gate V01–V12. Custo e
+consumo remoto desconhecidos continuam indisponíveis/unknown.
+
+Verificação após a revisão: **118 aprovados, um ignorado** (symlink sem privilégio
+no Windows), em `tests/test_cli_adapters.py` e `tests/test_quota_detector.py`, com
+`PYTHONPATH=src`, `-q -p no:cacheprovider` e basetemp dedicado. `git diff --check`
+sem erros. A suíte integral e sua repetição ficam com o orquestrador. Nenhum
+commit ou push nesta correção.
 
 ## Documentos da Fase 7
 

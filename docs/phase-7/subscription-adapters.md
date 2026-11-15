@@ -81,8 +81,9 @@ Baseado na observação real da versão `3.1.0` rodando no Ubuntu/WSL ([executor
 
 Conforme a [ADR 0007](../adr/0007-phase-6-runner-and-simulated-executor.md) e [executor-choice.md](../phase-6/executor-choice.md#checklist-de-verificação-de-um-adaptador-real), cada item abaixo exige a captura de um `ArtifactRef` de evidência na sessão de verificação do incremento `7C` antes de mudar de `unknown` para `supported`:
 
-Implementação 7C em 2026-11-14: **90 testes aprovados, um ignorado** (symlink no Windows),
-nos dois arquivos novos. Os subprocessos são scripts Python sintéticos; não houve
+Implementação 7C revisada em 2026-11-14: **118 testes aprovados, um ignorado** (symlink no Windows),
+nos dois arquivos de adaptadores/detector, após corrigir os oito achados da revisão.
+Os subprocessos são scripts Python sintéticos; não houve
 smoke real. A tabela separa verificações do host de comprovação das CLIs instaladas.
 Todos os nove controles de `describe()` continuam **`unknown`**, com `evidence_refs: []`.
 
@@ -90,15 +91,15 @@ Todos os nove controles de `describe()` continuam **`unknown`**, com `evidence_r
 | --- | --- | --- | --- |
 | **V01** | Versão identificável e fixada | Versão explícita no adaptador/estado; restauração exige a mesma versão. Fixtures reais preservam Claude 2.1.319, Codex 0.169.0 e AGY 1.5.9 | Comparar binário instalado com a versão declarada e produzir ArtifactRef por runtime; recuperar versão do Kiro |
 | **V02** | Sem terminal | CLI falsa de cada família recebe EOF no stdin; supervisor e CLI usam argv e `shell=False` | Confirmar que o runtime termina sem confirmação humana |
-| **V03** | Saída parseável | Claude JSON inclusive multilinha; Codex JSONL; AGY/Kiro com marcador canônico; ruído descartado; contrato local validado antes da publicação | Capturar envelopes reais, arquivo `-o` do Codex e resposta ao protocolo de outputs |
+| **V03** | Saída parseável | Claude JSON inclusive multilinha; Codex JSONL, com erro posterior invalidando final e fallback `-o`; AGY/Kiro com marcador canônico e stdout somente textual; JSON com sufixo não cria diagnóstico; contrato local validado antes da publicação | Capturar envelopes reais, arquivo `-o` do Codex e resposta ao protocolo de outputs |
 | **V04** | Confinamento de escrita | Workspaces novos por tentativa; paths de coleta confinados; teste de symlink existe, ignorado neste Windows | Provar negação de escrita externa, symlinks e `.git` pelo runtime. Validar configuração local do AGY |
-| **V05** | Rede negada | Env de API paga não encaminhado; listas Claude negam WebFetch/WebSearch e regras AGY não concedem rede | Provar enforcement de rede fora da política; os testes locais não demonstram firewall do runtime |
+| **V05** | Rede negada | Nomes das variáveis recebidas pelas quatro CLIs falsas comprovam exclusão das seis variáveis sensíveis testadas; listas Claude negam WebFetch/WebSearch e regras AGY não concedem rede | Provar enforcement de rede fora da política; os testes locais não demonstram firewall do runtime |
 | **V06** | Ferramentas negadas | Argv exato nos modos de leitura/escrita; comandos só entram com concessão explícita; nenhuma flag proibida | Provar negação sem prompt e precedência das regras perante configurações próprias de cada CLI |
-| **V07** | Timeout mata a árvore | Quatro CLIs falsas com filho escrevendo heartbeat: timeout autônomo do supervisor para ambos; Job Object exercitado no Windows | Repetir com binários reais; executar também o caminho POSIX e confirmar árvore Linux no WSL |
-| **V08** | Cancelamento confirmável | Mesmo teste de árvore após `cancel`; recibo só confirma efeitos locais e preserva consumo remoto desconhecido | Repetir com as árvores reais, inclusive WSL e filhos das ferramentas |
+| **V07** | Timeout mata a árvore | Quatro CLIs falsas com filho escrevendo heartbeat: timeout autônomo para ambos; Job Object exercitado no Windows; falha de associação e espera expirada simuladas; grupo POSIX simulado só confirma quando desaparece | Repetir com binários reais; executar também o caminho POSIX e confirmar árvore Linux no WSL |
+| **V08** | Cancelamento confirmável | Mesmo teste de árvore após `cancel`; limpeza independente do Job para filho suspenso; recibo unknown se a árvore não foi confirmada e consumo remoto desconhecido | Repetir com as árvores reais, inclusive WSL e filhos das ferramentas |
 | **V09** | Uso e custo | Tokens Claude/Codex sintéticos em uso e consumo; custo sempre unavailable/null, inclusive ignorando `total_cost_usd`; registros 7A validados | Conferir telemetria real; multiplicador Kiro permanece null até fonte comprovada |
 | **V10** | Modelo resolvido | Campo presente nos envelopes sintéticos é preservado; ausência continua null | Capturar identificação efetiva, sem copiar o modelo solicitado como se fosse resolvido |
-| **V11** | Chamada e reconciliação | Sessão Claude/Codex; estado/recibo com hashes e fsync; reconstrução, corrupção, conflito, chave desconhecida e não execução comprovada; snapshot de evidência no ArtifactStore | Conferir IDs reais e reconciliação externa. Reinício com processo ainda incerto continua unknown |
+| **V11** | Chamada e reconciliação | Sessão Claude/Codex; estado/recibo com hashes, fsync, temporários únicos e retries limitados no Windows; estresse de 25 saídas rápidas Kiro e escritores/leitor concorrentes; validação antes de criar diretórios; reconstrução, corrupção, conflito e não execução comprovada; status/sessão/evidência do mesmo recibo | Conferir IDs reais e reconciliação externa. Reinício com processo ainda incerto continua unknown |
 | **V12** | Contexto adicional | Cobertura sempre unknown; nenhum inventário de HOME nem leitura de diretórios de credenciais | Auditar somente instruções/configuração autorizadas do workspace; sem ler `~/.codex`, `~/.claude`, `~/.gemini` ou caches de login |
 
 Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas as CLIs de assinatura injetam prompt de sistema próprio do provedor não auditável byte a byte pelo ORQ. O valor máximo honesto é `platform_only` quando os arquivos locais de instrução estão sob controle do workspace limpo, ou `unknown` caso contrário.
@@ -114,7 +115,9 @@ Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas 
 - O supervisor stdlib é lançado sem shell, fecha stdin e persiste recibos antes e
   depois do spawn da CLI. Windows: criação suspensa, associação ao Job Object antes
   de retomar, kill-on-close e confirmação de zero processos ativos. POSIX: sessão
-  própria e SIGKILL no grupo. O supervisor aplica timeout mesmo sem `observe()`;
+  própria, SIGKILL no grupo e sondagem limitada até seu desaparecimento; grupo
+  restante ou espera expirada produzem unknown. Falha ao associar o Job também
+  encerra e recolhe o filho direto suspenso. O supervisor aplica timeout mesmo sem `observe()`;
   o prazo inclui sua inicialização. O relógio injetado resolve instantes do runner;
   espera e enforcement usam relógios reais do host.
 - Kiro no Windows usa `wsl.exe --cd /mnt/c/dev/... -- python3 <supervisor> <estado>`;
@@ -123,7 +126,11 @@ Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas 
   `python3` stdlib no WSL e acesso aos caminhos `/mnt/c`; ambos pendem do smoke.
   Linux nativo usa o Python do runner e `kiro-cli`, sem `wsl.exe`.
 - Estado fica fora do workspace, com `state_hash` compatível com JCS, fsync do
-  arquivo/diretório e substituição atômica. `prepared` ou recibo `not_started`
+  arquivo/diretório e substituição atômica com temporário único no mesmo diretório.
+  Leitura, criação/substituição e limpeza toleram `PermissionError` no Windows por
+  até 100 tentativas a cada 10 ms. `observe` relê o recibo após a saída do supervisor;
+  `reconcile` mantém status, sessão e evidência em um único snapshot.
+  `prepared` ou recibo `not_started`
   permitem `not_found` autoritativo com evidência armazenada; `spawning` sem recibo,
   PID perdido ou chave desconhecida retornam unknown e nunca autorizam redespacho.
   O Router ainda exige o controle verificado antes de usar essa autoridade.
