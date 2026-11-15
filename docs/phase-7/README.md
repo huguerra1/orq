@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). Próximo incremento: **7C**. Os incrementos 7C–7F permanecem pendentes.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A implementado**; **7B implementado** (revisado pelo Gemini 4 Argon High sem problemas; CI com Postgres 16 de serviço: 1355 aprovados e 3 ignorados, incluindo os 33 testes de banco/RLS). **7C implementado e revisado** (oito achados corrigidos; smoke real das CLIs pendente). **7D implementado**, em revisão (busca híbrida, escolha pelo agente e manifesto; [Notas 7D](#notas-de-implementação-7d)). Próximo incremento: **7E**. O smoke V01–V12 do 7C e os incrementos 7E e 7F permanecem pendentes.
 
 ## Problema
 
@@ -114,6 +114,95 @@ Verificação: `tests/test_memory_store.py` (41 testes, sem banco: configuraçã
 | Q17 | Escopo validado e valores sempre como parâmetros; a busca em si fica no 7D |
 | Q18 | Mesmos digests/ordinais da Fase 2 no banco e segunda sincronização sem duplicar |
 | Q22 | Parcial: cadeia offline intacta sem DSN; o filtro de audiência em memória e o `backend` no `KnowledgeSelectionRecord` ficam para o 7D |
+
+## Notas de implementação 7C
+
+- Quatro adaptadores em `src/orq_contracts/adapters/`, sem alterar o protocolo 6D,
+  banco, memória ou CI. Supervisor stdlib com argv explícito, stdin fechado,
+  timeout autônomo, cancelamento da árvore e estado/recibo duráveis antes do spawn.
+  Kiro usa WSL somente no Windows, com workspace `C:\dev` → `/mnt/c/dev` e
+  supervisor Python dentro do Linux. Reconciliação incerta nunca redespacha.
+- Detector por CLI, com versão no perfil 7A, usa somente diagnósticos em invocações
+  falhas; fixture real do Codex resolve 22:05 no fuso local e rollover de dia.
+  Login real do Kiro é indisponibilidade de autenticação, sem bloquear cota.
+  Sem horário válido: reset null, cooldown de 60 minutos e sondagem exigida no 7E.
+- Coleta valida contratos locais e paths antes de publicar artefatos; custo sempre
+  unavailable/null; tokens só quando reportados. `quota_consumption(intent)` expõe
+  o registro 7A sem estender `ExecutorResult`. `permission_or_empty_output` permanece
+  motivo de `execution_failed`, pois não integra o enum de códigos do 7A.
+- Verificação: **90 aprovados, um ignorado** nos dois arquivos novos (symlink no
+  Windows); subprocessos Python falsos, sem CLI real/rede. Todos os controles
+  permanecem unknown e a cobertura de contexto também. [Tabela V01–V12 e decisões](subscription-adapters.md#cumprimento-do-checklist-v01v12-por-adaptador)
+  distinguem testes do host das evidências ainda necessárias por versão real.
+  Próximo: validar a revisão do 7C na suíte integral e executar smoke real V01–V12.
+  Fallback, reativação e sondagem permanecem no 7E; nenhum cenário Q ponta a ponta
+  foi declarado concluído por estes testes.
+
+### Revisão independente do 7C — 2026-11-14
+
+Os oito achados foram corrigidos sem alterar interfaces públicas, schemas,
+dependências, memória, banco ou CI. Mantida a substituição atômica dos registros,
+com temporário exclusivo no mesmo diretório, flush/fsync antes de `os.replace` e
+sincronização do diretório. Criação, substituição, limpeza e leitura repetem apenas
+`PermissionError` no Windows, até 100 tentativas com intervalo de 10 ms; falha
+persistente continua explícita. Preferiu-se esse mecanismo a um lock compartilhado
+entre host e supervisor: evita coordenação adicional e mantém leitores vendo um
+registro completo. Temporários são removidos em `finally`.
+
+| Achado | Correção e regressão |
+| --- | --- |
+| 1 — corrida nos arquivos e observação | Leitura tolerante e escrita com temporários únicos; `launched` com supervisor vivo conta como running. Após sua saída, `observe` espera e relê o recibo. Testes injetam acessos negados transitórios/persistentes, verificam fsync/limpeza, exercitam dois escritores concorrentes e repetem 25 despachos Kiro `noise_only` com leitor concorrente. |
+| 2 — origem dos eventos e resposta final | AGY/Kiro tratam stdout como texto; Codex não promove mensagem intermediária a final válida nem recupera `-o` após erro estruturado. JSON com sufixo na mesma linha permanece texto inteiro. Regressões cobrem mensagem intermediária, final seguida de erro, sucesso após recuperação de erro, JSON de projeto e literais com sufixo de cota. |
+| 3 — diagnóstico de cota | Diagnósticos multilinha são separados; login/rede aceitam prefixos com fronteiras de palavra; cota fatal tem precedência sobre avisos anteriores. Testes incluem ENOTFOUND com contexto, login Kiro prefixado e cota após rede/autenticação. |
+| 4 — limpeza no Windows | Fechar o Job não dispensa matar/recolher o filho direto que ficou suspenso fora dele. `TimeoutExpired` produz recibo unknown, sem espera ilimitada. Testes simulam falha de associação e timeout de término. |
+| 5 — árvore POSIX/WSL | Após SIGKILL e espera do filho, sonda o grupo até desaparecer; prazo esgotado preserva unknown. Testes simulam netos ainda presentes, desaparecimento posterior e expiração, inclusive quando o pai já saiu. |
+| 6 — preparação do despacho | Bundle UTF-8, caminhos WSL, argv e prazo são preparados antes de criar diretórios. `state.json` é escrito antes do workspace; falha inicial sem estado publicado remove o diretório vazio. Regressões provam ausência de resíduos, correção da entrada e novo despacho válido. |
+| 7 — evidência da reconciliação | Status, sessão e ArtifactRef usam o mesmo snapshot de recibo. Teste alterna recibos running/terminal e exige uma única leitura. |
+| 8 — fidelidade dos testes | Montagem WSL simulada independe do basetemp; CLI falsa registra apenas nomes das variáveis recebidas, comprovando nas quatro famílias a exclusão das seis variáveis sensíveis injetadas juntas. Casos de rede/login incluem prefixos realistas. O teste de árvore dá margem para iniciar o neto e aguarda o supervisor com prazo limitado, sem `observe`, em vez de depender de um sleep fixo. |
+
+Os testes POSIX/WSL com processos simulados comprovam a lógica do supervisor;
+enforcement com os binários reais continua pendente no gate V01–V12. Custo e
+consumo remoto desconhecidos continuam indisponíveis/unknown.
+
+Verificação após a revisão: **118 aprovados, um ignorado** (symlink sem privilégio
+no Windows), em `tests/test_cli_adapters.py` e `tests/test_quota_detector.py`, com
+`PYTHONPATH=src`, `-q -p no:cacheprovider` e basetemp dedicado. `git diff --check`
+sem erros. Suíte integral verificada pelo orquestrador: 1439 aprovados e 38 ignorados; testes dos adaptadores repetidos 3 vezes sem intermitência. Nenhum
+commit ou push nesta correção.
+
+## Notas de implementação 7D
+
+- **Módulos:** `knowledge_backend` (interface `KnowledgeBackend`, `KnowledgeCandidate`, `EligibilityPolicy`, `OfflineMarkdownBackend`, `create_knowledge_backend`), `knowledge_choice` (`KnowledgeChoiceSession`, `materialize_chosen_context`) e, em `memory_store`, `search` (SQL, pesagem e normalização da query, sem driver), `knowledge` (`PostgresKnowledgeBackend`) e `ScopedMemoryReader.search_units`/`get_unit_contents`. Nenhuma dependência nova, DDL do 7B intocado (versão 1) e nada em `adapters/`. As Fases 2–6 não mudam: `select_knowledge` segue igual e `materialize_knowledge_context` só ganhou o argumento opcional `unit_loader` (sem ele lê o Vault como antes).
+- **Busca sob RLS:** só roda dentro de `scoped_transaction` (somente leitura, role `orq_memory_reader`). Recebe `requirement_id`, `query` e `limit` (1 a 20; fora disso `invalid_search_limit`); família, papel, projeto e catálogo nunca vêm da chamada. O host passa ao SQL as unidades que o catálogo admite para o requisito (autoridade, tipo, classificação, vigência, frescor, aplicabilidade, via `_requirement_reasons` da Fase 2); o RLS decide o que é visível. Todo valor é parâmetro nomeado (`%(nome)s`); nenhum texto vira SQL.
+- **Query saneada:** o FTS recebe só as palavras (`[^\W_]+`, sem duplicatas, até 16, unidas por ` or `), de modo que aspas, `-` e `or` do `websearch_to_tsquery` não têm efeito; os trigramas recebem pedaços separados por espaço com ao menos 3 caracteres alfanuméricos (preserva `--trust-tools=fs_read` e `QuotaStateRecord`). Query vazia, com mais de 512 caracteres ou com NUL é rejeitada (`invalid_search_query`), nunca truncada em silêncio.
+- **Ranking `pg-fts-trgm-v1`** (constante `RANKING_VERSION`; mudar pesos, limiar ou tokenização exige nova versão):
+
+  ```
+  fts   = ts_rank_cd(search_tsv, websearch_to_tsquery('portuguese', palavras), 32)   em [0, 1)
+  trgm  = max sobre os termos da query de word_similarity(termo, título + cabeçalhos + conteúdo)
+  score = round(0.70 * fts + 0.30 * trgm, 6)
+  ```
+
+  A normalização 32 do `ts_rank_cd` divide o rank por `rank + 1`. Entra como candidato quem casa no FTS ou tem `trgm >= 0.5`. Ordem: `(score DESC, source_id, revision, ordinal, unit_id)`, a mesma do Q21 e da Fase 2 (o enunciado do 7D pedia só score e `unit_id`; a chave completa é um refinamento determinístico). O candidato traz metadados, `area_scope`, `estimated_tokens`, digest, score e excerto de até 240 caracteres.
+- **Escolha pelo agente:** `KnowledgeChoiceSession.search` registra o que foi devolvido por requisito e confere cada candidato contra o catálogo do host (elegibilidade, digests e tokens). `choose({requisito: [unit_ref]})` só aceita unidades devolvidas pela busca *daquele* requisito (`unit_not_in_search_results`), exige cobertura dos obrigatórios (`mandatory_requirement_uncovered`; `all_source_refs` exige todas as fontes) e confere os orçamentos global (com margem) e por requisito (`context_budget_exceeded`). Nada é cortado: qualquer violação é erro e `session.selection` continua vazio. Requisito opcional descoberto deixa o registro `partial` (`gap_reason: not_selected_by_agent`). A ordem das unidades independe da ordem em que o agente as listou: obrigatórios primeiro e, em cada requisito, pelo rank da busca.
+- **Registro e schema:** `KnowledgeSelectionRecord` válido, com `candidates` = tudo que as buscas devolveram. O schema ganhou, de forma compatível, três campos opcionais que só valem juntos (`dependentRequired`): `backend` (`postgres_fts_trgm` ou `offline_markdown_bm25`; o rascunho da seção de memória dizia `postgres_rls_fts_trgm`, valendo o nome do 7D), `selection_mode` (`agent_mcp_choice` ou `host_bm25`) e `ranking_version`. Registros da Fase 2 sem os campos continuam válidos e com o mesmo digest.
+- **Consolidação:** `materialize_chosen_context` relê as unidades pelo backend (Postgres: sob o RLS da família, comparando `source_digest` e o SHA-256 do conteúdo com o catálogo; offline: `materialize_unit`), falha antes de qualquer manifesto com `unit_integrity_mismatch`/`selected_unit_missing`/`integrity_mismatch` e então chama `materialize_knowledge_context`: mesma ordem, digests JCS, procedência e bundle canônico da Fase 2. Com a mesma seleção, o manifesto e o bundle saem idênticos byte a byte do Postgres, do Vault e de linhas simuladas. Uma seleção só é materializada pelo backend que a produziu (`backend_mismatch`); numa troca de família, o conteúdo exclusivo da anterior fica invisível e a nova tentativa faz nova busca e novo manifesto (Q26).
+- **Modo offline:** `OfflineMarkdownBackend` aplica em memória o mesmo filtro do RLS (status ativo, projeto, audiência nos dois eixos; coleções ficam fora, como no 7B) e ranqueia com `bm25-v1` sobre as unidades elegíveis, com o mesmo formato de candidato, a mesma escolha e `backend: offline_markdown_bm25`. `create_knowledge_backend(config, ...)` escolhe o backend pela configuração do 7B (sem `ORQ_MEMORY_DSN`, offline; `ORQ_KNOWLEDGE_BACKEND` força).
+- **Fora do 7D:** servidor/tools MCP (`search_family_knowledge`, `select_family_knowledge`), log de auditoria da trilha e integração com o runner ficam no 7E.
+
+Verificação: `tests/test_knowledge_choice.py` (sem banco: validação da escolha, orçamento, reprodutibilidade, manifesto a partir de linhas simuladas, integridade, query/SQL/ranking, modo offline e schema) e `tests/test_knowledge_search_postgres.py` (relevância em português e por trigramas, fórmula do score, ordem, isolamento entre famílias, injeção de SQL, escolha inválida, orçamento, manifesto reproduzível a partir do Postgres, troca de família e integridade). Os testes de banco rodam no CI quando não há `ORQ_MEMORY_DSN`.
+
+| Cenários | Cobertura executada no 7D |
+| --- | --- |
+| Q17 | Query hostil tratada como literal: saneada em Python, parametrizada no SQL; escopo e RLS inalterados (banco) |
+| Q20 | FTS português (flexões) e `pg_trgm` (flag e identificador parcial), unidade no topo (banco) |
+| Q21 | Desempate `(score, source_id, revision, ordinal, unit_id)` na ordenação do SQL e no Python |
+| Q22 | Modo offline com filtro de audiência em memória e `backend` no registro (sem banco) |
+| Q24, Q25 | Escolha pelo agente, `KnowledgeSelectionRecord` com `agent_mcp_choice`, manifesto/bundle e erros estruturados; a tool MCP em si fica no 7E |
+| Q26 | Sem reaproveitar contexto exclusivo na troca de família, no nível da biblioteca; o runner fica no 7E |
+| Q27 | Bytes alterados no banco bloqueiam a materialização (`unit_integrity_mismatch`); o check `context_integrity` do runner fica no 7E |
+
+Próximo passo: revisar o 7D e seguir com o **7E** (tools MCP escopadas, trilha auditável e integração com o runner).
 
 ## Documentos da Fase 7
 

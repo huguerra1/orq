@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -51,7 +52,7 @@ def _token_count(unit: dict[str, Any]) -> int:
 
 
 def materialize_knowledge_context(
-    vault_root: Path,
+    vault_root: Path | None,
     catalog: dict[str, Any],
     selection: dict[str, Any],
     *,
@@ -62,8 +63,23 @@ def materialize_knowledge_context(
     margin_tokens: int = 0,
     provider_context_coverage: str = "platform_only",
     context_manifest_id: str | None = None,
+    unit_loader: Callable[[dict[str, Any], dict[str, Any]], str] | None = None,
 ) -> MaterializedContext:
-    """Materializa unidades selecionadas e identifica os bytes ordenados do bundle."""
+    """Materializa unidades selecionadas e identifica os bytes ordenados do bundle.
+
+    Por padrão lê cada unidade do Vault em `vault_root` (Fases 2–6, sem mudança). Com
+    `unit_loader(source_metadata, unit)` o conteúdo vem de outra origem (Postgres, 7D); o
+    carregador é responsável por conferir o digest da unidade. O restante (ordem, digests,
+    procedência, bundle JCS) é idêntico nos dois caminhos.
+    """
+
+    if unit_loader is None:
+        if vault_root is None:
+            _fail("invalid_unit_source", "/vault_root", "vault_root ou unit_loader é obrigatório")
+        root = vault_root
+
+        def unit_loader(source: dict[str, Any], unit: dict[str, Any]) -> str:
+            return materialize_unit(root, source, unit)
 
     for record, schema_name, digest_field, path in (
         (catalog, "knowledge_catalog", "catalog_hash", "/catalog/catalog_hash"),
@@ -152,7 +168,10 @@ def materialize_knowledge_context(
         source, unit = resolved
         if unit_ref["source_digest"] != source["content_digest"] or unit_ref["unit_digest"] != unit["content_digest"]:
             _fail("selected_unit_reference_mismatch", "/selection/selected_units", str(unit_key))
-        content = materialize_unit(vault_root, source, unit).encode("utf-8")
+        content = unit_loader(source, unit).encode("utf-8")
+        # O carregador é externo (Vault ou Postgres): confere os bytes antes de publicar o content_hash.
+        if hashlib.sha256(content).hexdigest() != unit["content_digest"]["value"]:
+            _fail("unit_integrity_mismatch", "/selection/selected_units", str(unit_key))
         token_count = _token_count(unit)
         total_tokens += token_count
         item_id = f"context-item-{sequence}"
