@@ -1,0 +1,4622 @@
+{
+  "catalog_id": "knowledge-orq-7f",
+  "version": "1",
+  "created_at": "2026-11-14T12:00:00Z",
+  "status_cutoff": "2026-11-14T12:00:00Z",
+  "catalog_policy_ref": {
+    "id": "catalog-policy-7f",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "c2011c7acdfbbe91cda1d423b6ea81f1b1d8e388ec0f83e293f79b2cbf4208dd"
+    }
+  },
+  "parser_chunker_snapshots": [
+    {
+      "id": "markdown-heading-sections",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "50f8eab8f33dd3b9da67a33f7c3adf40fdb8a80c5ec9bc5bd800744c201f7b61"
+      }
+    }
+  ],
+  "vocabulary_refs": [],
+  "sources": [
+    {
+      "schema_version": "0.1",
+      "source_id": "common-jcs-digest",
+      "revision": "1",
+      "title": "Canonicalização JCS e digests",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-jcs-digest.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0c77673f331bf49102ae13b711065b98d8c7ef0ff053d059576beb86d322952c"
+      },
+      "size_bytes": 692,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-jcs-digest:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-jcs-digest:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-jcs-digest:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-identifiers",
+      "revision": "1",
+      "title": "Identificadores e famílias do ORQ",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-identifiers.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "1bf107e74be5686f0bd89f347694d1e5b130686fba2ab23ba99a2548e99de332"
+      },
+      "size_bytes": 375,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-identifiers:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-identifiers:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-identifiers:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-content-contract",
+      "revision": "1",
+      "title": "Contrato de conteúdo de saída",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-content-contract.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "d7cda4f93609a48d64ae28d4281cf0af5fac2f037d0ea1ea999ef8512fbde5cf"
+      },
+      "size_bytes": 547,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-content-contract:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-content-contract:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-content-contract:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-evaluator-methods",
+      "revision": "1",
+      "title": "Métodos do avaliador determinístico",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-evaluator-methods.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "8ea7ab4d0b472ed4f0591560ed30f50056c6d77302b1697e10a6c6b0f460350c"
+      },
+      "size_bytes": 484,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-evaluator-methods:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-evaluator-methods:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-evaluator-methods:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-subscription-policy",
+      "revision": "1",
+      "title": "Política de uso das assinaturas",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-subscription-policy.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "62a10e63bc11ef802a845fde58e94545ac685c872937e3eff01ac13976264175"
+      },
+      "size_bytes": 651,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-subscription-policy:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-subscription-policy:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-subscription-policy:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-cost-honesty",
+      "revision": "1",
+      "title": "Custo desconhecido nunca vira zero",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-cost-honesty.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0305317af87424dfa35bad886a11245d9ac2a8dab2c784ad340a76367dfb5904"
+      },
+      "size_bytes": 474,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-cost-honesty:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-cost-honesty:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-cost-honesty:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-audience-rules",
+      "revision": "1",
+      "title": "Regras de audiência da memória",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-audience-rules.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "f79737a5e668afc7edef12fc074414d29cac42f894fbe8cef1018d8fc5ae2ae4"
+      },
+      "size_bytes": 609,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-audience-rules:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-audience-rules:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-audience-rules:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-rls-scope",
+      "revision": "1",
+      "title": "Escopo de leitura e Row-Level Security",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-rls-scope.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "1f8cf81c66ae2b16b4035a3c05c745cea5f4f01b4e601937333de2764169f08d"
+      },
+      "size_bytes": 525,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-rls-scope:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-rls-scope:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-rls-scope:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-output-protocol",
+      "revision": "1",
+      "title": "Protocolo de saída final",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-output-protocol.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "b5e5515bf3eadf7cc13f8b60a5262626e1d955c653090f238ada5c93962b13ae"
+      },
+      "size_bytes": 431,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-output-protocol:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-output-protocol:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-output-protocol:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-quota-cooldown",
+      "revision": "1",
+      "title": "Cooldown de cota e fallback",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-quota-cooldown.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "98743e2dae15ade11257bf842616ed1ace10c7e3fe371348b1023bb6abaaf4e0"
+      },
+      "size_bytes": 752,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-quota-cooldown:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-quota-cooldown:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-quota-cooldown:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-context-budget",
+      "revision": "1",
+      "title": "Orçamento de contexto",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-context-budget.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "2dda44363223161b54e99f030ca3166fc4a0732cf9a966aa2fda23783acd64df"
+      },
+      "size_bytes": 431,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-context-budget:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-context-budget:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-context-budget:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "common-host-process-rules",
+      "revision": "1",
+      "title": "Regras de processo do host",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/common/common-host-process-rules.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e2b3ec9824b25356525978bce82ef8118d4cf5f781e12c8ffae10ac69790f665"
+      },
+      "size_bytes": 451,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:common-host-process-rules:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-host-process-rules:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:common-host-process-rules:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "common",
+        "target_families": [],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "role-software-architect",
+      "revision": "1",
+      "title": "Guia do papel software_architect",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/role/role-software-architect.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "791db66679472f0de0c7f173dd656dbbedd4eeb553b66b6fd771c2021a87d1e9"
+      },
+      "size_bytes": 548,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:role-software-architect:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-software-architect:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-software-architect:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [],
+        "target_roles": [
+          "software_architect"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "role-backend-engineer",
+      "revision": "1",
+      "title": "Guia do papel backend_engineer",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/role/role-backend-engineer.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "50dd0eea5f28f4a779fa2f2af4b67b3c6ec57c4e168c5703bd5e6b9728ef0372"
+      },
+      "size_bytes": 477,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:role-backend-engineer:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-backend-engineer:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-backend-engineer:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [],
+        "target_roles": [
+          "backend_engineer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "role-tester",
+      "revision": "1",
+      "title": "Guia do papel tester",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/role/role-tester.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "8c0abf5ede81f4c3acea5184c3205aba9e4904a77e5f4b52e502ccd4a319ba51"
+      },
+      "size_bytes": 399,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:role-tester:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-tester:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-tester:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [],
+        "target_roles": [
+          "tester"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "role-security-reviewer",
+      "revision": "1",
+      "title": "Guia do papel security_reviewer",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/role/role-security-reviewer.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "04da6df15993d5f61425bd613cc75ed99b971cb1564cf43935e7605744e11ca0"
+      },
+      "size_bytes": 495,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:role-security-reviewer:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-security-reviewer:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:role-security-reviewer:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [],
+        "target_roles": [
+          "security_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-claude-invocation",
+      "revision": "1",
+      "title": "Claude Code: invocação não interativa",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-claude-invocation.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "9fad68b6939677e3b194b12cc7c0a2de257d3f1c3d1b93e02bd6521d122ad430"
+      },
+      "size_bytes": 794,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-claude-invocation:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-invocation:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-invocation:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-codex-invocation",
+      "revision": "1",
+      "title": "Codex CLI: invocação não interativa",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-codex-invocation.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "28e07789015bb215219b22f097bdbc9b9eba51343f6cf0309587f470b1140e20"
+      },
+      "size_bytes": 671,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-codex-invocation:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-invocation:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-invocation:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-codex-readonly",
+      "revision": "1",
+      "title": "Codex CLI: modo somente leitura",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-codex-readonly.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "a6cf4be64e7cf1cd1725ceaf7bad0cf51167e1538b01770b77acefcdb63e52b6"
+      },
+      "size_bytes": 394,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-codex-readonly:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-readonly:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-readonly:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": [
+          "software_architect",
+          "security_reviewer",
+          "code_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-codex-windows-tests",
+      "revision": "1",
+      "title": "Codex CLI: testes no sandbox do Windows",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-codex-windows-tests.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "a1c864e82420ab954cd60512572a01a41b49daab45541349fac0476fa7604365"
+      },
+      "size_bytes": 516,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-codex-windows-tests:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-windows-tests:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-windows-tests:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": [
+          "backend_engineer",
+          "tester"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-invocation",
+      "revision": "1",
+      "title": "agy (Gemini): invocação não interativa",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-gemini-invocation.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0cbe30aaffc92db6c4f31e0c338e509b45c95851fb2f97c2138181ce2ded4fd7"
+      },
+      "size_bytes": 573,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-invocation:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-invocation:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-invocation:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-readonly",
+      "revision": "1",
+      "title": "agy (Gemini): modo somente leitura",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-gemini-readonly.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "76278d0f12aab632ce5c14ac2275f916959e5cbce32e954b314e8323375fa842"
+      },
+      "size_bytes": 315,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-readonly:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-readonly:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-readonly:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": [
+          "software_architect",
+          "security_reviewer",
+          "code_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-permissions",
+      "revision": "1",
+      "title": "agy (Gemini): permissões em modo headless",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-gemini-permissions.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "81e4feaf32a1c62cc685e05d507e4874e258554cd48fd9010f82d59cccf0a320"
+      },
+      "size_bytes": 722,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-permissions:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-permissions:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-permissions:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-noise",
+      "revision": "1",
+      "title": "agy (Gemini): ruído de saída",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-gemini-noise.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e84ef3e95763bca105349819cdf41652e5be1b65c8be2b5342ca4a857dddbc94"
+      },
+      "size_bytes": 406,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-noise:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-noise:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-noise:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-kiro-invocation",
+      "revision": "1",
+      "title": "Kiro CLI: invocação não interativa",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-kiro-invocation.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "389741cf71d3ab2afd4292bb0c1e2d357185eb5c1df629f20fd246ed32d04ea9"
+      },
+      "size_bytes": 582,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-kiro-invocation:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-invocation:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-invocation:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-kiro-trust-tools",
+      "revision": "1",
+      "title": "Kiro CLI: ferramentas confiáveis",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-kiro-trust-tools.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "8afdc369e411fc273e335621be850e9797f53713ebe070e1c6c95ed94fa1214e"
+      },
+      "size_bytes": 627,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-kiro-trust-tools:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-trust-tools:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-trust-tools:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-kiro-output",
+      "revision": "1",
+      "title": "Kiro CLI: saída e créditos",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-kiro-output.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "cb6325003dfeaf7f7290e9574081875ca61b525509864d476c6bb04efc528f9e"
+      },
+      "size_bytes": 474,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-kiro-output:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-output:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-output:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-claude-quota",
+      "revision": "1",
+      "title": "Claude Code: detecção de limite de uso",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-claude-quota.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "7b0c772490c8c9f7ccfa1cc7bb32b078f3c41e6a114b63d059b21c78fda3ce95"
+      },
+      "size_bytes": 453,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-claude-quota:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-quota:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-quota:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-codex-quota",
+      "revision": "1",
+      "title": "Codex CLI: detecção de limite de uso",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-codex-quota.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "b3dc39281d1320c216543c76e5c211b629647191933d194cad1ce96870c08cde"
+      },
+      "size_bytes": 538,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-codex-quota:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-quota:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-codex-quota:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-quota",
+      "revision": "1",
+      "title": "agy (Gemini): detecção de limite de uso",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-gemini-quota.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "040b95c6c8992a4820bd0ec427e1a43579f4748c111a35320d3b8058a8b55ed9"
+      },
+      "size_bytes": 376,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-quota:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-quota:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-quota:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-kiro-quota",
+      "revision": "1",
+      "title": "Kiro CLI: detecção de limite de uso",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family/family-kiro-quota.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "7b769f0fb85e2cfee00d894c8c5a191d8f199300f425c572629a080eacd7cda0"
+      },
+      "size_bytes": 382,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-kiro-quota:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-quota:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-quota:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-claude-security",
+      "revision": "1",
+      "title": "Claude Code: revisão de segurança",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-claude-security.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "1c5cef6dcddff25c47dfb94e3780495ab6be572504cc81b6e9073b7a11681e93"
+      },
+      "size_bytes": 389,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-claude-security:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-security:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-claude-security:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": [
+          "security_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-gemini-security",
+      "revision": "1",
+      "title": "agy (Gemini): revisão de segurança",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-gemini-security.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "b5febad2ee5ecd9dc3dad0ed01eb3664ed5b2b8cc49d3afd840dfa5d3e61e136"
+      },
+      "size_bytes": 344,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-gemini-security:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-security:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-gemini-security:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": [
+          "security_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "family-kiro-security",
+      "revision": "1",
+      "title": "Kiro CLI: revisão de segurança",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/family_role/family-kiro-security.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "503afd03aba5d5edf9c7a896d6f71413e20555b7463972bb9d0da941a24a2198"
+      },
+      "size_bytes": 359,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:family-kiro-security:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-security:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:family-kiro-security:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": [
+          "security_reviewer"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-cooldown",
+      "revision": "1",
+      "title": "Cooldown padrão de cota (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-cooldown.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "f932246b28322880f35d9d34112c8a5884963ac0644346794bf63af017e697c9"
+      },
+      "size_bytes": 461,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-cooldown:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-cooldown:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-cooldown:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-kiro-identifiers",
+      "revision": "1",
+      "title": "Formato de identificadores (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-kiro-identifiers.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "c556edb39b65d806d95b03e62766c0139d9ba0cb85ccdfdf5e4c31e5c41dc02e"
+      },
+      "size_bytes": 411,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-kiro-identifiers:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-identifiers:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-identifiers:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-gemini-digest",
+      "revision": "1",
+      "title": "Digest de contratos (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-gemini-digest.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "60528155a4e85cb6fa11f1e1c011af1c52df463b3a4133d278e34b7f030e859a"
+      },
+      "size_bytes": 448,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-gemini-digest:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-digest:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-digest:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-claude-marker",
+      "revision": "1",
+      "title": "Marcador de saída final (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-claude-marker.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0efdd46e83bbefb0088a32826c35928a021e7f36a9adfdd579d40b829649572d"
+      },
+      "size_bytes": 418,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-claude-marker:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-marker:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-marker:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-methods",
+      "revision": "1",
+      "title": "Métodos do avaliador (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-methods.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "d9c05927a181f6b8b05957774468f3a5290684315a4b1c872d0d6582a3fd49e0"
+      },
+      "size_bytes": 411,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-methods:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-methods:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-methods:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-kiro-budget",
+      "revision": "1",
+      "title": "Estimativa de tokens (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-kiro-budget.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "cf405f6771473ffec75efcc2c57e56d308685c704e74aa76da5db2fd71338c0a"
+      },
+      "size_bytes": 431,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-kiro-budget:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-budget:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-budget:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-gemini-policy",
+      "revision": "1",
+      "title": "Variáveis de cobrança (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-gemini-policy.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "d58cc3161f9c399009c75e57efba9e8cd5d80c252305639f203d0d7bc87d696a"
+      },
+      "size_bytes": 482,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-gemini-policy:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-policy:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-policy:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-process",
+      "revision": "1",
+      "title": "Execução de processos do host (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-process.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "69a744ce61bf19ea561d77d2d9e180b98894b41aabf6c0a3504a26b81db6bebc"
+      },
+      "size_bytes": 495,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-process:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-process:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-process:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-kiro-coverage",
+      "revision": "1",
+      "title": "Cobertura de contexto do provedor (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-kiro-coverage.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "c627c3de8a393abb067f3f2fdab3a07bf809180502d8c54f1a975db79e7d57ec"
+      },
+      "size_bytes": 440,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-kiro-coverage:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-coverage:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-coverage:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-comparison",
+      "revision": "1",
+      "title": "Unidade de comparação (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-comparison.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0410ae173e895dfa2bdb4e91e3a91356b3d4d657595b29a04b7e9ab9947f5910"
+      },
+      "size_bytes": 421,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-comparison:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-comparison:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-comparison:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-gemini-tests",
+      "revision": "1",
+      "title": "Execução de testes (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-gemini-tests.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "0ba41cd0f696f8866e7c3f83e4d70822b37bce31c28f04d45e727256b0f791cf"
+      },
+      "size_bytes": 396,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-gemini-tests:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-tests:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-gemini-tests:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_gemini"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-noise",
+      "revision": "1",
+      "title": "Ruído de stderr (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-noise.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "13e9ede9ef74dd2e4760d17293320ee71289c65e11b2cbca7c990f3d085c137f"
+      },
+      "size_bytes": 374,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-noise:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-noise:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-noise:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-codex-cost",
+      "revision": "1",
+      "title": "Registro do custo da CLI (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-codex-cost.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "af83bc9402a054c7eaffd7adf430e675c1f9c875c6cecedfc93c92a752bcabff"
+      },
+      "size_bytes": 419,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-codex-cost:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-cost:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-codex-cost:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_codex"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-kiro-numbers",
+      "revision": "1",
+      "title": "Números aceitos na canonicalização (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-kiro-numbers.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "d4a7d17de7ec89bfdf7d26ae53ab4f3a68c65ece9fff4ab5c5c8f9a232dc351b"
+      },
+      "size_bytes": 445,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-kiro-numbers:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-numbers:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-kiro-numbers:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_kiro"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-claude-stdout",
+      "revision": "1",
+      "title": "Detecção de limite no stdout (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-claude-stdout.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "8f9fe8050c877a3da331789a3a4fb8becf3450de78c0b705b33ceb1fb0236be1"
+      },
+      "size_bytes": 440,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-claude-stdout:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-stdout:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-stdout:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": []
+      }
+    },
+    {
+      "schema_version": "0.1",
+      "source_id": "syn-claude-permissions",
+      "revision": "1",
+      "title": "Permissões em revisões (regra fictícia)",
+      "knowledge_kind": "project",
+      "content_locator": {
+        "root_id": "vault",
+        "path": "content/synthetic/syn-claude-permissions.md"
+      },
+      "media_type": "text/markdown",
+      "encoding": "utf-8",
+      "language": "pt-BR",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "b28bee4550a2f6e16d062edd9899716367f906e04e21abd1bb425fafd0dd1639"
+      },
+      "size_bytes": 415,
+      "project_scope": {
+        "kind": "project",
+        "project_id": "orq-7f"
+      },
+      "authority": {
+        "authority_level": "project_authoritative",
+        "authority_scopes": [
+          "orq_experiment_7f"
+        ],
+        "issuer_ref": "catalog-admin",
+        "assigned_at": "2026-11-14T10:00:00Z",
+        "evidence_ref": "catalog-entry:syn-claude-permissions:1"
+      },
+      "instruction_scope": "project",
+      "applicability": {
+        "roles": [],
+        "task_types": [],
+        "topics": [],
+        "paths": [],
+        "domains": [],
+        "capabilities": []
+      },
+      "data_classification": "internal",
+      "owner_ref": "orq-experiment-7f",
+      "verified_at": "2026-11-14T10:00:00Z",
+      "effective_from": null,
+      "expires_at": null,
+      "relationships": [],
+      "chunking_policy_ref": {
+        "id": "heading-sections-v1",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76671826f337349dea684b7d793ea8a8bda306ce233852db08bd4678228fca61"
+        }
+      },
+      "metadata_provenance": {
+        "authority": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-permissions:1"
+        },
+        "audience": {
+          "origin": "catalog_rule",
+          "evidence_ref": "catalog-entry:syn-claude-permissions:1"
+        }
+      },
+      "audience": {
+        "schema_version": "0.1",
+        "area_scope": "family",
+        "target_families": [
+          "family_claude"
+        ],
+        "target_roles": []
+      }
+    }
+  ],
+  "status_assertions": [
+    {
+      "assertion_id": "status-common-jcs-digest-1",
+      "source_ref": {
+        "source_id": "common-jcs-digest",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0c77673f331bf49102ae13b711065b98d8c7ef0ff053d059576beb86d322952c"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-jcs-digest:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "e855a7c680fc61e5abbe879c14c0592396639246fe56db0f9da8f2353bba3a65"
+      }
+    },
+    {
+      "assertion_id": "status-common-identifiers-1",
+      "source_ref": {
+        "source_id": "common-identifiers",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1bf107e74be5686f0bd89f347694d1e5b130686fba2ab23ba99a2548e99de332"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-identifiers:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "c2f7132eb50fcd338a63d8ee9228f70ee58a2711180293e2a94cb07b615b456e"
+      }
+    },
+    {
+      "assertion_id": "status-common-content-contract-1",
+      "source_ref": {
+        "source_id": "common-content-contract",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d7cda4f93609a48d64ae28d4281cf0af5fac2f037d0ea1ea999ef8512fbde5cf"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-content-contract:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "9f92023fb81651bfe42070a1feeefd76bbdabd69afe9da2a02c9cf2e1d6ecaf1"
+      }
+    },
+    {
+      "assertion_id": "status-common-evaluator-methods-1",
+      "source_ref": {
+        "source_id": "common-evaluator-methods",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "8ea7ab4d0b472ed4f0591560ed30f50056c6d77302b1697e10a6c6b0f460350c"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-evaluator-methods:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "232deddfa2282a73dbc34f42f4d41bc39a402a1297a4b3d535f5618b0ca3f403"
+      }
+    },
+    {
+      "assertion_id": "status-common-subscription-policy-1",
+      "source_ref": {
+        "source_id": "common-subscription-policy",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "62a10e63bc11ef802a845fde58e94545ac685c872937e3eff01ac13976264175"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-subscription-policy:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "2db411ead39ea76126ee4c5c53d827b24cc09409aaba7b001ab6a4b548f4b74f"
+      }
+    },
+    {
+      "assertion_id": "status-common-cost-honesty-1",
+      "source_ref": {
+        "source_id": "common-cost-honesty",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0305317af87424dfa35bad886a11245d9ac2a8dab2c784ad340a76367dfb5904"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-cost-honesty:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "f483c4f4ab4fbb5464d9038e617ab5cea73248b448848cfac49c6c9b6037c469"
+      }
+    },
+    {
+      "assertion_id": "status-common-audience-rules-1",
+      "source_ref": {
+        "source_id": "common-audience-rules",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f79737a5e668afc7edef12fc074414d29cac42f894fbe8cef1018d8fc5ae2ae4"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-audience-rules:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "d17131bef3befb0d749a8fa67f55cffa6bf24ee6b64612639dc0dce2270c44a5"
+      }
+    },
+    {
+      "assertion_id": "status-common-rls-scope-1",
+      "source_ref": {
+        "source_id": "common-rls-scope",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1f8cf81c66ae2b16b4035a3c05c745cea5f4f01b4e601937333de2764169f08d"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-rls-scope:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "e91d872a2e693288e28d9f6548c56975fd4ada7719a4b280dcf087572f43471e"
+      }
+    },
+    {
+      "assertion_id": "status-common-output-protocol-1",
+      "source_ref": {
+        "source_id": "common-output-protocol",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "b5e5515bf3eadf7cc13f8b60a5262626e1d955c653090f238ada5c93962b13ae"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-output-protocol:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "4e16a8f362d37e8aac6429f7863c56347d1d16ad9f11999f796b0dbc5699ba99"
+      }
+    },
+    {
+      "assertion_id": "status-common-quota-cooldown-1",
+      "source_ref": {
+        "source_id": "common-quota-cooldown",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "98743e2dae15ade11257bf842616ed1ace10c7e3fe371348b1023bb6abaaf4e0"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-quota-cooldown:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "96127e5285de2d87ea48583dd2295db722895310c5fbd4def5ae2b6afce69fc0"
+      }
+    },
+    {
+      "assertion_id": "status-common-context-budget-1",
+      "source_ref": {
+        "source_id": "common-context-budget",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2dda44363223161b54e99f030ca3166fc4a0732cf9a966aa2fda23783acd64df"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-context-budget:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "85cd99d6e7b68b48c9cb5b82f58e72c81149de2b4071460017108f1a05ccc1ea"
+      }
+    },
+    {
+      "assertion_id": "status-common-host-process-rules-1",
+      "source_ref": {
+        "source_id": "common-host-process-rules",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e2b3ec9824b25356525978bce82ef8118d4cf5f781e12c8ffae10ac69790f665"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:common-host-process-rules:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "a3e3ca27edeecab3fe109a23ba3662020a9fe9d95c473eada4d881645c8c6488"
+      }
+    },
+    {
+      "assertion_id": "status-role-software-architect-1",
+      "source_ref": {
+        "source_id": "role-software-architect",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "791db66679472f0de0c7f173dd656dbbedd4eeb553b66b6fd771c2021a87d1e9"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:role-software-architect:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "0e0915db8ba10c3d99ce4c5c90e43907937a50b9ac6397f008ce4e810632a1dc"
+      }
+    },
+    {
+      "assertion_id": "status-role-backend-engineer-1",
+      "source_ref": {
+        "source_id": "role-backend-engineer",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "50dd0eea5f28f4a779fa2f2af4b67b3c6ec57c4e168c5703bd5e6b9728ef0372"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:role-backend-engineer:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "31268e8c9318722fb916192fd49c0599e06989c942e649d4d4b67d8a2d0dff19"
+      }
+    },
+    {
+      "assertion_id": "status-role-tester-1",
+      "source_ref": {
+        "source_id": "role-tester",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "8c0abf5ede81f4c3acea5184c3205aba9e4904a77e5f4b52e502ccd4a319ba51"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:role-tester:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "4b4dd621007474d2ad0fd80163aa7b784516db859ad5c70b493e01fbdca9fe2b"
+      }
+    },
+    {
+      "assertion_id": "status-role-security-reviewer-1",
+      "source_ref": {
+        "source_id": "role-security-reviewer",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "04da6df15993d5f61425bd613cc75ed99b971cb1564cf43935e7605744e11ca0"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:role-security-reviewer:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "d573b7199ba8caeb28d75152b36ce3704808e4aef563fc9c222cf873e65d86a2"
+      }
+    },
+    {
+      "assertion_id": "status-family-claude-invocation-1",
+      "source_ref": {
+        "source_id": "family-claude-invocation",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "9fad68b6939677e3b194b12cc7c0a2de257d3f1c3d1b93e02bd6521d122ad430"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-claude-invocation:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "b170690a113e7c95b9cf2f652a1e33cf6ef8672904cbc54cb075ddb35d0bb8e5"
+      }
+    },
+    {
+      "assertion_id": "status-family-codex-invocation-1",
+      "source_ref": {
+        "source_id": "family-codex-invocation",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "28e07789015bb215219b22f097bdbc9b9eba51343f6cf0309587f470b1140e20"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-codex-invocation:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "3b62538364e3d31cc72a6f30ffc27f25fa39d27de237068d901d86421bb8a04a"
+      }
+    },
+    {
+      "assertion_id": "status-family-codex-readonly-1",
+      "source_ref": {
+        "source_id": "family-codex-readonly",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "a6cf4be64e7cf1cd1725ceaf7bad0cf51167e1538b01770b77acefcdb63e52b6"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-codex-readonly:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "6ff3456eef4fe7abffc634fd977e4ed417740ae86f5896a77070e9b50a59b8d8"
+      }
+    },
+    {
+      "assertion_id": "status-family-codex-windows-tests-1",
+      "source_ref": {
+        "source_id": "family-codex-windows-tests",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "a1c864e82420ab954cd60512572a01a41b49daab45541349fac0476fa7604365"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-codex-windows-tests:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "9ad21bc519f01ea64ffac6710e87be724e12108475e3d885b78ad16c58571954"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-invocation-1",
+      "source_ref": {
+        "source_id": "family-gemini-invocation",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0cbe30aaffc92db6c4f31e0c338e509b45c95851fb2f97c2138181ce2ded4fd7"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-invocation:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "3be5c91a70515db790a6d55bcd1124da6c8d542b2103575f38ef3f6b8fc4b8ba"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-readonly-1",
+      "source_ref": {
+        "source_id": "family-gemini-readonly",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "76278d0f12aab632ce5c14ac2275f916959e5cbce32e954b314e8323375fa842"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-readonly:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "e71cb7f9864f06ed9705b6e7ad15c7e9462700f01d6e76fb2cd43679dcc21a5e"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-permissions-1",
+      "source_ref": {
+        "source_id": "family-gemini-permissions",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "81e4feaf32a1c62cc685e05d507e4874e258554cd48fd9010f82d59cccf0a320"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-permissions:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "59a87e7c254a92a4d2b9c5e403bb1f2d968cd9574eac1d1a3cd3ce23c3122654"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-noise-1",
+      "source_ref": {
+        "source_id": "family-gemini-noise",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e84ef3e95763bca105349819cdf41652e5be1b65c8be2b5342ca4a857dddbc94"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-noise:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "577d7a11a294a493d00ab427a8167385851c7167516bfcf585e1db8c38d66107"
+      }
+    },
+    {
+      "assertion_id": "status-family-kiro-invocation-1",
+      "source_ref": {
+        "source_id": "family-kiro-invocation",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "389741cf71d3ab2afd4292bb0c1e2d357185eb5c1df629f20fd246ed32d04ea9"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-kiro-invocation:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "23ec26513020d4b74f7da381b0d9d66a65f8896b3bfdf6e6241f59e07feac5e5"
+      }
+    },
+    {
+      "assertion_id": "status-family-kiro-trust-tools-1",
+      "source_ref": {
+        "source_id": "family-kiro-trust-tools",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "8afdc369e411fc273e335621be850e9797f53713ebe070e1c6c95ed94fa1214e"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-kiro-trust-tools:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "535299955020b6e2b302ceeae5cd2151591593728d3185b3a5ad1915a499b8fc"
+      }
+    },
+    {
+      "assertion_id": "status-family-kiro-output-1",
+      "source_ref": {
+        "source_id": "family-kiro-output",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "cb6325003dfeaf7f7290e9574081875ca61b525509864d476c6bb04efc528f9e"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-kiro-output:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "e06f1367721c710ad3cfc549f1e55a536b5c680e7490b1ac2bc7ea50d2fd620f"
+      }
+    },
+    {
+      "assertion_id": "status-family-claude-quota-1",
+      "source_ref": {
+        "source_id": "family-claude-quota",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "7b0c772490c8c9f7ccfa1cc7bb32b078f3c41e6a114b63d059b21c78fda3ce95"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-claude-quota:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "475a5c6f888cab1a5302d5c00af4d12ebb9f94b1407db8faa0f1bd89b005316b"
+      }
+    },
+    {
+      "assertion_id": "status-family-codex-quota-1",
+      "source_ref": {
+        "source_id": "family-codex-quota",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "b3dc39281d1320c216543c76e5c211b629647191933d194cad1ce96870c08cde"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-codex-quota:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "1f246b58c71368c0f31f637f90c99253b977b2470cbfa6eb110d8dbc4ad4bbc5"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-quota-1",
+      "source_ref": {
+        "source_id": "family-gemini-quota",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "040b95c6c8992a4820bd0ec427e1a43579f4748c111a35320d3b8058a8b55ed9"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-quota:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "91811ada9b2dcd5fa6c393ea02e1bfc05908c0c086736c8f4585d7d9f1ca31bd"
+      }
+    },
+    {
+      "assertion_id": "status-family-kiro-quota-1",
+      "source_ref": {
+        "source_id": "family-kiro-quota",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "7b769f0fb85e2cfee00d894c8c5a191d8f199300f425c572629a080eacd7cda0"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-kiro-quota:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "efb4cb55429a20f12193ff8aeeaca80872e7a9246b1d2cd6305b3469eb5ee54c"
+      }
+    },
+    {
+      "assertion_id": "status-family-claude-security-1",
+      "source_ref": {
+        "source_id": "family-claude-security",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1c5cef6dcddff25c47dfb94e3780495ab6be572504cc81b6e9073b7a11681e93"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-claude-security:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "297ede1e84f950129352e4f207605bd645f30ff9d9a03a5729511497b043c121"
+      }
+    },
+    {
+      "assertion_id": "status-family-gemini-security-1",
+      "source_ref": {
+        "source_id": "family-gemini-security",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "b5febad2ee5ecd9dc3dad0ed01eb3664ed5b2b8cc49d3afd840dfa5d3e61e136"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-gemini-security:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "90360cd9c2072bf7fd4cfa537607ab7c4ac4e23a60f7ee015183f4a70ff38ec9"
+      }
+    },
+    {
+      "assertion_id": "status-family-kiro-security-1",
+      "source_ref": {
+        "source_id": "family-kiro-security",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "503afd03aba5d5edf9c7a896d6f71413e20555b7463972bb9d0da941a24a2198"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:family-kiro-security:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "05b15f248debf4f6aef6a166db04dcaca32cfa5af39380d92b341590f3e672f7"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-cooldown-1",
+      "source_ref": {
+        "source_id": "syn-codex-cooldown",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f932246b28322880f35d9d34112c8a5884963ac0644346794bf63af017e697c9"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-cooldown:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "d6a5073a25e0649b17d728c83899f620b8a93580904c0215c00efada75044b7b"
+      }
+    },
+    {
+      "assertion_id": "status-syn-kiro-identifiers-1",
+      "source_ref": {
+        "source_id": "syn-kiro-identifiers",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "c556edb39b65d806d95b03e62766c0139d9ba0cb85ccdfdf5e4c31e5c41dc02e"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-kiro-identifiers:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "9b06de663f06b70f1b8013b6a773e4fccb32ff549cb5f30ac02da655cb15e6da"
+      }
+    },
+    {
+      "assertion_id": "status-syn-gemini-digest-1",
+      "source_ref": {
+        "source_id": "syn-gemini-digest",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "60528155a4e85cb6fa11f1e1c011af1c52df463b3a4133d278e34b7f030e859a"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-gemini-digest:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "1d1b893f8ec555e92268076b96429e0b73e713a43d258c223c6250cb68247d3d"
+      }
+    },
+    {
+      "assertion_id": "status-syn-claude-marker-1",
+      "source_ref": {
+        "source_id": "syn-claude-marker",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0efdd46e83bbefb0088a32826c35928a021e7f36a9adfdd579d40b829649572d"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-claude-marker:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "b43206e5f9ed13912eef0978ac467905a2158d12a22a62d4fdc4e99c14e25f1d"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-methods-1",
+      "source_ref": {
+        "source_id": "syn-codex-methods",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d9c05927a181f6b8b05957774468f3a5290684315a4b1c872d0d6582a3fd49e0"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-methods:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "b45efeae555eae35e74b6814b05111360627ca65a0b93f8ca89f97ed60a46d93"
+      }
+    },
+    {
+      "assertion_id": "status-syn-kiro-budget-1",
+      "source_ref": {
+        "source_id": "syn-kiro-budget",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "cf405f6771473ffec75efcc2c57e56d308685c704e74aa76da5db2fd71338c0a"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-kiro-budget:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "aefda5be3f47a89723b032f136611c14ec8eedff9a7bc44b08351f23cb4885be"
+      }
+    },
+    {
+      "assertion_id": "status-syn-gemini-policy-1",
+      "source_ref": {
+        "source_id": "syn-gemini-policy",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d58cc3161f9c399009c75e57efba9e8cd5d80c252305639f203d0d7bc87d696a"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-gemini-policy:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "efac01350540f61e9d95c9bf3d6a7fde566e97d57d0a35750b8365bbcc128b71"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-process-1",
+      "source_ref": {
+        "source_id": "syn-codex-process",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "69a744ce61bf19ea561d77d2d9e180b98894b41aabf6c0a3504a26b81db6bebc"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-process:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "7af9a472cb867ccbb2479efeda1fff56f29679aeb347bbc9593471c841f515bb"
+      }
+    },
+    {
+      "assertion_id": "status-syn-kiro-coverage-1",
+      "source_ref": {
+        "source_id": "syn-kiro-coverage",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "c627c3de8a393abb067f3f2fdab3a07bf809180502d8c54f1a975db79e7d57ec"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-kiro-coverage:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "878bf8ebe6e37e8d86c0212d857a155e27fe7e88cb751c58558c2f1278ebd81b"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-comparison-1",
+      "source_ref": {
+        "source_id": "syn-codex-comparison",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0410ae173e895dfa2bdb4e91e3a91356b3d4d657595b29a04b7e9ab9947f5910"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-comparison:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "212fe1fd01fdc881a8251478792faee6af27befd90ccd3e51614e94a128c63f1"
+      }
+    },
+    {
+      "assertion_id": "status-syn-gemini-tests-1",
+      "source_ref": {
+        "source_id": "syn-gemini-tests",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0ba41cd0f696f8866e7c3f83e4d70822b37bce31c28f04d45e727256b0f791cf"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-gemini-tests:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "b13bf8334ee155bbd49dc16b6d7bb14c48916be9b60446b1cadceafec529c4f3"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-noise-1",
+      "source_ref": {
+        "source_id": "syn-codex-noise",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "13e9ede9ef74dd2e4760d17293320ee71289c65e11b2cbca7c990f3d085c137f"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-noise:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "ae24c5318a1f1dce0bcb08163e109f9c38eb6aba7b58cbb91a1204b2275b08cf"
+      }
+    },
+    {
+      "assertion_id": "status-syn-codex-cost-1",
+      "source_ref": {
+        "source_id": "syn-codex-cost",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "af83bc9402a054c7eaffd7adf430e675c1f9c875c6cecedfc93c92a752bcabff"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-codex-cost:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "4d1cf48534ca24bdd1af079f78ecb8f73596d775eeb6e74dda99c53c8085a042"
+      }
+    },
+    {
+      "assertion_id": "status-syn-kiro-numbers-1",
+      "source_ref": {
+        "source_id": "syn-kiro-numbers",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d4a7d17de7ec89bfdf7d26ae53ab4f3a68c65ece9fff4ab5c5c8f9a232dc351b"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-kiro-numbers:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "b5da0a11c834922129e7b4f0c40fa5df4ae0e58afcfda433b42faa09cc922c90"
+      }
+    },
+    {
+      "assertion_id": "status-syn-claude-stdout-1",
+      "source_ref": {
+        "source_id": "syn-claude-stdout",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "8f9fe8050c877a3da331789a3a4fb8becf3450de78c0b705b33ceb1fb0236be1"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-claude-stdout:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "c25850aa13a64a1f65fad80cc2b4cdabf9a6169018d33fc8145de44a8af0f79b"
+      }
+    },
+    {
+      "assertion_id": "status-syn-claude-permissions-1",
+      "source_ref": {
+        "source_id": "syn-claude-permissions",
+        "revision": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "b28bee4550a2f6e16d062edd9899716367f906e04e21abd1bb425fafd0dd1639"
+        }
+      },
+      "status": "active",
+      "effective_at": "2026-11-14T10:00:00Z",
+      "issuer_ref": "catalog-admin",
+      "evidence_ref": "approval:syn-claude-permissions:1",
+      "assertion_digest": {
+        "algorithm": "sha256",
+        "value": "c7ecf98b7d4cc6644c549322eb8c5f47b961106601267e1efad58798abdfe8db"
+      }
+    }
+  ]
+}

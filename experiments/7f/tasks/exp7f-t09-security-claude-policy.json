@@ -1,0 +1,432 @@
+{
+  "schema_version": "7f-task-0.1",
+  "task_id": "exp7f-t09-security-claude-policy",
+  "number": 9,
+  "title": "Política de assinaturas e Claude Code",
+  "target": {
+    "family_id": "family_claude",
+    "role_id": "security_reviewer"
+  },
+  "task": {
+    "schema_version": "0.1",
+    "task_id": "exp7f-t09-security-claude-policy",
+    "objective": "Você atua como security_reviewer na família Claude e revisa um adaptador de assinatura. Responda só com o JSON do contrato de saída: `forbidden_env_vars` (variáveis de cobrança que nunca podem ser injetadas), `credential_directories` (diretórios de credenciais que nunca podem ser lidos), `spawn_policy` (como o host lança a CLI) e `claude_denied_tools_when_unauthorized` (ferramentas do Claude Code que a política nega quando a tarefa não as autoriza).",
+    "task_type": "structured_answer",
+    "agent_role": {
+      "id": "security_reviewer",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e5a3f00a51b48fffda0af7f2a09ee731ee06dc4adf93614f73b5c22bc6d810a4"
+      }
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ1",
+        "description": "Responder com o JSON do contrato de saída da tarefa",
+        "required": true
+      }
+    ],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {
+      "max_attempts": 1,
+      "attempt_timeout_ms": 300000,
+      "max_context_input_tokens": 4000,
+      "max_output_tokens_per_attempt": 500
+    },
+    "expected_output": [
+      {
+        "output_id": "answer",
+        "artifact_type": "structured_answer",
+        "description": "Resposta JSON curta e fechada",
+        "content_contract_ref": {
+          "id": "exp7f-t09-security-claude-policy-output",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "e46664ebae9a0c86a5f2be01da2a708aab8617ea672f4db8a7798b5ee3cdaa2c"
+          }
+        }
+      }
+    ],
+    "knowledge_requirements": [
+      {
+        "knowledge_requirement_id": "KR1",
+        "subject": "Política de uso das assinaturas",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "politica-de-assinatura"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR2",
+        "subject": "Checklist de revisão de segurança",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "revisao"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR3",
+        "subject": "Execução de processos pelo host",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "processo"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      }
+    ],
+    "evaluation_criteria": [
+      {
+        "criterion_id": "CRIT1",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT2",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "digest_matches",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT3",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ]
+  },
+  "output_contract": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://orq.local/experiments/7f/exp7f-t09-security-claude-policy-output.schema.json",
+    "title": "Saída da tarefa exp7f-t09-security-claude-policy",
+    "type": "object",
+    "properties": {
+      "forbidden_env_vars": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 8,
+        "uniqueItems": true
+      },
+      "credential_directories": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 8,
+        "uniqueItems": true
+      },
+      "spawn_policy": {
+        "enum": [
+          "shell_false",
+          "shell_true"
+        ]
+      },
+      "claude_denied_tools_when_unauthorized": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 8,
+        "uniqueItems": true
+      }
+    },
+    "required": [
+      "forbidden_env_vars",
+      "credential_directories",
+      "spawn_policy",
+      "claude_denied_tools_when_unauthorized"
+    ],
+    "additionalProperties": false
+  },
+  "knowledge": {
+    "gold": [
+      {
+        "requirement_id": "KR1",
+        "source_id": "common-subscription-policy",
+        "revision": "1",
+        "unit_id": "unit-70590c5c6baa566278e9",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "cc9b0706ccb30e02e5c9a113f4de4ad87bfebb34120725d9044ab8f9232f06a7"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "role-security-reviewer",
+        "revision": "1",
+        "unit_id": "unit-44b7679aeea4ae7085ed",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "bd2dec3c925e1ae4f9278058a894819d6934cbab3bdd58f2c229751c8de6278d"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "family-claude-security",
+        "revision": "1",
+        "unit_id": "unit-17986d9fc7e62fc2bb19",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e8983ced68b5eabed740a17594c6eaf30bb4e4443f78d6ab9c0e7f5f45f5cefb"
+        }
+      },
+      {
+        "requirement_id": "KR3",
+        "source_id": "common-host-process-rules",
+        "revision": "1",
+        "unit_id": "unit-50a1bf9a28853e0bc2e7",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d1b78d7c5b58a90fc169b034e5f0fc1ed3f9b7abe87925b61df94ed8c10c2049"
+        }
+      }
+    ],
+    "acceptable_alternatives": [],
+    "distractors": [
+      {
+        "source_id": "syn-gemini-policy",
+        "revision": "1",
+        "unit_id": "unit-770879381b212714b7bf",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "27fb912bbb6d8007f702cfcfbd8f906714a7d9079587fcc17dd79ca89b5e30bb"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-codex-process",
+        "revision": "1",
+        "unit_id": "unit-b6ace102b4ce06aba4ed",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2e133dcba2a7747e3ea8fe05a52b5fd5f9d049ffcad3024e4be9b64ad2afa8b5"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "family-kiro-security",
+        "revision": "1",
+        "unit_id": "unit-ce276d5e50012a11cf0b",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "07802338661d1a544028a34d8e2cfe00c883f07ab7b13a3504764ce079bef1f5"
+        },
+        "reason": "Lista `execute_bash` e `--trust-all-tools`, do Kiro, no lugar das ferramentas do Claude Code.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-gemini-security",
+        "revision": "1",
+        "unit_id": "unit-79aec8181b129a962210",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6d65e261b8f794a116f64025dc377024541930c3b7a977ec9e39c8302f6d5d4a"
+        },
+        "reason": "Lista `read_file`/`command` e `permissions.allow`, do agy.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-kiro-trust-tools",
+        "revision": "1",
+        "unit_id": "unit-9b2b4bc6641a615c50fd",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f2c6f2c4ab8d7e1ffffbc9fbc9e866add18f3dd7b7cfdd43609d32ed56a0a6e4"
+        },
+        "reason": "Lista `--trust-tools` e `execute_bash`, do Kiro.",
+        "kind": "other_family_real"
+      }
+    ],
+    "irrelevant": [
+      {
+        "source_id": "family-codex-readonly",
+        "revision": "1",
+        "unit_id": "unit-1ad302319b9d49b0072a",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "df40da6099fa4a970b6cf75a6478cc6be0648ade0a917b6e3c7a76875096c46b"
+        },
+        "reason": "Somente leitura do Codex; sem política de assinatura, diretórios ou lançamento de processos."
+      },
+      {
+        "source_id": "family-gemini-readonly",
+        "revision": "1",
+        "unit_id": "unit-a0d8a6e2d597464a7add",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "561edeeb65e356e01852714bd8a24b289decbc5b5c04942fb7bb18e2d365a776"
+        },
+        "reason": "Modos do agy; sem relação com a tarefa."
+      }
+    ],
+    "answer_sources": {
+      "CHK-env-vars": [
+        "common-subscription-policy"
+      ],
+      "CHK-credential-dirs": [
+        "common-subscription-policy"
+      ],
+      "CHK-spawn": [
+        "common-host-process-rules"
+      ],
+      "CHK-denied-tools": [
+        "family-claude-security"
+      ]
+    }
+  },
+  "acceptance": {
+    "evaluator_criteria": [
+      "CRIT1",
+      "CRIT2",
+      "CRIT3"
+    ],
+    "deterministic_checks": [
+      {
+        "check_id": "CHK-env-vars",
+        "kind": "set_equals",
+        "pointer": "/forbidden_env_vars",
+        "values": [
+          "OPENAI_API_KEY",
+          "ANTHROPIC_API_KEY",
+          "GEMINI_API_KEY"
+        ]
+      },
+      {
+        "check_id": "CHK-credential-dirs",
+        "kind": "set_equals",
+        "pointer": "/credential_directories",
+        "values": [
+          "~/.codex/",
+          "~/.claude/",
+          "~/.gemini/"
+        ]
+      },
+      {
+        "check_id": "CHK-spawn",
+        "kind": "equals",
+        "pointer": "/spawn_policy",
+        "value": "shell_false"
+      },
+      {
+        "check_id": "CHK-denied-tools",
+        "kind": "set_equals",
+        "pointer": "/claude_denied_tools_when_unauthorized",
+        "values": [
+          "Bash",
+          "WebFetch",
+          "WebSearch"
+        ]
+      },
+      {
+        "check_id": "CHK-no-contamination",
+        "kind": "no_forbidden_text",
+        "values": [
+          "--trust-all-tools",
+          "--dangerously-skip-permissions",
+          "--trust-tools",
+          "execute_bash"
+        ]
+      }
+    ],
+    "pass_rule": "verdict do avaliador == pass E todas as deterministic_checks passam (pass@1, uma tentativa)"
+  },
+  "reference_answers": {
+    "pass": {
+      "forbidden_env_vars": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY"
+      ],
+      "credential_directories": [
+        "~/.codex/",
+        "~/.claude/",
+        "~/.gemini/"
+      ],
+      "spawn_policy": "shell_false",
+      "claude_denied_tools_when_unauthorized": [
+        "Bash",
+        "WebFetch",
+        "WebSearch"
+      ]
+    },
+    "contaminated": {
+      "forbidden_env_vars": [
+        "OPENAI_API_KEY"
+      ],
+      "credential_directories": [
+        "~/.codex/"
+      ],
+      "spawn_policy": "shell_true",
+      "claude_denied_tools_when_unauthorized": [
+        "execute_bash"
+      ]
+    }
+  }
+}

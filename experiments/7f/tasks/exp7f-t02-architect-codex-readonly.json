@@ -1,0 +1,378 @@
+{
+  "schema_version": "7f-task-0.1",
+  "task_id": "exp7f-t02-architect-codex-readonly",
+  "number": 2,
+  "title": "Revisão somente leitura no Codex CLI",
+  "target": {
+    "family_id": "family_codex",
+    "role_id": "software_architect"
+  },
+  "task": {
+    "schema_version": "0.1",
+    "task_id": "exp7f-t02-architect-codex-readonly",
+    "objective": "Você atua como software_architect na família Codex. Planeje a invocação do Codex CLI para uma revisão arquitetural sem escrita. Responda só com o JSON do contrato de saída: `sandbox_mode` (valor do argumento de `-s`), `final_message_flag` (flag que grava a mensagem final em arquivo), `events_flag` (flag que emite eventos JSONL) e `max_provider_context_coverage` (o valor máximo honesto de provider_context_coverage).",
+    "task_type": "structured_answer",
+    "agent_role": {
+      "id": "software_architect",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "13a197368b221148e8ab0d4b0528c6dea312c684862aa6b7d5327e9ba75aca18"
+      }
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ1",
+        "description": "Responder com o JSON do contrato de saída da tarefa",
+        "required": true
+      }
+    ],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {
+      "max_attempts": 1,
+      "attempt_timeout_ms": 300000,
+      "max_context_input_tokens": 4000,
+      "max_output_tokens_per_attempt": 500
+    },
+    "expected_output": [
+      {
+        "output_id": "answer",
+        "artifact_type": "structured_answer",
+        "description": "Resposta JSON curta e fechada",
+        "content_contract_ref": {
+          "id": "exp7f-t02-architect-codex-readonly-output",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "fc4a804382c7759b8d8906937db2712c7d87f141a5e29aacccebe36b521e173e"
+          }
+        }
+      }
+    ],
+    "knowledge_requirements": [
+      {
+        "knowledge_requirement_id": "KR1",
+        "subject": "Modo somente leitura do Codex",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "somente-leitura"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR2",
+        "subject": "Saída estruturada do Codex",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "saida-estruturada"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR3",
+        "subject": "Cobertura de contexto do provedor",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "cobertura-de-contexto"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      }
+    ],
+    "evaluation_criteria": [
+      {
+        "criterion_id": "CRIT1",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT2",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "digest_matches",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT3",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ]
+  },
+  "output_contract": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://orq.local/experiments/7f/exp7f-t02-architect-codex-readonly-output.schema.json",
+    "title": "Saída da tarefa exp7f-t02-architect-codex-readonly",
+    "type": "object",
+    "properties": {
+      "sandbox_mode": {
+        "enum": [
+          "read-only",
+          "workspace-write",
+          "danger-full-access"
+        ]
+      },
+      "final_message_flag": {
+        "type": "string",
+        "minLength": 1
+      },
+      "events_flag": {
+        "type": "string",
+        "minLength": 1
+      },
+      "max_provider_context_coverage": {
+        "enum": [
+          "complete",
+          "platform_only",
+          "unknown"
+        ]
+      }
+    },
+    "required": [
+      "sandbox_mode",
+      "final_message_flag",
+      "events_flag",
+      "max_provider_context_coverage"
+    ],
+    "additionalProperties": false
+  },
+  "knowledge": {
+    "gold": [
+      {
+        "requirement_id": "KR1",
+        "source_id": "family-codex-readonly",
+        "revision": "1",
+        "unit_id": "unit-1ad302319b9d49b0072a",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "df40da6099fa4a970b6cf75a6478cc6be0648ade0a917b6e3c7a76875096c46b"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "family-codex-invocation",
+        "revision": "1",
+        "unit_id": "unit-e286d9f9fa0365ea1d25",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "24ce7f0495a5f9dcb063c960435a47b8d5a255bce9645efc1bf3f04ba197b5f2"
+        }
+      },
+      {
+        "requirement_id": "KR3",
+        "source_id": "role-software-architect",
+        "revision": "1",
+        "unit_id": "unit-cf3042e94ddf05cd44ac",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "a27613391271fad5cc6fea9ff8b973237fe07ef478ab5a2c152eb72f2ddef6a9"
+        }
+      }
+    ],
+    "acceptable_alternatives": [],
+    "distractors": [
+      {
+        "source_id": "family-gemini-readonly",
+        "revision": "1",
+        "unit_id": "unit-a0d8a6e2d597464a7add",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "561edeeb65e356e01852714bd8a24b289decbc5b5c04942fb7bb18e2d365a776"
+        },
+        "reason": "Modo somente leitura por `--mode plan`, do agy.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-kiro-trust-tools",
+        "revision": "1",
+        "unit_id": "unit-9b2b4bc6641a615c50fd",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f2c6f2c4ab8d7e1ffffbc9fbc9e866add18f3dd7b7cfdd43609d32ed56a0a6e4"
+        },
+        "reason": "Somente leitura por `--trust-tools=fs_read`, do Kiro.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-claude-invocation",
+        "revision": "1",
+        "unit_id": "unit-9fc950032faa402edf39",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e557c85d1ab9b402b331085baed075a247f3bd4ae3937952f20cfb628402f0e7"
+        },
+        "reason": "Saída por `--output-format json`, do Claude Code.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-gemini-invocation",
+        "revision": "1",
+        "unit_id": "unit-b79cc14389ddd3c654fe",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "897ceb84836b1f1a357d47976ed744927c1042703eb9193ee83a24b2d90196b1"
+        },
+        "reason": "Saída por `--output-format text`, do agy.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "syn-kiro-coverage",
+        "revision": "1",
+        "unit_id": "unit-aea807c3f0e59a9b405e",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "fa82ae97b5125f7eb4096585de87daadbab9edabc2953370f819190670a6f323"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-claude-marker",
+        "revision": "1",
+        "unit_id": "unit-317d2ce6fdeb04261136",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6f5a3dc37794b40ca667fffe2122d5db7b001c319f8ff0344f66939b5b692e29"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      }
+    ],
+    "irrelevant": [
+      {
+        "source_id": "common-output-protocol",
+        "revision": "1",
+        "unit_id": "unit-5c13db0de84fe6698f36",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "04eacff46fca4fc5f15f312901a9ca87c99de80eba97288d122d20555a56ca2f"
+        },
+        "reason": "Descreve o marcador ORQ_FINAL; não traz flags do Codex nem cobertura de contexto."
+      }
+    ],
+    "answer_sources": {
+      "CHK-sandbox": [
+        "family-codex-readonly"
+      ],
+      "CHK-final-flag": [
+        "family-codex-invocation"
+      ],
+      "CHK-events-flag": [
+        "family-codex-invocation"
+      ],
+      "CHK-coverage": [
+        "role-software-architect"
+      ]
+    }
+  },
+  "acceptance": {
+    "evaluator_criteria": [
+      "CRIT1",
+      "CRIT2",
+      "CRIT3"
+    ],
+    "deterministic_checks": [
+      {
+        "check_id": "CHK-sandbox",
+        "kind": "equals",
+        "pointer": "/sandbox_mode",
+        "value": "read-only"
+      },
+      {
+        "check_id": "CHK-final-flag",
+        "kind": "equals",
+        "pointer": "/final_message_flag",
+        "value": "-o"
+      },
+      {
+        "check_id": "CHK-events-flag",
+        "kind": "equals",
+        "pointer": "/events_flag",
+        "value": "--json"
+      },
+      {
+        "check_id": "CHK-coverage",
+        "kind": "equals",
+        "pointer": "/max_provider_context_coverage",
+        "value": "platform_only"
+      },
+      {
+        "check_id": "CHK-no-contamination",
+        "kind": "no_forbidden_text",
+        "values": [
+          "--mode plan",
+          "--trust-tools",
+          "--output-format"
+        ]
+      }
+    ],
+    "pass_rule": "verdict do avaliador == pass E todas as deterministic_checks passam (pass@1, uma tentativa)"
+  },
+  "reference_answers": {
+    "pass": {
+      "sandbox_mode": "read-only",
+      "final_message_flag": "-o",
+      "events_flag": "--json",
+      "max_provider_context_coverage": "platform_only"
+    },
+    "contaminated": {
+      "sandbox_mode": "workspace-write",
+      "final_message_flag": "--output-format",
+      "events_flag": "--output-format",
+      "max_provider_context_coverage": "complete"
+    }
+  }
+}
