@@ -156,6 +156,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), aceita.
 - [Fase 7 — hub de assinaturas pessoais, roteamento por cota e memória por família](phase-7/README.md), 7A, 7B e 7C na dev; 7D em revisão; próximo 7E.
 - [ADR 0008 — hub de assinaturas pessoais, roteamento por cota e memória por família em Postgres](adr/0008-phase-7-subscription-hub-and-family-memory.md), aceita.
+- [Fase 8 — avaliador por modelo e rubrica](phase-8/README.md) e [ADR 0009](adr/0009-phase-8-model-and-rubric-evaluator.md), proposta aguardando as decisões do dono.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
