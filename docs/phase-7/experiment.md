@@ -77,7 +77,7 @@ O catálogo do experimento conterá um snapshot fixo (`catalog_hash` cravado) co
 ### 2. Benchmark de tarefas e avaliação determinística
 
 - Serão definidas tarefas estruturadas cobrindo quatro papéis (`software_architect`, `backend_engineer`, `tester`, `security_reviewer`), organizadas em workflows sequenciais reproduzíveis.
-- Cada tarefa possui gabarito fechado de unidades de conhecimento esperadas e critérios de aceitação verificados exclusivamente pelo `DeterministicEvaluator` (`output_binding_present`, `digest_matches`, `content_contract_valid` e testes determinísticos sobre os artefatos gerados). Nenhum juiz baseado em LLM ("LLM-as-a-judge") será usado na métrica primária para não introduzir viés de família nem consumir cota extra.
+- Cada tarefa possui gabarito fechado de unidades de conhecimento esperadas e critérios de aceitação verificados exclusivamente pelo `DeterministicEvaluator` (`output_binding_present`, `digest_matches`, `content_contract_valid` e testes determinísticos sobre os artefatos gerados). Nenhum juiz baseado em LLM ("LLM-as-a-judge") será usado na métrica primária para não introduzir viés de família nem consumir cota extra. Qualquer auditoria qualitativa por modelo/rubrica prevista na proposta da Fase 8 ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md)) sobre os artefatos já encerrados do `7F` é opcional, posterior (executada fora dos runs do `7F` apenas se o dono desejar) e não altera a métrica primária determinística (`pass_at_1` e `run_success_rate`).
 
 ### 3. Protocolo de execução em duas camadas
 
