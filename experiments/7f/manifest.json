@@ -1,0 +1,1226 @@
+{
+  "schema_version": "7f-manifest-0.1",
+  "experiment_id": "7f",
+  "adr": "docs/adr/0008-phase-7-subscription-hub-and-family-memory.md",
+  "design": {
+    "tasks": 10,
+    "repetitions": 3,
+    "conditions": [
+      "shared_global",
+      "family_partitioned_rls"
+    ],
+    "total_runs": 60,
+    "batches": 6,
+    "runs_per_batch": 10,
+    "approved_by_owner_at": "2026-11-14"
+  },
+  "conditions": {
+    "shared_global": "RLS relaxada: toda unidade ativa do projeto é visível a qualquer família e papel",
+    "family_partitioned_rls": "RLS estrita: área comum + unidades compatíveis com (family_id, role_id) da tentativa"
+  },
+  "seeds": {
+    "batch_plan": 20261114,
+    "run_seed": "int(sha256('<seed>:run-seed:<run_key>')[:12], 16), em runs[].run_seed"
+  },
+  "catalog": {
+    "catalog_id": "knowledge-orq-7f",
+    "version": "1",
+    "project_id": "orq-7f",
+    "catalog_hash": {
+      "algorithm": "sha256",
+      "value": "c59850a7a16f0ba4732147a7db395f7b1a90352bd25ed9d76af2a57acba0ccf6"
+    },
+    "snapshot_path": "vault/catalog-snapshot.json",
+    "definition_path": "vault/catalog-definition.json",
+    "source_count": 50,
+    "sources_by_group": {
+      "common": 12,
+      "family": 12,
+      "family_role": 6,
+      "role": 4,
+      "synthetic": 16
+    },
+    "synthetic_source_ids": [
+      "syn-claude-marker",
+      "syn-claude-permissions",
+      "syn-claude-stdout",
+      "syn-codex-comparison",
+      "syn-codex-cooldown",
+      "syn-codex-cost",
+      "syn-codex-methods",
+      "syn-codex-noise",
+      "syn-codex-process",
+      "syn-gemini-digest",
+      "syn-gemini-policy",
+      "syn-gemini-tests",
+      "syn-kiro-budget",
+      "syn-kiro-coverage",
+      "syn-kiro-identifiers",
+      "syn-kiro-numbers"
+    ]
+  },
+  "tasks": [
+    {
+      "task_id": "exp7f-t01-architect-claude-tools",
+      "path": "tasks/exp7f-t01-architect-claude-tools.json",
+      "role_id": "software_architect",
+      "family_id": "family_claude",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 1,
+        "distractors": 4,
+        "irrelevant": 1
+      }
+    },
+    {
+      "task_id": "exp7f-t02-architect-codex-readonly",
+      "path": "tasks/exp7f-t02-architect-codex-readonly.json",
+      "role_id": "software_architect",
+      "family_id": "family_codex",
+      "knowledge_class_sizes": {
+        "gold": 3,
+        "acceptable_alternatives": 0,
+        "distractors": 6,
+        "irrelevant": 1
+      }
+    },
+    {
+      "task_id": "exp7f-t03-architect-gemini-workdir",
+      "path": "tasks/exp7f-t03-architect-gemini-workdir.json",
+      "role_id": "software_architect",
+      "family_id": "family_gemini",
+      "knowledge_class_sizes": {
+        "gold": 3,
+        "acceptable_alternatives": 2,
+        "distractors": 4,
+        "irrelevant": 0
+      }
+    },
+    {
+      "task_id": "exp7f-t04-backend-codex-windows-tests",
+      "path": "tasks/exp7f-t04-backend-codex-windows-tests.json",
+      "role_id": "backend_engineer",
+      "family_id": "family_codex",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 0,
+        "distractors": 4,
+        "irrelevant": 7
+      }
+    },
+    {
+      "task_id": "exp7f-t05-backend-gemini-headless",
+      "path": "tasks/exp7f-t05-backend-gemini-headless.json",
+      "role_id": "backend_engineer",
+      "family_id": "family_gemini",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 1,
+        "distractors": 6,
+        "irrelevant": 4
+      }
+    },
+    {
+      "task_id": "exp7f-t06-backend-kiro-wsl",
+      "path": "tasks/exp7f-t06-backend-kiro-wsl.json",
+      "role_id": "backend_engineer",
+      "family_id": "family_kiro",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 1,
+        "distractors": 5,
+        "irrelevant": 4
+      }
+    },
+    {
+      "task_id": "exp7f-t07-tester-claude-digest",
+      "path": "tasks/exp7f-t07-tester-claude-digest.json",
+      "role_id": "tester",
+      "family_id": "family_claude",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 0,
+        "distractors": 3,
+        "irrelevant": 3
+      }
+    },
+    {
+      "task_id": "exp7f-t08-tester-kiro-quota",
+      "path": "tasks/exp7f-t08-tester-kiro-quota.json",
+      "role_id": "tester",
+      "family_id": "family_kiro",
+      "knowledge_class_sizes": {
+        "gold": 2,
+        "acceptable_alternatives": 3,
+        "distractors": 3,
+        "irrelevant": 2
+      }
+    },
+    {
+      "task_id": "exp7f-t09-security-claude-policy",
+      "path": "tasks/exp7f-t09-security-claude-policy.json",
+      "role_id": "security_reviewer",
+      "family_id": "family_claude",
+      "knowledge_class_sizes": {
+        "gold": 4,
+        "acceptable_alternatives": 0,
+        "distractors": 5,
+        "irrelevant": 2
+      }
+    },
+    {
+      "task_id": "exp7f-t10-security-kiro-trust-tools",
+      "path": "tasks/exp7f-t10-security-kiro-trust-tools.json",
+      "role_id": "security_reviewer",
+      "family_id": "family_kiro",
+      "knowledge_class_sizes": {
+        "gold": 3,
+        "acceptable_alternatives": 0,
+        "distractors": 8,
+        "irrelevant": 1
+      }
+    }
+  ],
+  "knowledge_classes": {
+    "gold": "unidades esperadas; visíveis no regime particionado",
+    "acceptable_alternatives": "conteúdo correto de outra família ou papel; escolher é neutro (fora do numerador e do denominador da precisão)",
+    "distractors": "conteúdo inadequado ou contraditório (regras de outra família que dariam resposta errada, ou regras fictícias); só estes contam como contaminação",
+    "irrelevant": "elegíveis pelo filtro de tópicos, sem resposta nem conflito; contam como ruído na precisão, não como contaminação",
+    "partition_rule": "toda unidade elegível aos knowledge_requirements da tarefa no regime shared_global cai em exatamente uma classe (gold incluído)"
+  },
+  "metric_definitions": {
+    "selection_precision": "|selecionadas ∩ gold| / |selecionadas − acceptable_alternatives|",
+    "selection_recall": "|selecionadas ∩ gold| / |gold|",
+    "distractor_contamination_rate": "|selecionadas ∩ distractors| / |selecionadas|",
+    "cross_family_exposure_rate": "fração das selecionadas com target_families não vazio que não contém a família do run (inclui alternativas; zero por construção sob RLS)"
+  },
+  "files": [
+    {
+      "path": "tasks/exp7f-t01-architect-claude-tools.json",
+      "raw_sha256": "a29c0e81fd561a7e144a2aee57fe8b963d2d6617d81c2c88f2d06a5fb54a136c",
+      "jcs_digest": "32a4a217ffbc12a3faf4e7479c8f15c12c56c692821f830e70180e9d3d8011bc"
+    },
+    {
+      "path": "tasks/exp7f-t02-architect-codex-readonly.json",
+      "raw_sha256": "3ccae9d2a6fd5f638bdd06c4a0a3e3212ff17c71be3a10648b2e17d77e1c18d0",
+      "jcs_digest": "1c989f994d6fc4029b7f005d32cbb58acde0f97e03acf3c15ac83920f54e3f8f"
+    },
+    {
+      "path": "tasks/exp7f-t03-architect-gemini-workdir.json",
+      "raw_sha256": "c813745ea8d3d95031ebc0b3fc20fd74085b37670c3374969708572d37d49832",
+      "jcs_digest": "2dd5a30b0449f184877e5cc36fb5932a180ba37fd51449224dfccbdc005b26b8"
+    },
+    {
+      "path": "tasks/exp7f-t04-backend-codex-windows-tests.json",
+      "raw_sha256": "5ed999d88846a9f280a42dcf0bc4a6f60de81bd5c42e951e805e8cd7e60424a5",
+      "jcs_digest": "172d28db61e925b3bfffe2e0e94761ce4980b6f215bcc6a3ba7ff41629be4441"
+    },
+    {
+      "path": "tasks/exp7f-t05-backend-gemini-headless.json",
+      "raw_sha256": "0b70fef78d88666d08d9de2a42265518a36305d27d19c87a334a97a036edf3a4",
+      "jcs_digest": "7944c12a8b5940693ed68fc4975a27a5ae7e3391a012308ebe5395eb1b4a0e48"
+    },
+    {
+      "path": "tasks/exp7f-t06-backend-kiro-wsl.json",
+      "raw_sha256": "6eafb06f0a9222b07ed49fce0cecd1a3fc2180eb22b290bc7270bb83f9c7aa54",
+      "jcs_digest": "d6c5455d5f5958e42f21273fe444ce89f2d527a228c7b31f79b72a1467814ef8"
+    },
+    {
+      "path": "tasks/exp7f-t07-tester-claude-digest.json",
+      "raw_sha256": "b9aa7c1c017bc5d5dc1c9ed32f02123cb668bb1e13d8ade6f4ec602ad8b4052e",
+      "jcs_digest": "459c6acdb73109908fe5d35be4ed88b3340fca7c4109bb3d83db270f184dddd7"
+    },
+    {
+      "path": "tasks/exp7f-t08-tester-kiro-quota.json",
+      "raw_sha256": "18f3f1bc9e7aeb534ae0b5e2fc5bc0a9c1deeb8f823bd724b3e56f634e8b853e",
+      "jcs_digest": "d1c6038c45f2ea73bd3a1ec5872b673d17cff0fbc9c54a659d31c4f302a3616d"
+    },
+    {
+      "path": "tasks/exp7f-t09-security-claude-policy.json",
+      "raw_sha256": "41a2456b687146e9b9e231102c47d189463b03564f8dce83284dce7d2d3bfd0b",
+      "jcs_digest": "65a67e1d9151906874555258b1ff107b6d2fac6fb3e9a1f623097d0c6f12be6a"
+    },
+    {
+      "path": "tasks/exp7f-t10-security-kiro-trust-tools.json",
+      "raw_sha256": "1253dce18852649ae3302e0da263f174708a65e7287c1642eb35f575dec2c9d2",
+      "jcs_digest": "adedbc1abe00ace9d5c1e2c26c39bb6e1009373ff1836bedf74a14640efbde31"
+    },
+    {
+      "path": "vault/catalog-definition.json",
+      "raw_sha256": "48dfaca435fbf0e91ef911e5156d0d83008fe7fd4e4a16faea9c06648506b85d",
+      "jcs_digest": "b4fa400ac312bac94d1780137502071c088938d5de0042711e507846370548b1"
+    },
+    {
+      "path": "vault/catalog-snapshot.json",
+      "raw_sha256": "dc5f9f329d374bf4c3b6a0c7915b27fb0046f773ee74f4bfe860e1cf7f57b832",
+      "jcs_digest": "ce757264b8bb8cd3075200110a358c2ebad52f9d27768e6a43ed1ce0f9907c27"
+    },
+    {
+      "path": "vault/content/common/common-audience-rules.md",
+      "raw_sha256": "f79737a5e668afc7edef12fc074414d29cac42f894fbe8cef1018d8fc5ae2ae4"
+    },
+    {
+      "path": "vault/content/common/common-content-contract.md",
+      "raw_sha256": "d7cda4f93609a48d64ae28d4281cf0af5fac2f037d0ea1ea999ef8512fbde5cf"
+    },
+    {
+      "path": "vault/content/common/common-context-budget.md",
+      "raw_sha256": "2dda44363223161b54e99f030ca3166fc4a0732cf9a966aa2fda23783acd64df"
+    },
+    {
+      "path": "vault/content/common/common-cost-honesty.md",
+      "raw_sha256": "0305317af87424dfa35bad886a11245d9ac2a8dab2c784ad340a76367dfb5904"
+    },
+    {
+      "path": "vault/content/common/common-evaluator-methods.md",
+      "raw_sha256": "8ea7ab4d0b472ed4f0591560ed30f50056c6d77302b1697e10a6c6b0f460350c"
+    },
+    {
+      "path": "vault/content/common/common-host-process-rules.md",
+      "raw_sha256": "e2b3ec9824b25356525978bce82ef8118d4cf5f781e12c8ffae10ac69790f665"
+    },
+    {
+      "path": "vault/content/common/common-identifiers.md",
+      "raw_sha256": "1bf107e74be5686f0bd89f347694d1e5b130686fba2ab23ba99a2548e99de332"
+    },
+    {
+      "path": "vault/content/common/common-jcs-digest.md",
+      "raw_sha256": "0c77673f331bf49102ae13b711065b98d8c7ef0ff053d059576beb86d322952c"
+    },
+    {
+      "path": "vault/content/common/common-output-protocol.md",
+      "raw_sha256": "b5e5515bf3eadf7cc13f8b60a5262626e1d955c653090f238ada5c93962b13ae"
+    },
+    {
+      "path": "vault/content/common/common-quota-cooldown.md",
+      "raw_sha256": "98743e2dae15ade11257bf842616ed1ace10c7e3fe371348b1023bb6abaaf4e0"
+    },
+    {
+      "path": "vault/content/common/common-rls-scope.md",
+      "raw_sha256": "1f8cf81c66ae2b16b4035a3c05c745cea5f4f01b4e601937333de2764169f08d"
+    },
+    {
+      "path": "vault/content/common/common-subscription-policy.md",
+      "raw_sha256": "62a10e63bc11ef802a845fde58e94545ac685c872937e3eff01ac13976264175"
+    },
+    {
+      "path": "vault/content/family/family-claude-invocation.md",
+      "raw_sha256": "9fad68b6939677e3b194b12cc7c0a2de257d3f1c3d1b93e02bd6521d122ad430"
+    },
+    {
+      "path": "vault/content/family/family-claude-quota.md",
+      "raw_sha256": "7b0c772490c8c9f7ccfa1cc7bb32b078f3c41e6a114b63d059b21c78fda3ce95"
+    },
+    {
+      "path": "vault/content/family/family-codex-invocation.md",
+      "raw_sha256": "28e07789015bb215219b22f097bdbc9b9eba51343f6cf0309587f470b1140e20"
+    },
+    {
+      "path": "vault/content/family/family-codex-quota.md",
+      "raw_sha256": "b3dc39281d1320c216543c76e5c211b629647191933d194cad1ce96870c08cde"
+    },
+    {
+      "path": "vault/content/family/family-gemini-invocation.md",
+      "raw_sha256": "0cbe30aaffc92db6c4f31e0c338e509b45c95851fb2f97c2138181ce2ded4fd7"
+    },
+    {
+      "path": "vault/content/family/family-gemini-noise.md",
+      "raw_sha256": "e84ef3e95763bca105349819cdf41652e5be1b65c8be2b5342ca4a857dddbc94"
+    },
+    {
+      "path": "vault/content/family/family-gemini-permissions.md",
+      "raw_sha256": "81e4feaf32a1c62cc685e05d507e4874e258554cd48fd9010f82d59cccf0a320"
+    },
+    {
+      "path": "vault/content/family/family-gemini-quota.md",
+      "raw_sha256": "040b95c6c8992a4820bd0ec427e1a43579f4748c111a35320d3b8058a8b55ed9"
+    },
+    {
+      "path": "vault/content/family/family-kiro-invocation.md",
+      "raw_sha256": "389741cf71d3ab2afd4292bb0c1e2d357185eb5c1df629f20fd246ed32d04ea9"
+    },
+    {
+      "path": "vault/content/family/family-kiro-output.md",
+      "raw_sha256": "cb6325003dfeaf7f7290e9574081875ca61b525509864d476c6bb04efc528f9e"
+    },
+    {
+      "path": "vault/content/family/family-kiro-quota.md",
+      "raw_sha256": "7b769f0fb85e2cfee00d894c8c5a191d8f199300f425c572629a080eacd7cda0"
+    },
+    {
+      "path": "vault/content/family/family-kiro-trust-tools.md",
+      "raw_sha256": "8afdc369e411fc273e335621be850e9797f53713ebe070e1c6c95ed94fa1214e"
+    },
+    {
+      "path": "vault/content/family_role/family-claude-security.md",
+      "raw_sha256": "1c5cef6dcddff25c47dfb94e3780495ab6be572504cc81b6e9073b7a11681e93"
+    },
+    {
+      "path": "vault/content/family_role/family-codex-readonly.md",
+      "raw_sha256": "a6cf4be64e7cf1cd1725ceaf7bad0cf51167e1538b01770b77acefcdb63e52b6"
+    },
+    {
+      "path": "vault/content/family_role/family-codex-windows-tests.md",
+      "raw_sha256": "a1c864e82420ab954cd60512572a01a41b49daab45541349fac0476fa7604365"
+    },
+    {
+      "path": "vault/content/family_role/family-gemini-readonly.md",
+      "raw_sha256": "76278d0f12aab632ce5c14ac2275f916959e5cbce32e954b314e8323375fa842"
+    },
+    {
+      "path": "vault/content/family_role/family-gemini-security.md",
+      "raw_sha256": "b5febad2ee5ecd9dc3dad0ed01eb3664ed5b2b8cc49d3afd840dfa5d3e61e136"
+    },
+    {
+      "path": "vault/content/family_role/family-kiro-security.md",
+      "raw_sha256": "503afd03aba5d5edf9c7a896d6f71413e20555b7463972bb9d0da941a24a2198"
+    },
+    {
+      "path": "vault/content/role/role-backend-engineer.md",
+      "raw_sha256": "50dd0eea5f28f4a779fa2f2af4b67b3c6ec57c4e168c5703bd5e6b9728ef0372"
+    },
+    {
+      "path": "vault/content/role/role-security-reviewer.md",
+      "raw_sha256": "04da6df15993d5f61425bd613cc75ed99b971cb1564cf43935e7605744e11ca0"
+    },
+    {
+      "path": "vault/content/role/role-software-architect.md",
+      "raw_sha256": "791db66679472f0de0c7f173dd656dbbedd4eeb553b66b6fd771c2021a87d1e9"
+    },
+    {
+      "path": "vault/content/role/role-tester.md",
+      "raw_sha256": "8c0abf5ede81f4c3acea5184c3205aba9e4904a77e5f4b52e502ccd4a319ba51"
+    },
+    {
+      "path": "vault/content/synthetic/syn-claude-marker.md",
+      "raw_sha256": "0efdd46e83bbefb0088a32826c35928a021e7f36a9adfdd579d40b829649572d"
+    },
+    {
+      "path": "vault/content/synthetic/syn-claude-permissions.md",
+      "raw_sha256": "b28bee4550a2f6e16d062edd9899716367f906e04e21abd1bb425fafd0dd1639"
+    },
+    {
+      "path": "vault/content/synthetic/syn-claude-stdout.md",
+      "raw_sha256": "8f9fe8050c877a3da331789a3a4fb8becf3450de78c0b705b33ceb1fb0236be1"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-comparison.md",
+      "raw_sha256": "0410ae173e895dfa2bdb4e91e3a91356b3d4d657595b29a04b7e9ab9947f5910"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-cooldown.md",
+      "raw_sha256": "f932246b28322880f35d9d34112c8a5884963ac0644346794bf63af017e697c9"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-cost.md",
+      "raw_sha256": "af83bc9402a054c7eaffd7adf430e675c1f9c875c6cecedfc93c92a752bcabff"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-methods.md",
+      "raw_sha256": "d9c05927a181f6b8b05957774468f3a5290684315a4b1c872d0d6582a3fd49e0"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-noise.md",
+      "raw_sha256": "13e9ede9ef74dd2e4760d17293320ee71289c65e11b2cbca7c990f3d085c137f"
+    },
+    {
+      "path": "vault/content/synthetic/syn-codex-process.md",
+      "raw_sha256": "69a744ce61bf19ea561d77d2d9e180b98894b41aabf6c0a3504a26b81db6bebc"
+    },
+    {
+      "path": "vault/content/synthetic/syn-gemini-digest.md",
+      "raw_sha256": "60528155a4e85cb6fa11f1e1c011af1c52df463b3a4133d278e34b7f030e859a"
+    },
+    {
+      "path": "vault/content/synthetic/syn-gemini-policy.md",
+      "raw_sha256": "d58cc3161f9c399009c75e57efba9e8cd5d80c252305639f203d0d7bc87d696a"
+    },
+    {
+      "path": "vault/content/synthetic/syn-gemini-tests.md",
+      "raw_sha256": "0ba41cd0f696f8866e7c3f83e4d70822b37bce31c28f04d45e727256b0f791cf"
+    },
+    {
+      "path": "vault/content/synthetic/syn-kiro-budget.md",
+      "raw_sha256": "cf405f6771473ffec75efcc2c57e56d308685c704e74aa76da5db2fd71338c0a"
+    },
+    {
+      "path": "vault/content/synthetic/syn-kiro-coverage.md",
+      "raw_sha256": "c627c3de8a393abb067f3f2fdab3a07bf809180502d8c54f1a975db79e7d57ec"
+    },
+    {
+      "path": "vault/content/synthetic/syn-kiro-identifiers.md",
+      "raw_sha256": "c556edb39b65d806d95b03e62766c0139d9ba0cb85ccdfdf5e4c31e5c41dc02e"
+    },
+    {
+      "path": "vault/content/synthetic/syn-kiro-numbers.md",
+      "raw_sha256": "d4a7d17de7ec89bfdf7d26ae53ab4f3a68c65ece9fff4ab5c5c8f9a232dc351b"
+    },
+    {
+      "path": "tools/f7_build.py",
+      "raw_sha256": "285c6d6e4908bd7da1e755776e90cd5645c6aa555fe28ebcbc79091db4de563a"
+    },
+    {
+      "path": "tools/f7_checks.py",
+      "raw_sha256": "4b30b59a636fd7cf89ef825bace217f6639f4e0c4617f9e27499d6c964673ac4"
+    },
+    {
+      "path": "tools/f7_classes.py",
+      "raw_sha256": "a973a6af918c45fa19e83ee2591e4df63c33d1de3da21a9cf4ba8b0dcbf50866"
+    },
+    {
+      "path": "tools/f7_corpus.py",
+      "raw_sha256": "bd72b14024e1bec3db302a21ae02dbdaedb373174764ecb416f38ae8f557b4ee"
+    },
+    {
+      "path": "tools/f7_tasks.py",
+      "raw_sha256": "5e7b430cfd90beac134c6639555b028484040e014ad4402187f7b74ca77ddd90"
+    }
+  ],
+  "batch_plan": {
+    "seed": 20261114,
+    "method": "sha256(seed:parte) para ordenar; alternância determinística da condição inicial; um lote por dia",
+    "batches": [
+      {
+        "batch": 1,
+        "suggested_day_index": 1,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 4,
+          "family_codex": 2,
+          "family_gemini": 2,
+          "family_kiro": 2
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r3.family_partitioned_rls",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 1,
+            "global_ordinal": 1,
+            "run_seed": 79728644581131
+          },
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r3.shared_global",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 2,
+            "global_ordinal": 2,
+            "run_seed": 169003314706573
+          },
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r2.shared_global",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t07-tester-claude-digest.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 3,
+            "global_ordinal": 3,
+            "run_seed": 233637608511727
+          },
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r2.family_partitioned_rls",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t07-tester-claude-digest.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 4,
+            "global_ordinal": 4,
+            "run_seed": 160328289637640
+          },
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r2.family_partitioned_rls",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t01-architect-claude-tools.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 5,
+            "global_ordinal": 5,
+            "run_seed": 249761959039456
+          },
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r2.shared_global",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t01-architect-claude-tools.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 6,
+            "global_ordinal": 6,
+            "run_seed": 278672948141963
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r3.shared_global",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 7,
+            "global_ordinal": 7,
+            "run_seed": 186152837661189
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r3.family_partitioned_rls",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 8,
+            "global_ordinal": 8,
+            "run_seed": 136459142612186
+          },
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r3.family_partitioned_rls",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 9,
+            "global_ordinal": 9,
+            "run_seed": 214901737519219
+          },
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r3.shared_global",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 10,
+            "global_ordinal": 10,
+            "run_seed": 221353985244999
+          }
+        ]
+      },
+      {
+        "batch": 2,
+        "suggested_day_index": 2,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 2,
+          "family_codex": 2,
+          "family_gemini": 2,
+          "family_kiro": 4
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r1.family_partitioned_rls",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t07-tester-claude-digest.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 1,
+            "global_ordinal": 11,
+            "run_seed": 88662435773697
+          },
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r1.shared_global",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t07-tester-claude-digest.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 2,
+            "global_ordinal": 12,
+            "run_seed": 183753554770397
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r3.shared_global",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 3,
+            "global_ordinal": 13,
+            "run_seed": 159735060466907
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r3.family_partitioned_rls",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 4,
+            "global_ordinal": 14,
+            "run_seed": 79185047136001
+          },
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r1.family_partitioned_rls",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 5,
+            "global_ordinal": 15,
+            "run_seed": 265768271640556
+          },
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r1.shared_global",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 6,
+            "global_ordinal": 16,
+            "run_seed": 136337004662178
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r1.shared_global",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 7,
+            "global_ordinal": 17,
+            "run_seed": 105417845441981
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r1.family_partitioned_rls",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 8,
+            "global_ordinal": 18,
+            "run_seed": 134512959342071
+          },
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r2.shared_global",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 9,
+            "global_ordinal": 19,
+            "run_seed": 76887097680951
+          },
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r2.family_partitioned_rls",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 10,
+            "global_ordinal": 20,
+            "run_seed": 225094016671280
+          }
+        ]
+      },
+      {
+        "batch": 3,
+        "suggested_day_index": 3,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 4,
+          "family_codex": 2,
+          "family_gemini": 2,
+          "family_kiro": 2
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r1.family_partitioned_rls",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 1,
+            "global_ordinal": 21,
+            "run_seed": 184747360871194
+          },
+          {
+            "run_key": "exp7f-t10-security-kiro-trust-tools.r1.shared_global",
+            "task_id": "exp7f-t10-security-kiro-trust-tools",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t10-security-kiro-trust-tools.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 2,
+            "global_ordinal": 22,
+            "run_seed": 8474993948331
+          },
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r3.shared_global",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t07-tester-claude-digest.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 3,
+            "global_ordinal": 23,
+            "run_seed": 169443171167249
+          },
+          {
+            "run_key": "exp7f-t07-tester-claude-digest.r3.family_partitioned_rls",
+            "task_id": "exp7f-t07-tester-claude-digest",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t07-tester-claude-digest.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 4,
+            "global_ordinal": 24,
+            "run_seed": 166627500380853
+          },
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r3.shared_global",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t01-architect-claude-tools.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 5,
+            "global_ordinal": 25,
+            "run_seed": 175423638673333
+          },
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r3.family_partitioned_rls",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t01-architect-claude-tools.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 6,
+            "global_ordinal": 26,
+            "run_seed": 205930832420329
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r2.family_partitioned_rls",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 7,
+            "global_ordinal": 27,
+            "run_seed": 101026911034925
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r2.shared_global",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 8,
+            "global_ordinal": 28,
+            "run_seed": 44324656310715
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r2.family_partitioned_rls",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 9,
+            "global_ordinal": 29,
+            "run_seed": 153337024946059
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r2.shared_global",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 10,
+            "global_ordinal": 30,
+            "run_seed": 259677695031619
+          }
+        ]
+      },
+      {
+        "batch": 4,
+        "suggested_day_index": 4,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 2,
+          "family_codex": 2,
+          "family_gemini": 4,
+          "family_kiro": 2
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r2.shared_global",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 1,
+            "global_ordinal": 31,
+            "run_seed": 13236205970573
+          },
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r2.family_partitioned_rls",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r2",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 2,
+            "global_ordinal": 32,
+            "run_seed": 134632485659062
+          },
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r2.family_partitioned_rls",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t09-security-claude-policy.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 3,
+            "global_ordinal": 33,
+            "run_seed": 114917692749119
+          },
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r2.shared_global",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t09-security-claude-policy.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 4,
+            "global_ordinal": 34,
+            "run_seed": 12551357097349
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r1.shared_global",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 5,
+            "global_ordinal": 35,
+            "run_seed": 118203125545383
+          },
+          {
+            "run_key": "exp7f-t05-backend-gemini-headless.r1.family_partitioned_rls",
+            "task_id": "exp7f-t05-backend-gemini-headless",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t05-backend-gemini-headless.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 6,
+            "global_ordinal": 36,
+            "run_seed": 52100974723201
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r2.family_partitioned_rls",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 7,
+            "global_ordinal": 37,
+            "run_seed": 205965302782533
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r2.shared_global",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 8,
+            "global_ordinal": 38,
+            "run_seed": 84483551738719
+          },
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r1.shared_global",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 9,
+            "global_ordinal": 39,
+            "run_seed": 274197547095880
+          },
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r1.family_partitioned_rls",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 10,
+            "global_ordinal": 40,
+            "run_seed": 161289026991732
+          }
+        ]
+      },
+      {
+        "batch": 5,
+        "suggested_day_index": 5,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 4,
+          "family_codex": 2,
+          "family_kiro": 4
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r1.family_partitioned_rls",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t01-architect-claude-tools.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 1,
+            "global_ordinal": 41,
+            "run_seed": 121247177141422
+          },
+          {
+            "run_key": "exp7f-t01-architect-claude-tools.r1.shared_global",
+            "task_id": "exp7f-t01-architect-claude-tools",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t01-architect-claude-tools.r1",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 2,
+            "global_ordinal": 42,
+            "run_seed": 249781033802183
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r3.shared_global",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 3,
+            "global_ordinal": 43,
+            "run_seed": 224367601849981
+          },
+          {
+            "run_key": "exp7f-t04-backend-codex-windows-tests.r3.family_partitioned_rls",
+            "task_id": "exp7f-t04-backend-codex-windows-tests",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t04-backend-codex-windows-tests.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 4,
+            "global_ordinal": 44,
+            "run_seed": 181974659638628
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r1.shared_global",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 5,
+            "global_ordinal": 45,
+            "run_seed": 88552149940688
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r1.family_partitioned_rls",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 6,
+            "global_ordinal": 46,
+            "run_seed": 3982247616881
+          },
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r1.shared_global",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t09-security-claude-policy.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 7,
+            "global_ordinal": 47,
+            "run_seed": 169086335601368
+          },
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r1.family_partitioned_rls",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t09-security-claude-policy.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 8,
+            "global_ordinal": 48,
+            "run_seed": 179318116800291
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r2.family_partitioned_rls",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 9,
+            "global_ordinal": 49,
+            "run_seed": 103102725195874
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r2.shared_global",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 10,
+            "global_ordinal": 50,
+            "run_seed": 89398076121807
+          }
+        ]
+      },
+      {
+        "batch": 6,
+        "suggested_day_index": 6,
+        "run_count": 10,
+        "runs_per_target_family": {
+          "family_claude": 2,
+          "family_codex": 2,
+          "family_gemini": 2,
+          "family_kiro": 4
+        },
+        "runs": [
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r3.family_partitioned_rls",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t09-security-claude-policy.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 1,
+            "global_ordinal": 51,
+            "run_seed": 92659656877440
+          },
+          {
+            "run_key": "exp7f-t09-security-claude-policy.r3.shared_global",
+            "task_id": "exp7f-t09-security-claude-policy",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t09-security-claude-policy.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 2,
+            "global_ordinal": 52,
+            "run_seed": 103069063880006
+          },
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r2.family_partitioned_rls",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 2,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 3,
+            "global_ordinal": 53,
+            "run_seed": 37061660077514
+          },
+          {
+            "run_key": "exp7f-t02-architect-codex-readonly.r2.shared_global",
+            "task_id": "exp7f-t02-architect-codex-readonly",
+            "repetition": 2,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t02-architect-codex-readonly.r2",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 4,
+            "global_ordinal": 54,
+            "run_seed": 200461710377120
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r1.shared_global",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 1,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 5,
+            "global_ordinal": 55,
+            "run_seed": 108377286423855
+          },
+          {
+            "run_key": "exp7f-t06-backend-kiro-wsl.r1.family_partitioned_rls",
+            "task_id": "exp7f-t06-backend-kiro-wsl",
+            "repetition": 1,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t06-backend-kiro-wsl.r1",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 6,
+            "global_ordinal": 56,
+            "run_seed": 52135822558086
+          },
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r3.family_partitioned_rls",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 7,
+            "global_ordinal": 57,
+            "run_seed": 60035248254493
+          },
+          {
+            "run_key": "exp7f-t03-architect-gemini-workdir.r3.shared_global",
+            "task_id": "exp7f-t03-architect-gemini-workdir",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t03-architect-gemini-workdir.r3",
+            "pair_first_condition": "family_partitioned_rls",
+            "position_in_batch": 8,
+            "global_ordinal": 58,
+            "run_seed": 226621070928254
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r3.shared_global",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 3,
+            "condition": "shared_global",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 9,
+            "global_ordinal": 59,
+            "run_seed": 205300603762574
+          },
+          {
+            "run_key": "exp7f-t08-tester-kiro-quota.r3.family_partitioned_rls",
+            "task_id": "exp7f-t08-tester-kiro-quota",
+            "repetition": 3,
+            "condition": "family_partitioned_rls",
+            "pair_id": "exp7f-t08-tester-kiro-quota.r3",
+            "pair_first_condition": "shared_global",
+            "position_in_batch": 10,
+            "global_ordinal": 60,
+            "run_seed": 180118338179287
+          }
+        ]
+      }
+    ]
+  },
+  "package_digest": {
+    "algorithm": "sha256",
+    "value": "4948b6c8d472bb0285d98d567055816209fdb3709d7511c9fd2c55c49e430a05"
+  }
+}

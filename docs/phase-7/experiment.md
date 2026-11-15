@@ -91,6 +91,33 @@ Para respeitar os limites das assinaturas pessoais do autor e garantir reproduti
 - Todos os runs experimentais preservam o diretório `runs/<run_id>/` com `journal.jsonl`, artefatos endereçados por SHA-256, `ContextManifest`, `KnowledgeSelectionRecord` e snapshots do catálogo.
 - Para comparações pareadas por tarefa entre `shared_global` e `family_partitioned_rls`, serão reportados: mediana e intervalo interquartil (IQR) de tokens e latência, teste de postos sinalizados de Wilcoxon para variáveis contínuas, teste exato de McNemar para proporções binárias (`pass`/`fail`) e tamanho de efeito (delta de Cliff / odds ratio).
 
+## Benchmark 7F
+
+Pacote de dados em [`experiments/7f/`](../../experiments/7f/README.md), validado por `tests/test_experiment_7f_benchmark.py` (sem executar CLIs nem usar rede). Contém 50 unidades de conhecimento (12 comuns, 4 por papel, 12 por família, 6 por família e papel, 16 distratores sintéticos fictícios), o snapshot do catálogo com `catalog_hash` fixado, 10 tarefas e o `manifest.json` com digests e o plano de lotes.
+
+Cada tarefa pede uma resposta JSON curta, com contrato de saída JSON Schema (sem o gabarito), classificação fechada das unidades de conhecimento e checagens determinísticas (`equals`, `set_equals`, `contains_all`, `matches`, `no_forbidden_text`). O `pass` do run exige veredito `pass` do `DeterministicEvaluator` (três critérios) e todas as checagens. Cada tarefa tem uma tentativa (`max_attempts: 1`).
+
+| # | Tarefa | Papel | Família-alvo | Tema do gabarito |
+| --- | --- | --- | --- | --- |
+| 1 | `exp7f-t01-architect-claude-tools` | `software_architect` | `family_claude` | `--disallowedTools`, ferramentas negadas e `total_cost_usd` |
+| 2 | `exp7f-t02-architect-codex-readonly` | `software_architect` | `family_codex` | `-s read-only`, `-o`, `--json` e cobertura `platform_only` |
+| 3 | `exp7f-t03-architect-gemini-workdir` | `software_architect` | `family_gemini` | `cwd` no lugar de `-C`, `--model`, `--mode plan` e unidade de comparação |
+| 4 | `exp7f-t04-backend-codex-windows-tests` | `backend_engineer` | `family_codex` | `spawn EPERM`, `--pool threads`/`--runInBand` e `--skip-git-repo-check` |
+| 5 | `exp7f-t05-backend-gemini-headless` | `backend_engineer` | `family_gemini` | `no output produced`, `permissions.allow` e `permission_or_empty_output` |
+| 6 | `exp7f-t06-backend-kiro-wsl` | `backend_engineer` | `family_kiro` | `wsl.exe`, `/mnt/c/`, `--trust-tools=fs_read,fs_write` |
+| 7 | `exp7f-t07-tester-claude-digest` | `tester` | `family_claude` | digest JCS: `^[a-f0-9]{64}$`, faixa segura e números rejeitados |
+| 8 | `exp7f-t08-tester-kiro-quota` | `tester` | `family_kiro` | cooldown de 3600000 ms, `cooldown_policy` e `no_eligible_target` |
+| 9 | `exp7f-t09-security-claude-policy` | `security_reviewer` | `family_claude` | política de assinaturas, variáveis e diretórios proibidos, `shell=False` |
+| 10 | `exp7f-t10-security-kiro-trust-tools` | `security_reviewer` | `family_kiro` | `--trust-all-tools` proibida, `--trust-tools=fs_read` e alcance de `execute_bash` |
+
+**Classes de conhecimento por tarefa.** Toda unidade elegível aos `knowledge_requirements` da tarefa no regime `shared_global` cai em exatamente uma classe: `gold` (esperadas, visíveis no particionado), `acceptable_alternatives` (conteúdo correto de outra família ou papel; escolher é neutro), `distractors` (conteúdo inadequado ou contraditório, inclusive todas as regras sintéticas fictícias) ou `irrelevant` (elegível por tópico, sem resposta nem conflito). Unidades sintéticas nunca ficam visíveis à própria família da tarefa. `answer_sources` declara, por checagem de resposta, as fontes que a sustentam, e nenhum distrator pode constar nela. Definições para a análise:
+
+- `selection_precision` = |selecionadas ∩ gold| / |selecionadas − alternativas|; `selection_recall` = |selecionadas ∩ gold| / |gold|.
+- `distractor_contamination_rate` = |selecionadas ∩ distratores| / |selecionadas|; é a contaminação por conteúdo, e vale zero no particionado por construção.
+- `cross_family_exposure_rate` (descritiva) = fração das selecionadas cuja audiência de família não inclui a família do run, contando também alternativas.
+
+O plano de lotes tem 6 lotes de 10 runs (5 pares tarefa × repetição por lote, as duas condições em sequência na mesma janela). A atribuição é determinística (semente `20261114`): as três repetições de uma tarefa caem em dias distintos, a condição que roda primeiro é contrabalanceada por tarefa e por família-alvo (diferença máxima de 1 par; 15 de cada no total) e a carga por família-alvo é distribuída entre os lotes. O `package_digest` do manifesto cobre arquivos de dados, scripts de `tools/`, sementes e plano.
+
 ## Ameaças à validade e mitigações
 
 | Tipo | Ameaça | Mitigação no desenho da Fase 7 |

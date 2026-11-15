@@ -1,0 +1,423 @@
+{
+  "schema_version": "7f-task-0.1",
+  "task_id": "exp7f-t05-backend-gemini-headless",
+  "number": 5,
+  "title": "Saída vazia do agy em modo headless",
+  "target": {
+    "family_id": "family_gemini",
+    "role_id": "backend_engineer"
+  },
+  "task": {
+    "schema_version": "0.1",
+    "task_id": "exp7f-t05-backend-gemini-headless",
+    "objective": "Você atua como backend_engineer na família Gemini. Uma tentativa do `agy -p` terminou sem saída útil. Responda só com o JSON do contrato de saída: `empty_output_cause` (causa da saída vazia), `settings_key` (chave das regras de permissão), `rule_kinds` (formas de regra, sem argumentos, que o adaptador projeta), `error_code` (código do ErrorRecord a registrar) e `stderr_noise_prefix` (linha de ruído do stderr que o parser filtra).",
+    "task_type": "structured_answer",
+    "agent_role": {
+      "id": "backend_engineer",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "dc54ed6686fbb56152983d556e1a1684112290de506688b73b6fa42e2d62c44f"
+      }
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ1",
+        "description": "Responder com o JSON do contrato de saída da tarefa",
+        "required": true
+      }
+    ],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {
+      "max_attempts": 1,
+      "attempt_timeout_ms": 300000,
+      "max_context_input_tokens": 4000,
+      "max_output_tokens_per_attempt": 500
+    },
+    "expected_output": [
+      {
+        "output_id": "answer",
+        "artifact_type": "structured_answer",
+        "description": "Resposta JSON curta e fechada",
+        "content_contract_ref": {
+          "id": "exp7f-t05-backend-gemini-headless-output",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "6e46f503c3358e5a9172b36fec98986f6e3a90a6e06ef6a5c1a34e47afbbf441"
+          }
+        }
+      }
+    ],
+    "knowledge_requirements": [
+      {
+        "knowledge_requirement_id": "KR1",
+        "subject": "Permissões do agy em modo headless",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "permissoes"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR2",
+        "subject": "Ruído de saída do agy",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "ruido"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      }
+    ],
+    "evaluation_criteria": [
+      {
+        "criterion_id": "CRIT1",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT2",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "digest_matches",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT3",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ]
+  },
+  "output_contract": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://orq.local/experiments/7f/exp7f-t05-backend-gemini-headless-output.schema.json",
+    "title": "Saída da tarefa exp7f-t05-backend-gemini-headless",
+    "type": "object",
+    "properties": {
+      "empty_output_cause": {
+        "enum": [
+          "tool_denied_without_permission_rule",
+          "timeout_reached",
+          "invalid_model"
+        ]
+      },
+      "settings_key": {
+        "type": "string",
+        "minLength": 1
+      },
+      "rule_kinds": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 8,
+        "uniqueItems": true
+      },
+      "error_code": {
+        "type": "string",
+        "minLength": 1
+      },
+      "stderr_noise_prefix": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required": [
+      "empty_output_cause",
+      "settings_key",
+      "rule_kinds",
+      "error_code",
+      "stderr_noise_prefix"
+    ],
+    "additionalProperties": false
+  },
+  "knowledge": {
+    "gold": [
+      {
+        "requirement_id": "KR1",
+        "source_id": "family-gemini-permissions",
+        "revision": "1",
+        "unit_id": "unit-10e0574175525248e1f0",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6b66490faa580a3399290738959eb02092f4e7abfdc9282eb728cab49b28b424"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "family-gemini-noise",
+        "revision": "1",
+        "unit_id": "unit-9642309f40778ddb9d39",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "dab24cf1cb813794a7554b0c731a6685dd93aeda7e88adf96514286f3a475d4d"
+        }
+      }
+    ],
+    "acceptable_alternatives": [
+      {
+        "source_id": "family-gemini-security",
+        "revision": "1",
+        "unit_id": "unit-79aec8181b129a962210",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6d65e261b8f794a116f64025dc377024541930c3b7a977ec9e39c8302f6d5d4a"
+        },
+        "reason": "Cita `permissions.allow`, `read_file` e `command` do agy (visível só ao papel security_reviewer)."
+      }
+    ],
+    "distractors": [
+      {
+        "source_id": "family-claude-invocation",
+        "revision": "1",
+        "unit_id": "unit-9fc950032faa402edf39",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e557c85d1ab9b402b331085baed075a247f3bd4ae3937952f20cfb628402f0e7"
+        },
+        "reason": "Permissões por `--allowedTools`, do Claude Code.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-kiro-trust-tools",
+        "revision": "1",
+        "unit_id": "unit-9b2b4bc6641a615c50fd",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f2c6f2c4ab8d7e1ffffbc9fbc9e866add18f3dd7b7cfdd43609d32ed56a0a6e4"
+        },
+        "reason": "Permissões por `--trust-tools`, do Kiro.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-codex-invocation",
+        "revision": "1",
+        "unit_id": "unit-e286d9f9fa0365ea1d25",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "24ce7f0495a5f9dcb063c960435a47b8d5a255bce9645efc1bf3f04ba197b5f2"
+        },
+        "reason": "Permissões por `-s`, do Codex.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-kiro-output",
+        "revision": "1",
+        "unit_id": "unit-b74789e8a10c8d52aeab",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "c1a74a0fea609aca4e22334b17031e2bbe4c3304b9efb91666d86e6a84060046"
+        },
+        "reason": "Ruído `[tool]` do Kiro no lugar do ruído do agy.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "syn-codex-noise",
+        "revision": "1",
+        "unit_id": "unit-eca854f3270cf8c6b85f",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6868f5198b207f38dd3e007ec71e37fa5f43c66846b7e2dd2ab688656b487c4a"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-claude-permissions",
+        "revision": "1",
+        "unit_id": "unit-bd9b67ddd60a1bde8892",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "1600d0986af78f0a25307ecd2aaabf75080b3c4412034c693548409df1435726"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      }
+    ],
+    "irrelevant": [
+      {
+        "source_id": "family-gemini-readonly",
+        "revision": "1",
+        "unit_id": "unit-a0d8a6e2d597464a7add",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "561edeeb65e356e01852714bd8a24b289decbc5b5c04942fb7bb18e2d365a776"
+        },
+        "reason": "Modos `plan`/`accept-edits`; não traz regra de permissão, código de erro nem ruído de stderr."
+      },
+      {
+        "source_id": "family-codex-readonly",
+        "revision": "1",
+        "unit_id": "unit-1ad302319b9d49b0072a",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "df40da6099fa4a970b6cf75a6478cc6be0648ade0a917b6e3c7a76875096c46b"
+        },
+        "reason": "Somente leitura do Codex; sem relação com a tarefa."
+      },
+      {
+        "source_id": "family-kiro-invocation",
+        "revision": "1",
+        "unit_id": "unit-3d937c0dfe855b19f187",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "75a99371307a823ff7c9d96136d754a2cc71348790a193b217bac3647d4a2ec5"
+        },
+        "reason": "Invocação do Kiro; sem relação com a tarefa."
+      },
+      {
+        "source_id": "family-kiro-security",
+        "revision": "1",
+        "unit_id": "unit-ce276d5e50012a11cf0b",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "07802338661d1a544028a34d8e2cfe00c883f07ab7b13a3504764ce079bef1f5"
+        },
+        "reason": "Revisão de segurança do Kiro; sem relação com a tarefa."
+      }
+    ],
+    "answer_sources": {
+      "CHK-cause": [
+        "family-gemini-permissions"
+      ],
+      "CHK-settings-key": [
+        "family-gemini-permissions",
+        "family-gemini-security"
+      ],
+      "CHK-rule-kinds": [
+        "family-gemini-permissions",
+        "family-gemini-security"
+      ],
+      "CHK-error-code": [
+        "family-gemini-permissions"
+      ],
+      "CHK-noise": [
+        "family-gemini-noise"
+      ]
+    }
+  },
+  "acceptance": {
+    "evaluator_criteria": [
+      "CRIT1",
+      "CRIT2",
+      "CRIT3"
+    ],
+    "deterministic_checks": [
+      {
+        "check_id": "CHK-cause",
+        "kind": "equals",
+        "pointer": "/empty_output_cause",
+        "value": "tool_denied_without_permission_rule"
+      },
+      {
+        "check_id": "CHK-settings-key",
+        "kind": "equals",
+        "pointer": "/settings_key",
+        "value": "permissions.allow"
+      },
+      {
+        "check_id": "CHK-rule-kinds",
+        "kind": "set_equals",
+        "pointer": "/rule_kinds",
+        "values": [
+          "read_file",
+          "command"
+        ]
+      },
+      {
+        "check_id": "CHK-error-code",
+        "kind": "equals",
+        "pointer": "/error_code",
+        "value": "permission_or_empty_output"
+      },
+      {
+        "check_id": "CHK-noise",
+        "kind": "equals",
+        "pointer": "/stderr_noise_prefix",
+        "value": "logging before google.Init"
+      },
+      {
+        "check_id": "CHK-no-contamination",
+        "kind": "no_forbidden_text",
+        "values": [
+          "--allowedTools",
+          "--trust-tools",
+          "spawn EPERM",
+          "[tool]",
+          "WARN"
+        ]
+      }
+    ],
+    "pass_rule": "verdict do avaliador == pass E todas as deterministic_checks passam (pass@1, uma tentativa)"
+  },
+  "reference_answers": {
+    "pass": {
+      "empty_output_cause": "tool_denied_without_permission_rule",
+      "settings_key": "permissions.allow",
+      "rule_kinds": [
+        "read_file",
+        "command"
+      ],
+      "error_code": "permission_or_empty_output",
+      "stderr_noise_prefix": "logging before google.Init"
+    },
+    "contaminated": {
+      "empty_output_cause": "timeout_reached",
+      "settings_key": "--allowedTools",
+      "rule_kinds": [
+        "fs_read",
+        "execute_bash"
+      ],
+      "error_code": "permission_or_empty_output",
+      "stderr_noise_prefix": "[tool]"
+    }
+  }
+}
