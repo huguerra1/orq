@@ -289,14 +289,20 @@ class SimulationScript:
             return value[evaluation_number - 1]
         return value
 
-    def validate_against_workflow(self, workflow: Record, *, contracts: Any = None) -> None:
+    def validate_against_workflow(
+        self,
+        workflow: Record,
+        *,
+        contracts: Any = None,
+        calibration_mode: bool = False,
+    ) -> None:
         """Confere o roteiro contra o WorkflowSpec antes da admissão (antes de qualquer evento).
 
         Limites da tarefa são o mínimo dos valores presentes na TaskSpec e no WorkflowSpec;
         ausência de ambos gera ``script_limits_unknown``. Listas por tentativa cobrem todas as
         avaliações permitidas; a avaliação global é única e exige apenas um elemento.
         """
-        if validate_workflow(workflow):
+        if validate_workflow(workflow, calibration_mode=calibration_mode):
             raise ScriptError("invalid_workflow", "WorkflowSpec estrutural ou semanticamente inválido")
         contract, _ = simulated_output_contract()
         tasks = {task["task_id"]: task for task in workflow["tasks"]}

@@ -71,9 +71,22 @@ class AttemptProjection(AggregateProjection):
 
 
 @dataclass
+class JudgeCallProjection:
+    judge_call_id: str
+    intent_payload: dict
+    external_call_id: str | None = None
+    termination_certainty: str = "unknown"
+    terminal_cause: str | None = None
+    reconciliation_deadline: str | None = None
+    reconciled_outcome: str | None = None
+
+
+@dataclass
 class EvaluationProjection(AggregateProjection):
     request: dict = field(default_factory=dict)
     report: dict | None = None
+    judge_calls: dict[str, JudgeCallProjection] = field(default_factory=dict)
+    reconciliation_deadline: str | None = None
 
 
 @dataclass
@@ -168,16 +181,26 @@ class RunProjection(AggregateProjection):
             return timestamp(now) >= timestamp(a.reconciliation_deadline)
         evals = self.task_evaluations(task_id)
         starts = self.history("task", task_id, "state_transition")
-        if evals and (evals[-1].report is None or evals[-1].report["execution_status"] == "indeterminate") and starts:
-            deadline = min(timestamp(starts[-1]["recorded_at"]) + timedelta(milliseconds=self.limit("reconciliation_timeout_ms")),
-                           timestamp(self.intent["created_at"]) + timedelta(milliseconds=self.limit("max_run_duration_ms")))
-            return timestamp(now) >= deadline
+        if evals and (evals[-1].report is None or evals[-1].report["execution_status"] == "indeterminate"):
+            if evals[-1].reconciliation_deadline:
+                return timestamp(now) >= timestamp(evals[-1].reconciliation_deadline)
+            if starts:
+                deadline = min(timestamp(starts[-1]["recorded_at"]) + timedelta(milliseconds=self.limit("reconciliation_timeout_ms")),
+                               timestamp(self.intent["created_at"]) + timedelta(milliseconds=self.limit("max_run_duration_ms")))
+                return timestamp(now) >= deadline
         return False
 
     def evaluation_capacity(self, task_id: str) -> bool:
-        """Capacidade para outra avaliação local: contador e reserva conservadora."""
-        if len(self.task_evaluations(task_id)) >= self.limit("max_evaluations_per_attempt", task_id):
+        """Capacidade para outra avaliação local: contador, tiebreaker e reserva conservadora."""
+        evals = self.task_evaluations(task_id)
+        if len(evals) >= self.limit("max_evaluations_per_attempt", task_id):
             return False
+        if evals and evals[-1].report is not None:
+            notes = set(evals[-1].report.get("limitations", []))
+            for crit_res in evals[-1].report.get("criterion_results", []):
+                notes.update(crit_res.get("observations", []))
+            if notes & {"no_third_family_tiebreaker_available", "no_eligible_evaluator_before_deadline"}:
+                return False
         budget = self.manifest["budget_snapshot"]
         estimates = [e for e in budget["cost_estimates"] if e["scope"] == "evaluation" and
                      e["subject_ref"] == self.manifest["evaluator_snapshot"]["evaluator_ref"]]
@@ -245,6 +268,11 @@ class RunProjection(AggregateProjection):
         # Avaliador/planner/router locais não são chamadas debitáveis presumidas.
         unavailable += sum(not self.attempt_has_usage(a) and not self.dispatch_proven_not_executed(a)
                            for a in self.attempts.values())
+        for ev in self.evaluations.values():
+            for jc in ev.judge_calls.values():
+                has_usage = any(u["usage_id"] == f"usage-{jc.judge_call_id}" for u in leaves)
+                if not has_usage and not (jc.termination_certainty == "confirmed" and jc.reconciled_outcome == "not_found"):
+                    unavailable += 1
         estimated = any(l["status"] == "estimated" for l in lines)
         return {"currency": currency, **{s: format(n, "f") for s, n in totals.items()},
                 "unavailable_count": unavailable, "total_cost_exact": not unavailable and not estimated}
@@ -317,6 +345,12 @@ class RunProjection(AggregateProjection):
                         (u["scope_type"], u["scope_ref"]) not in covered)
             gaps.update(("attempt", a.id) for a in self.attempts.values() if not (
                 self.attempt_has_usage(a) or self.dispatch_proven_not_executed(a) or ("attempt", a.id) in covered))
+            for ev in self.evaluations.values():
+                for jc in ev.judge_calls.values():
+                    has_usage = any(u["usage_id"] == f"usage-{jc.judge_call_id}" for u in self.latest_usages())
+                    if not (has_usage or (jc.termination_certainty == "confirmed" and jc.reconciled_outcome == "not_found")
+                            or ("evaluation", ev.id) in covered):
+                        gaps.add(("evaluation", ev.id))
             return total, tuple(sorted(gaps))
 
 
@@ -450,7 +484,8 @@ def _apply(s: RunProjection, e: dict) -> None:
     elif type in {"quota_exhausted_recorded", "quota_reset_observed"}:
         previous = s.quota_states.get(p["quota_pool_id"])
         if type == "quota_exhausted_recorded":
-            require(p["source_attempt_id"] in s.attempts, "quota_attempt_mismatch", "bloqueio sem tentativa")
+            source_ok = (p.get("source_attempt_id") in s.attempts) or (p.get("source_evaluation_id") in s.evaluations)
+            require(source_ok, "quota_attempt_mismatch", "bloqueio sem tentativa ou avaliação")
         else:
             require(previous and previous["status"] == p["previous_status"] and
                     timestamp(p["observed_at"]) >= timestamp(previous["blocked_until"]),
@@ -473,8 +508,14 @@ def _apply(s: RunProjection, e: dict) -> None:
     elif type == "quota_consumption_recorded":
         from .validator import validate_quota_consumption_record
         usage = s.usages.get(p["usage_record_ref"]["id"])
-        require(p["attempt_id"] == id and p["task_id"] == agg.header["task_id"] and usage and
-                not validate_quota_consumption_record(p, usage_record=usage), "quota_usage_mismatch", "consumo de outro uso/tentativa")
+        if kind == "evaluation":
+            require(p.get("scope_type") == "evaluation" and p.get("evaluation_id") == id
+                    and p.get("judge_call_id") in agg.judge_calls and usage
+                    and not validate_quota_consumption_record(p, usage_record=usage),
+                    "quota_usage_mismatch", "consumo de outro uso/avaliação")
+        else:
+            require(p["attempt_id"] == id and p["task_id"] == agg.header["task_id"] and usage and
+                    not validate_quota_consumption_record(p, usage_record=usage), "quota_usage_mismatch", "consumo de outro uso/tentativa")
         _unique_record(s, p, "quota_consumption_id")
         s.quota_consumptions[p["quota_consumption_id"]] = p
     elif type == "quota_probe_requested":
@@ -564,6 +605,10 @@ def _apply(s: RunProjection, e: dict) -> None:
     elif type in {"dispatch_acknowledged", "execution_started", "termination_confirmed", "result_collected",
                   "reconciliation_requested", "reconciliation_observed"}:
         _observation(s, e)
+    elif type in {"evaluator_dispatch_requested", "evaluator_dispatch_acknowledged",
+                  "evaluator_termination_confirmed", "evaluator_reconciliation_requested",
+                  "evaluator_reconciliation_observed"}:
+        _evaluator_judge(s, e)
     elif type == "admission_rejected":
         require(agg.state == "ready", "event_out_of_order", "rejeição exige ready")
         require(p["error_record_ids"] and all(x in s.errors and x in agg.error_record_ids for x in p["error_record_ids"]),
@@ -604,7 +649,8 @@ def _manifest(s: RunProjection, e: dict) -> None:
         require(plan["planning_request_snapshot"]["objective"] == s.intent["objective"],
                 "reference_mismatch", "plano de outro objetivo")
         require(s.workflow is not None, "workflow_snapshot_required", "forneça WorkflowSpec para resolver tarefas")
-        require(not validate_workflow(s.workflow), "workflow_snapshot_invalid", "workflow inválido")
+        calibration_mode = bool((s.intent or {}).get("experiment_metadata", {}).get("calibration_mode"))
+        require(not validate_workflow(s.workflow, calibration_mode=calibration_mode), "workflow_snapshot_invalid", "workflow inválido")
         ref = {"id": s.workflow["workflow_id"], "version": s.workflow["version"], "content_digest": canonical_digest(s.workflow)}
         require(ref == p["workflow_snapshot_ref"], "workflow_snapshot_mismatch", "workflow não corresponde ao manifesto")
         require(s.workflow["project_id"] == p["project_id"] and s.workflow["objective"] == s.intent["objective"],
@@ -886,7 +932,11 @@ def _evaluation_request(s: RunProjection, e: dict) -> None:
                 "reevaluation_not_allowed", "não repetir pass/fail válido")
         bindings, criteria = a.output_bindings, task.spec["evaluation_criteria"]
     require(_bindings(p["subject_bindings"]) == _bindings(bindings), "evaluation_bindings_mismatch", "subjects divergentes")
-    require(p["criteria_snapshot"] == {"criteria": criteria, "criteria_hash": canonical_digest(criteria)},
+    expected_criteria_snap = {"criteria": criteria, "criteria_hash": canonical_digest(criteria)}
+    rubric_refs = p["criteria_snapshot"].get("rubric_refs")
+    if rubric_refs is not None:
+        expected_criteria_snap["rubric_refs"] = rubric_refs
+    require(p["criteria_snapshot"] == expected_criteria_snap,
             "evaluation_criteria_mismatch", "critérios diferentes do snapshot")
     require(p["evaluator_snapshot"] == s.manifest["evaluator_snapshot"], "reference_mismatch", "avaliador divergente")
     for rid in p["budget_reservation_ids"]:
@@ -926,9 +976,21 @@ def _evaluation_report(s: RunProjection, e: dict) -> None:
         require(p["verdict"] == expected, "evaluation_verdict_invalid", "agregação do veredicto diverge")
     else:
         require(p["verdict"] in {"not_run", "inconclusive"}, "evaluation_verdict_invalid", "execução não concluída")
+    if ev.judge_calls:
+        require(all(jc.termination_certainty == "confirmed" for jc in ev.judge_calls.values()),
+                "evaluation_termination_unknown", "S40: juiz sem término confirmado")
     require(all(x in ev.error_record_ids for x in p["error_record_ids"]), "reference_mismatch", "erro de avaliação não anexado")
-    require(not p["usage_record_ids"] and all(x in ev.error_record_ids for r in p["criterion_results"] for x in r["error_record_ids"]),
-            "reference_mismatch", "avaliador local não inventa uso nem erros")
+    require(all(x in ev.error_record_ids for r in p["criterion_results"] for x in r["error_record_ids"]),
+            "reference_mismatch", "avaliador local não inventa erros")
+    if p["evaluator_snapshot"]["kind"] == "deterministic":
+        require(not p["usage_record_ids"], "reference_mismatch", "avaliador determinístico não inventa uso")
+    else:
+        require(len(p["usage_record_ids"]) == len(ev.usage_record_ids)
+                and set(p["usage_record_ids"]) == set(ev.usage_record_ids),
+                "reference_mismatch", "uso no relatório diverge dos usos anexados na avaliação")
+    require(all(s.artifacts.get(ref["artifact_id"], {}).get("content_digest") == ref["content_digest"]
+                for ref in p["evidence_refs"] if "artifact_id" in ref),
+            "reference_mismatch", "evidência da avaliação não ingerida")
     ev.report, ev.state = p, p["execution_status"]
     s.records[p["evaluation_id"]] = p
 
@@ -956,9 +1018,15 @@ def _attachment(s: RunProjection, e: dict) -> None:
     if usage:
         previous = p["supersedes_usage_id"]
         same_scope = [u for u in s.usages.values() if (u["scope_type"], u["scope_ref"]) == (scope, ref)]
-        require(not same_scope if previous is None else previous in s.usages and
-                s.usages[previous] in same_scope and not any(u["supersedes_usage_id"] == previous for u in s.usages.values()),
-                "usage_supersedes_invalid", "correção deve estender cadeia do mesmo escopo")
+        if scope == "evaluation" and previous is None:
+            agg = s.evaluations[ref]
+            root_usages = [u for u in same_scope if u["supersedes_usage_id"] is None]
+            require(len(root_usages) < len(agg.judge_calls),
+                    "usage_supersedes_invalid", "uso em avaliação exige judge_call correspondente")
+        else:
+            require(not same_scope if previous is None else previous in s.usages and
+                    s.usages[previous] in same_scope and not any(u["supersedes_usage_id"] == previous for u in s.usages.values()),
+                    "usage_supersedes_invalid", "correção deve estender cadeia do mesmo escopo")
         currency = (s.manifest or {}).get("budget_snapshot")
         if currency:
             require(all(l["currency"] == currency["currency"] or
@@ -1006,8 +1074,11 @@ def _budget(s: RunProjection, e: dict) -> None:
                 require(s.attempts[ref].termination_certainty == "confirmed" and s.dispatch_proven_not_executed(s.attempts[ref]),
                         "reservation_release_invalid", "execução ativa/incerta ou com uso deve permanecer/liquidar")
             if scope == "evaluation" and ref in s.evaluations:
-                report = s.evaluations[ref].report
+                ev = s.evaluations[ref]
+                report = ev.report
                 require(report and report["execution_status"] != "indeterminate", "reservation_release_invalid", "avaliação sem término confirmado")
+                if ev.usage_record_ids:
+                    require(False, "reservation_release_invalid", "avaliação com uso registrado deve ser liquidada via budget_settled")
             r.state, r.release_reason = "released", p["reason"]
 
 
@@ -1058,6 +1129,70 @@ def _external_call(a: AttemptProjection, value: str | None) -> None:
             "external_call_mismatch", "identidade externa mudou")
     if value is not None:
         a.external_call_id = value
+
+
+def _evaluator_judge(s: RunProjection, e: dict) -> None:
+    etype, p, kind, id = e["event_type"], e["payload"], e["aggregate_type"], e["aggregate_id"]
+    require(kind == "evaluation", "aggregate_mismatch", "evento de juiz pertence ao agregado evaluation")
+    ev = s.evaluations[id]
+    require(ev.report is None, "evaluation_already_reported", "relatório já gravado para esta avaliação")
+    scope = ev.request["scope"]
+    if scope["kind"] == "task_attempt":
+        require(s.tasks[scope["task_id"]].state != "indeterminate", "evaluation_reconciliation_closed", "usar late_observation após reconciliação esgotada")
+    jid = p["judge_call_id"]
+    if etype == "evaluator_dispatch_requested":
+        require(jid not in ev.judge_calls, "duplicate_id", "judge_call_id repetido na avaliação")
+        require(
+            not any(
+                jc.intent_payload["dispatch_idempotency_key"] == p["dispatch_idempotency_key"]
+                for other_ev in s.evaluations.values()
+                for jc in other_ev.judge_calls.values()
+            ),
+            "dispatch_intent_reused",
+            "dispatch_idempotency_key de juiz reutilizada",
+        )
+        ev.judge_calls[jid] = JudgeCallProjection(jid, deepcopy(p))
+        return
+    jc = ev.judge_calls.get(jid)
+    require(jc is not None, "dispatch_not_known", "juiz não despachado nesta avaliação")
+    if etype == "evaluator_dispatch_acknowledged":
+        ext = p["external_call_id"]
+        require(jc.external_call_id is None or ext is None or ext == jc.external_call_id,
+                "external_call_mismatch", "identidade externa do juiz mudou")
+        if ext is not None:
+            jc.external_call_id = ext
+    elif etype == "evaluator_termination_confirmed":
+        jc.termination_certainty = "confirmed"
+        jc.terminal_cause = p["cause"]
+    elif etype == "evaluator_reconciliation_requested":
+        require(p["dispatch_idempotency_key"] == jc.intent_payload["dispatch_idempotency_key"]
+                and p["external_call_id"] == jc.external_call_id,
+                "reconciliation_key_mismatch", "chave ou chamada de reconciliação do juiz diverge")
+        deadline = timestamp(jc.reconciliation_deadline) if jc.reconciliation_deadline else min(
+            timestamp(e["recorded_at"]) + timedelta(milliseconds=s.limit("reconciliation_timeout_ms")),
+            timestamp(s.intent["created_at"]) + timedelta(milliseconds=s.limit("max_run_duration_ms")),
+        )
+        require(timestamp(p["deadline_at"]) == deadline, "reconciliation_deadline_mismatch", "prazo de reconciliação do juiz diverge")
+        if jc.reconciliation_deadline is None:
+            jc.reconciliation_deadline = p["deadline_at"]
+        if ev.reconciliation_deadline is None:
+            ev.reconciliation_deadline = p["deadline_at"]
+    elif etype == "evaluator_reconciliation_observed":
+        require(jc.reconciliation_deadline is not None, "event_out_of_order", "observação sem requisição de reconciliação")
+        ext = p["external_call_id"]
+        require(jc.external_call_id is None or ext is None or ext == jc.external_call_id,
+                "external_call_mismatch", "identidade externa do juiz mudou")
+        if ext is not None:
+            jc.external_call_id = ext
+        outcome = p["outcome"]
+        jc.reconciled_outcome = outcome
+        if outcome in {"found_finished", "found_failed", "found_stopped"} or (
+            outcome == "not_found" and s.reconcile_not_found_authoritative and p["evidence_refs"]
+        ):
+            jc.termination_certainty = "confirmed"
+        elif outcome == "found_running":
+            require(jc.termination_certainty != "confirmed", "termination_evidence_conflict", "juiz ativo após término confirmado")
+            jc.termination_certainty = "not_terminated"
 
 
 def _close(s: RunProjection, e: dict) -> None:
@@ -1145,7 +1280,8 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
         scope = ev.request["scope"]
         if ev.report is not None and ev.report["execution_status"] != "indeterminate":
             if any(s.reservations[rid].state == "open" for rid in ev.request["budget_reservation_ids"]):
-                actions.append(RecoveryAction("release_evaluation", ev.id))
+                action_kind = "settle_evaluation" if ev.usage_record_ids else "release_evaluation"
+                actions.append(RecoveryAction(action_kind, ev.id))
         uncertain_global = scope["kind"] == "workflow" and ev.report is None and any(
             s.errors[id]["code"] == "evaluator_failed" and s.errors[id]["termination_certainty"] == "unknown"
             for id in ev.error_record_ids)
@@ -1156,8 +1292,19 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
         if scope["kind"] == "task_attempt" and s.tasks[scope["task_id"]].state in TASK_TERMINAL:
             continue
         if ev.report is None:
-            actions.append(RecoveryAction("record_interrupted_evaluation", ev.id, {
-                "execution_status": "failed", "verdict": "not_run"}))
+            if ev.judge_calls:
+                unconfirmed = [
+                    jc.judge_call_id for jc in ev.judge_calls.values()
+                    if jc.termination_certainty != "confirmed"
+                ]
+                actions.append(RecoveryAction("reconcile_evaluation", ev.id, {
+                    "task_id": scope.get("task_id"),
+                    "transition_to_reconciling": scope["kind"] == "task_attempt" and s.tasks[scope["task_id"]].state == "evaluating",
+                    "judge_call_ids": unconfirmed,
+                }))
+            else:
+                actions.append(RecoveryAction("record_interrupted_evaluation", ev.id, {
+                    "execution_status": "failed", "verdict": "not_run"}))
     if s.state == "running" and must_stop:
         actions.append(RecoveryAction("stop_run", s.id))
     if actions:

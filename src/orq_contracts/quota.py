@@ -22,12 +22,18 @@ class QuotaStateSnapshot:
                 pools[payload["quota_pool_id"]] = deepcopy(payload)
             elif event["event_type"] == "error_attached" and payload["code"] == "execution_failed" and payload["message"] in {
                     "network_unavailable", "authentication_unavailable"}:
-                aid = payload["scope_ref"]
+                scope_ref = payload["scope_ref"]
                 dispatch = next((e["payload"]["dispatch_intent"] for e in events
                                  if e["event_type"] == "dispatch_requested"
-                                 and e["aggregate_id"] == aid), None)
+                                 and e["aggregate_id"] == scope_ref), None)
                 if dispatch:
                     unavailable[dispatch["target_ref"]["id"]] = deepcopy(payload)
+                elif payload.get("scope_type") == "evaluation":
+                    eval_dispatches = [e["payload"]["evaluator_target_ref"]["id"] for e in events
+                                       if e["event_type"] == "evaluator_dispatch_requested"
+                                       and e["aggregate_id"] == scope_ref]
+                    for tid in eval_dispatches:
+                        unavailable[tid] = deepcopy(payload)
         return cls(pools, unavailable)
 
     def blocking_record(self, target):

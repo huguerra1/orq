@@ -586,7 +586,7 @@ class RubricModelEvaluator:
                     run_id=run_id,
                     evaluation_id=evaluation_id,
                     code="timeout",
-                    category="runtime",
+                    category="timeout",
                     message="avaliação por rubrica excedeu prazo limite",
                     timestamp=now,
                     retryability="retryable",

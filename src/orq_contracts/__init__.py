@@ -1,6 +1,7 @@
 """Contratos executáveis do ORQ."""
 
 from .canonical import canonical_digest, canonicalize
+from .composite_evaluator import CompositeEvaluator, default_evaluator_routing_policy
 from .context import ContextError, MaterializedContext, materialize_knowledge_context
 from .jev import JevDecisionEngine
 from .planner import FixedTemplatePlanner, Planner, PlanningError, PlanningResult, plan_and_validate
@@ -47,6 +48,8 @@ __all__ = [
     "build_catalog_snapshot",
     "canonical_digest",
     "canonicalize",
+    "CompositeEvaluator",
+    "default_evaluator_routing_policy",
     "ingest_markdown_source",
     "materialize_unit",
     "materialize_knowledge_context",
