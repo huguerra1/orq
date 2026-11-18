@@ -8,6 +8,7 @@ from collections.abc import Sequence, Set
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Callable
 
 from .artifact_store import ArtifactStore, ArtifactStoreError
@@ -17,6 +18,7 @@ from .executor import (
     ExecutorError, ExecutorResult, ProducedFile, ReconciliationObservation, Record,
     WorkspaceHandle, bytes_digest, error_record, seal_record, stable_id,
 )
+from .rubric_prep import IsolatedEvalWorkspace, JudgeRawOutcome, build_scripted_judge_payload
 from .schemas import load_schemas, validator_for
 from .validator import validate_instance, validate_workflow
 
@@ -38,7 +40,24 @@ _CALL_FIELDS = frozenset({
     "intent", "workspace", "fingerprint", "ack", "external_call_id", "started_at", "executed",
     "terminal", "failure", "result",
 })
+_JUDGE_CALL_FIELDS = frozenset({
+    "intent", "behavior", "fingerprint", "ack", "external_call_id", "started_at", "executed",
+    "terminal", "failure", "eval_workspace_dir", "outcome",
+})
 _WORKSPACE_FIELDS = frozenset({"workspace_id", "base_ref", "expected_output", "requested_model_id"})
+_JUDGE_BEHAVIOR_DEFAULTS = {
+    "dispatch": "ack",
+    "execution": "finish",
+    "duration_ms": 100,
+    "on_cancel": "confirmed",
+    "reconcile": "found_finished",
+    "resolved_model_id": None,
+    "invalid_output": False,
+    "workspace_mutated": False,
+    "sandbox_escape_path": None,
+    "quota_exhausted": False,
+    "citation_mode": "valid",
+}
 
 
 class ScriptError(ExecutorError):
@@ -153,9 +172,11 @@ class SimulationScript:
 
     def _check_semantics(self) -> None:
         _check_behavior(self._document["default"], "default")
+        self._check_rubric_steps(self._document["default"].get("rubric_evaluations"), "default.rubric_evaluations")
         for task_id, attempts in self._document["attempts"].items():
-            for number in attempts:
+            for number, override in attempts.items():
                 _check_behavior(self.for_attempt(task_id, int(number)), f"attempts.{task_id}.{number}")
+                self._check_rubric_steps(override.get("rubric_evaluations"), f"attempts.{task_id}.{number}.rubric_evaluations")
         hook_ids, triggers = set(), set()
         for hook in self._document["hooks"]:
             trigger = (canonicalize(hook["scope"]), hook["event_type"])
@@ -163,6 +184,20 @@ class SimulationScript:
                 raise ScriptError("invalid_script", "hook_id ou (escopo, evento) repetido")
             hook_ids.add(hook["hook_id"])
             triggers.add(trigger)
+
+    @staticmethod
+    def _normalize_judge_step(step: Record) -> Record:
+        return {**_JUDGE_BEHAVIOR_DEFAULTS, **copy.deepcopy(step)}
+
+    def _check_rubric_steps(self, rubric_evals: Any, where: str) -> None:
+        if not rubric_evals:
+            return
+        for crit_id, raw_entry in rubric_evals.items():
+            steps = raw_entry if isinstance(raw_entry, list) else [raw_entry]
+            for s_idx, step in enumerate(steps, 1):
+                judges = step["judges"] if "judges" in step else [step]
+                for j_idx, judge in enumerate(judges, 1):
+                    _check_behavior(self._normalize_judge_step(judge), f"{where}.{crit_id}[{s_idx}].judge[{j_idx}]")
 
     @classmethod
     def from_bytes(cls, content: bytes, *, expected_digest: Record) -> SimulationScript:
@@ -194,9 +229,49 @@ class SimulationScript:
         behavior = copy.deepcopy(self._document["default"])
         override = self._document["attempts"].get(task_id, {}).get(str(attempt_number), {})
         verifier = {**behavior.get("verifier", {}), **override.get("verifier", {})}
+        has_rubric = "rubric_evaluations" in behavior or "rubric_evaluations" in override
+        rubric_evals = {**behavior.get("rubric_evaluations", {}), **override.get("rubric_evaluations", {})}
         behavior.update(copy.deepcopy(override))
         behavior["verifier"] = copy.deepcopy(verifier)
+        if has_rubric:
+            behavior["rubric_evaluations"] = copy.deepcopy(rubric_evals)
         return behavior
+
+    def rubric_evaluation(
+        self,
+        criterion_id: str,
+        evaluation_number: int,
+        *,
+        task_id: str,
+        attempt_number: int,
+        judge_index: int = 1,
+        evaluator_family_id: str | None = None,
+    ) -> Record:
+        if type(evaluation_number) is not int or evaluation_number < 1:
+            raise ScriptError("invalid_script_lookup", "evaluation_number deve ser positivo")
+        if type(judge_index) is not int or judge_index < 1:
+            raise ScriptError("invalid_script_lookup", "judge_index deve ser positivo")
+        behavior = self.for_attempt(task_id, attempt_number)
+        rubric_evals = behavior.get("rubric_evaluations", {})
+        if criterion_id not in rubric_evals:
+            raise ScriptError("script_key_missing", f"rubric_evaluations.{criterion_id} ausente no roteiro")
+        raw_entry = rubric_evals[criterion_id]
+        if isinstance(raw_entry, list):
+            if evaluation_number > len(raw_entry):
+                raise ScriptError("evaluation_script_exhausted", "avaliação de rubrica além do fim da lista")
+            step = raw_entry[evaluation_number - 1]
+        else:
+            step = raw_entry
+        if "judges" in step:
+            judges = step["judges"]
+            if evaluator_family_id is not None:
+                fams = [j.get("evaluator_family_id") for j in judges]
+                if len(set(fams)) == len(judges) and evaluator_family_id in fams:
+                    return self._normalize_judge_step(judges[fams.index(evaluator_family_id)])
+            if judge_index > len(judges):
+                raise ScriptError("evaluation_script_exhausted", "judge_index além do painel roteirizado")
+            return self._normalize_judge_step(judges[judge_index - 1])
+        return self._normalize_judge_step(step)
 
     def verdict(self, script_key: str, evaluation_number: int, *, task_id: str | None = None,
                 attempt_number: int | None = None) -> str:
@@ -235,18 +310,21 @@ class SimulationScript:
                 raise ScriptError("script_limits_unknown", f"{name} indefinido para {where}")
             return min(values)
 
-        def check_keys(verifier: Record, criteria: list[Record], task: Record | None, where: str) -> None:
+        def check_keys(verifier: Record, rubric_evals: Record, criteria: list[Record], task: Record | None, where: str) -> None:
             for criterion in criteria:
-                if criterion["method"] != "simulated_verdict":
-                    continue
-                key = criterion["pass_rule"].get("script_key")
-                if not isinstance(key, str):
-                    raise ScriptError("invalid_pass_rule", f"{where}: simulated_verdict sem script_key")
-                if key not in verifier:
-                    raise ScriptError("script_key_missing", f"{where}: script_key {key} ausente")
-                value = verifier[key]
-                if isinstance(value, list) and len(value) < (limit("max_evaluations_per_attempt", task) if task else 1):
-                    raise ScriptError("evaluation_script_incomplete", f"{where}: lista {key} menor que o limite")
+                if criterion["method"] == "simulated_verdict":
+                    key = criterion["pass_rule"].get("script_key")
+                    if not isinstance(key, str):
+                        raise ScriptError("invalid_pass_rule", f"{where}: simulated_verdict sem script_key")
+                    if key not in verifier:
+                        raise ScriptError("script_key_missing", f"{where}: script_key {key} ausente")
+                    value = verifier[key]
+                    if isinstance(value, list) and len(value) < (limit("max_evaluations_per_attempt", task) if task else 1):
+                        raise ScriptError("evaluation_script_incomplete", f"{where}: lista {key} menor que o limite")
+                elif criterion["method"] == "model_rubric" and criterion["criterion_id"] in rubric_evals:
+                    value = rubric_evals[criterion["criterion_id"]]
+                    if isinstance(value, list) and len(value) < (limit("max_evaluations_per_attempt", task) if task else 1):
+                        raise ScriptError("evaluation_script_incomplete", f"{where}: lista de rubrica menor que o limite")
 
         for task_id in self._document["attempts"]:
             if task_id not in tasks:
@@ -276,8 +354,8 @@ class SimulationScript:
                 where = f"{task_id}/{number}"
                 if isinstance(behavior["outputs"], dict) and not set(behavior["outputs"]) <= output_ids:
                     raise ScriptError("unknown_output_id", f"{where}: roteiro altera output não declarado")
-                check_keys(behavior["verifier"], task["evaluation_criteria"], task, where)
-        check_keys(self._document["workflow_verifier"], workflow["evaluation_criteria"], None, "workflow")
+                check_keys(behavior["verifier"], behavior.get("rubric_evaluations", {}), task["evaluation_criteria"], task, where)
+        check_keys(self._document["workflow_verifier"], {}, workflow["evaluation_criteria"], None, "workflow")
 
 
 class HookController:
@@ -336,6 +414,21 @@ class _Call:
     result_record: Record | None = None
 
 
+@dataclass
+class _JudgeCall:
+    intent: Record
+    behavior: Record
+    fingerprint: Record
+    ack: DispatchAck
+    external_call_id: str | None
+    started_at: str
+    executed: bool
+    eval_workspace_dir: str | None = None
+    terminal: str | None = None
+    failure: Record | None = None
+    outcome_record: Record | None = None
+
+
 class SimulatedExecutor:
     """Executor roteirizado.
 
@@ -361,6 +454,7 @@ class SimulatedExecutor:
         self.clock = clock
         self._persist_callback = persist
         self._calls: dict[str, _Call] = {}
+        self._judge_calls: dict[str, _JudgeCall] = {}
         if state is not None:
             self._calls = self._restore(state)
             self._persist()
@@ -387,10 +481,32 @@ class SimulatedExecutor:
 
     def export_state(self) -> Record:
         """Registro JSON serializável, com state_hash JCS, suficiente para reconstruir o executor."""
-        return _seal_state({
+        body: Record = {
             "schema_version": "0.1", "kind": EXECUTOR_STATE_KIND, "run_id": self.store.journal.run_id,
             "script_ref": self.script.reference,
             "calls": {key: self._call_record(call) for key, call in sorted(self._calls.items())},
+        }
+        if self._judge_calls:
+            body["judge_calls"] = {key: self._judge_call_record(call) for key, call in sorted(self._judge_calls.items())}
+        return _seal_state(body)
+
+    @staticmethod
+    def _judge_call_record(call: _JudgeCall) -> Record:
+        return copy.deepcopy({
+            "intent": call.intent,
+            "behavior": call.behavior,
+            "fingerprint": call.fingerprint,
+            "ack": {
+                "acknowledged": call.ack.acknowledged, "external_call_id": call.ack.external_call_id,
+                "observed_at": call.ack.observed_at, "errors": list(call.ack.errors),
+            },
+            "external_call_id": call.external_call_id,
+            "started_at": call.started_at,
+            "executed": call.executed,
+            "terminal": call.terminal,
+            "failure": call.failure,
+            "eval_workspace_dir": call.eval_workspace_dir,
+            "outcome": call.outcome_record,
         })
 
     @staticmethod
@@ -426,7 +542,7 @@ class SimulatedExecutor:
 
     def _restore(self, state: Record) -> dict[str, _Call]:
         try:
-            if not isinstance(state, dict) or set(state) != _STATE_FIELDS:
+            if not isinstance(state, dict) or set(state) not in {_STATE_FIELDS, _STATE_FIELDS | {"judge_calls"}}:
                 raise _invalid_state("campos do estado divergentes")
             if canonical_digest({k: v for k, v in state.items() if k != "state_hash"}) != state["state_hash"]:
                 raise ExecutorError("executor_state_digest_mismatch", "estado persistido diverge do state_hash")
@@ -438,11 +554,45 @@ class SimulatedExecutor:
                 raise ExecutorError("run_mismatch", "estado pertence a outro run")
             if state["script_ref"] != self.script.reference:
                 raise ExecutorError("script_mismatch", "estado gerado por outro roteiro")
+            if "judge_calls" in state:
+                if not isinstance(state["judge_calls"], dict):
+                    raise _invalid_state("judge_calls inválido no estado")
+                self._judge_calls = {
+                    key: self._judge_call_from_record(key, raw) for key, raw in state["judge_calls"].items()
+                }
             return {key: self._call_from_record(key, raw) for key, raw in state["calls"].items()}
         except ExecutorError:
             raise
         except (KeyError, TypeError, AttributeError, ValueError, CanonicalizationError) as error:
             raise _invalid_state("estado persistido malformado") from error
+
+    def _judge_call_from_record(self, key: str, raw: Record) -> _JudgeCall:
+        if not isinstance(raw, dict) or set(raw) != _JUDGE_CALL_FIELDS:
+            raise _invalid_state("campos da chamada de juiz divergentes")
+        intent = copy.deepcopy(raw["intent"])
+        if intent.get("dispatch_idempotency_key") != key or intent.get("run_id") != self.store.journal.run_id:
+            raise _invalid_state("chave ou run da chamada de juiz divergente")
+        parse_utc(raw["started_at"])
+        ack_raw = raw["ack"]
+        ack = DispatchAck(
+            bool(ack_raw["acknowledged"]),
+            ack_raw["external_call_id"],
+            ack_raw["observed_at"],
+            tuple(copy.deepcopy(ack_raw["errors"])),
+        )
+        return _JudgeCall(
+            intent=intent,
+            behavior=copy.deepcopy(raw["behavior"]),
+            fingerprint=copy.deepcopy(raw["fingerprint"]),
+            ack=ack,
+            external_call_id=raw["external_call_id"],
+            started_at=raw["started_at"],
+            executed=bool(raw["executed"]),
+            eval_workspace_dir=raw["eval_workspace_dir"],
+            terminal=raw["terminal"],
+            failure=copy.deepcopy(raw["failure"]),
+            outcome_record=copy.deepcopy(raw["outcome"]),
+        )
 
     def _call_from_record(self, key: str, raw: Record) -> _Call:
         if not isinstance(raw, dict) or set(raw) != _CALL_FIELDS:
@@ -845,3 +995,264 @@ class SimulatedExecutor:
     @staticmethod
     def _wrong_digest(value: str) -> str:
         return ("1" if value[0] == "0" else "0") + value[1:]
+
+    @staticmethod
+    def _judge_fingerprint(intent: Record, eval_workspace_dir: str) -> Record:
+        return canonical_digest([intent, eval_workspace_dir])
+
+    @staticmethod
+    def _judge_error(intent: Record, phase: str, code: str, category: str,
+                     now: str, retryability: str, external_id: str | None) -> Record:
+        return error_record(
+            run_id=intent["run_id"], scope_type="evaluation", scope_ref=intent["evaluation_id"],
+            phase=phase, category=category, code=code, message="Falha simulada do juiz: " + code,
+            timestamp=now, retryability=retryability, termination_certainty="confirmed",
+            external_call_id=external_id,
+        )
+
+    def dispatch_judge(
+        self,
+        intent: Record,
+        prompt_bytes: bytes,
+        eval_workspace: IsolatedEvalWorkspace | Path,
+    ) -> DispatchAck:
+        if intent.get("run_id") != self.store.journal.run_id:
+            raise ExecutorError("run_mismatch", "store pertence a outro run")
+        if not isinstance(prompt_bytes, bytes):
+            raise ExecutorError("bundle_digest_mismatch", "prompt recebido deve ser bytes")
+        try:
+            prompt_text = prompt_bytes.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ExecutorError("invalid_bundle", "prompt do juiz exige UTF-8") from error
+        expected = intent.get("rendered_prompt_digest")
+        if canonical_digest(prompt_text) != expected and bytes_digest(prompt_bytes) != expected:
+            raise ExecutorError("bundle_digest_mismatch", "prompt recebido diverge da intenção do juiz")
+        ws_path = eval_workspace.path if isinstance(eval_workspace, IsolatedEvalWorkspace) else Path(eval_workspace)
+        ws_str = str(ws_path)
+        fingerprint = self._judge_fingerprint(intent, ws_str)
+        key = intent["dispatch_idempotency_key"]
+        if key in self._judge_calls:
+            if self._judge_calls[key].fingerprint != fingerprint:
+                raise ExecutorError("idempotency_conflict", "mesma chave de juiz com entradas diferentes")
+            return copy.deepcopy(self._judge_calls[key].ack)
+        behavior = self.script.rubric_evaluation(
+            intent["criterion_id"],
+            intent["evaluation_number"],
+            task_id=intent["task_id"],
+            attempt_number=intent["attempt_number"],
+            judge_index=intent["judge_index"],
+            evaluator_family_id=intent.get("evaluator_family_id"),
+        )
+        now = self.clock()
+        mode = behavior["dispatch"]
+        executed = mode not in _NOT_EXECUTED
+        external_id = stable_id("sim-judge", key) if executed else None
+        errors: tuple[Record, ...] = ()
+        if mode == "reject_confirmed":
+            errors = (self._judge_error(intent, "dispatch", "dispatch_failed", "transport", now, "retryable", external_id),)
+        ack = DispatchAck(mode == "ack", external_id if mode == "ack" else None, now, errors)
+        self._judge_calls[key] = _JudgeCall(
+            intent=copy.deepcopy(intent),
+            behavior=behavior,
+            fingerprint=fingerprint,
+            ack=ack,
+            external_call_id=external_id,
+            started_at=now,
+            executed=executed,
+            eval_workspace_dir=ws_str,
+        )
+        try:
+            self._persist()
+        except ExecutorError:
+            del self._judge_calls[key]
+            raise
+        return copy.deepcopy(ack)
+
+    def _get_judge_call(self, intent: Record) -> _JudgeCall:
+        call = self._judge_calls.get(intent["dispatch_idempotency_key"])
+        if call is None:
+            raise ExecutorError("dispatch_not_known", "intenção de juiz não despachada neste executor")
+        if intent != call.intent:
+            raise ExecutorError("idempotency_conflict", "intenção de juiz diverge do despacho original")
+        return call
+
+    def _fail_judge_call(self, call: _JudgeCall, now: str) -> None:
+        call.terminal = "failed"
+        if call.failure is None:
+            retryability = {"fail_retryable": "retryable", "fail_non_retryable": "non_retryable"}.get(
+                call.behavior["execution"], "unknown")
+            call.failure = self._judge_error(
+                call.intent, "observe", "execution_failed", "provider", now, retryability, call.external_call_id,
+            )
+
+    def _settle_judge(self, call: _JudgeCall, instant: str) -> None:
+        if not call.executed or call.terminal is not None or call.behavior["execution"] == "hang":
+            return
+        finish_at = parse_utc(call.started_at) + timedelta(milliseconds=call.behavior["duration_ms"])
+        if finish_at <= parse_utc(instant):
+            if call.behavior["execution"] == "finish":
+                call.terminal = "finished"
+            else:
+                self._fail_judge_call(call, instant)
+
+    def observe_judge(self, intent: Record, until: str) -> ExecutionObservation:
+        call = self._get_judge_call(intent)
+        limit = max(parse_utc(until), parse_utc(self.clock.now()))
+        finish_at = parse_utc(call.started_at) + timedelta(milliseconds=call.behavior["duration_ms"])
+        if call.executed and call.terminal is None and call.behavior["execution"] != "hang":
+            self.clock.advance_to(format_utc(min(limit, finish_at)))
+        elif call.terminal is None:
+            self.clock.advance_to(format_utc(limit))
+        now = self.clock.now()
+        self._settle_judge(call, now)
+        self._persist()
+        return self._observation(call, now)
+
+    def cancel_judge(self, intent: Record, reason: str) -> CancelObservation:
+        call = self._get_judge_call(intent)
+        now = self.clock()
+        certainty = "unknown"
+        self._settle_judge(call, now)
+        if call.executed and (call.terminal or call.behavior["on_cancel"] == "confirmed"):
+            call.terminal = call.terminal or "stopped"
+            certainty = "confirmed"
+        self._persist()
+        return CancelObservation(certainty, now)
+
+    def reconcile_judge(self, dispatch_idempotency_key: str, external_call_id: str | None) -> ReconciliationObservation:
+        call = self._judge_calls.get(dispatch_idempotency_key)
+        if call and external_call_id is not None and external_call_id != call.external_call_id:
+            raise ExecutorError("external_call_mismatch", "ID externo do juiz diverge da intenção")
+        now = self.clock()
+        can_deny = self.script.authoritative_not_found and self.durable
+        if call is None:
+            if can_deny:
+                return ReconciliationObservation("not_found", None, "confirmed", now, (self.script.reference,), True)
+            return ReconciliationObservation("unknown", None, "unknown", now)
+        outcome = call.behavior["reconcile"]
+        if call.executed and call.terminal:
+            outcome = {"finished": "found_finished", "failed": "found_failed", "stopped": "found_stopped"}[call.terminal]
+        authoritative = outcome == "not_found" and can_deny
+        certainty = "unknown"
+        if outcome in {"found_finished", "found_failed", "found_stopped"}:
+            certainty = "confirmed"
+            if outcome == "found_failed":
+                self._fail_judge_call(call, now)
+            else:
+                call.terminal = "finished" if outcome == "found_finished" else "stopped"
+        elif outcome == "found_running":
+            certainty = "not_terminated"
+        elif authoritative:
+            certainty = "confirmed"
+        self._persist()
+        return ReconciliationObservation(
+            outcome, call.external_call_id, certainty, now,
+            (self.script.reference,) if outcome != "unknown" else (), authoritative,
+            (copy.deepcopy(call.failure),) if outcome == "found_failed" and call.failure else (),
+        )
+
+    @staticmethod
+    def _outcome_from_record(raw: Record) -> JudgeRawOutcome:
+        return JudgeRawOutcome(
+            judge_call_id=raw["judge_call_id"],
+            execution_status=raw["execution_status"],
+            termination_certainty=raw["termination_certainty"],
+            observed_at=raw["observed_at"],
+            stdout_text=raw["stdout_text"],
+            stderr_text=raw["stderr_text"],
+            final_text=raw["final_text"],
+            diagnostics=tuple(raw["diagnostics"]),
+            tool_events=tuple(raw["tool_events"]),
+            requested_model_id=raw["requested_model_id"],
+            resolved_model_id=raw["resolved_model_id"],
+            provider_context_coverage=raw["provider_context_coverage"],
+            input_tokens=raw["input_tokens"],
+            output_tokens=raw["output_tokens"],
+            returncode=raw["returncode"],
+            stop_reason=raw["stop_reason"],
+            external_call_id=raw["external_call_id"],
+            quota_exhausted_detail=copy.deepcopy(raw["quota_exhausted_detail"]),
+        )
+
+    def collect_judge(
+        self,
+        intent: Record,
+        *,
+        rubric_spec: Record,
+        subject_artifacts: Sequence[tuple[Record, bytes]],
+        eval_workspace: IsolatedEvalWorkspace | Path | None = None,
+    ) -> JudgeRawOutcome:
+        call = self._get_judge_call(intent)
+        if call.outcome_record is not None:
+            return self._outcome_from_record(call.outcome_record)
+        self._settle_judge(call, self.clock.now())
+        if not call.executed or call.terminal is None:
+            raise ExecutorError("result_unavailable", "execução de juiz sem término confirmado")
+        now = self.clock()
+        behavior = call.behavior
+
+        if behavior.get("workspace_mutated"):
+            ws_dir = (
+                eval_workspace.path
+                if isinstance(eval_workspace, IsolatedEvalWorkspace)
+                else Path(eval_workspace or call.eval_workspace_dir or "")
+            )
+            if ws_dir.is_dir():
+                (ws_dir / "mutated-by-judge.txt").write_text("unauthorized-write\n", encoding="utf-8")
+
+        diagnostics = list(behavior.get("diagnostics", []))
+        quota_detail = None
+        quota_cfg = behavior.get("quota_exhausted")
+        returncode = 0 if call.terminal == "finished" else 1
+        final_line: str | None = None
+        stdout_text = ""
+        tool_events: tuple[str, ...] = ()
+
+        if quota_cfg:
+            returncode = 1
+            if isinstance(quota_cfg, dict):
+                excerpt = quota_cfg["excerpt"]
+                quota_detail = {
+                    "excerpt": excerpt,
+                    "blocked_until": quota_cfg.get("blocked_until"),
+                    "reset_source": quota_cfg.get("reset_source", "cooldown_policy"),
+                }
+            else:
+                excerpt = "RESOURCE_EXHAUSTED: simulated evaluator quota limit"
+                quota_detail = {
+                    "excerpt": excerpt,
+                    "blocked_until": None,
+                    "reset_source": "cooldown_policy",
+                }
+            diagnostics.append(excerpt)
+        elif call.terminal == "finished":
+            final_line, stdout_text, tool_events = build_scripted_judge_payload(
+                rubric_spec=rubric_spec,
+                subject_artifacts=subject_artifacts,
+                step=behavior,
+            )
+
+        usage_cfg = behavior.get("usage") or {}
+        record = {
+            "judge_call_id": intent["judge_call_id"],
+            "execution_status": call.terminal,
+            "termination_certainty": "confirmed",
+            "observed_at": now,
+            "stdout_text": stdout_text,
+            "stderr_text": "\n".join(diagnostics),
+            "final_text": final_line,
+            "diagnostics": diagnostics,
+            "tool_events": list(tool_events),
+            "requested_model_id": intent.get("requested_model_id"),
+            "resolved_model_id": behavior.get("resolved_model_id"),
+            "provider_context_coverage": "platform_only",
+            "input_tokens": usage_cfg.get("input_tokens"),
+            "output_tokens": usage_cfg.get("output_tokens"),
+            "returncode": returncode,
+            "stop_reason": "cancelled" if call.terminal == "stopped" else None,
+            "external_call_id": call.external_call_id,
+            "quota_exhausted_detail": quota_detail,
+        }
+        call.outcome_record = record
+        self._persist()
+        return self._outcome_from_record(record)
