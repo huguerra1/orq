@@ -302,7 +302,10 @@
       "then": {
         "properties": {
           "scope_type": {
-            "const": "attempt"
+            "enum": [
+              "attempt",
+              "evaluation"
+            ]
           },
           "cost_lines": {
             "items": {

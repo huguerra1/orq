@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1",
+  "usage_id": "usage-judge-evaluation-T3-1-1-1",
+  "run_id": "run-demo-008",
+  "scope_type": "evaluation",
+  "scope_ref": "evaluation-T3-1-1",
+  "subscription_id": "sub-gemini",
+  "provider_ref": {
+    "id": "provider-gemini",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "275ce1427ac7a910f9a444a304db37311efdaf084fb47fe2a108e6eede0f245c"
+    }
+  },
+  "observed_at": "2026-11-18T00:10:00Z",
+  "recorded_at": "2026-11-18T00:10:00Z",
+  "measurements": [
+    {
+      "metric_id": "input_tokens",
+      "quantity": "420",
+      "unit": "tokens",
+      "status": "reported",
+      "source_ref": {
+        "id": "runtime-agy",
+        "version": "1",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "88ae513a4d37816a43278a67b6942869f6506b8d303b89d5fe3cba778eb208dd"
+        }
+      }
+    }
+  ],
+  "cost_lines": [
+    {
+      "amount": "0.00",
+      "currency": "USD",
+      "status": "reported",
+      "pricing_ref": null,
+      "method": "personal_subscription_unpriced"
+    }
+  ],
+  "coverage": {
+    "reported": [
+      "input_tokens"
+    ],
+    "estimated": [],
+    "unavailable": [
+      "cost"
+    ]
+  },
+  "supersedes_usage_id": null,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "2decd3e8211eea3cc4e31d51fa60f3133701748366116244a083b30397039e1e"
+  }
+}

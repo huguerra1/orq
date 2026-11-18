@@ -88,7 +88,12 @@
         "quota_consumption_recorded",
         "attempt_context_sealed",
         "quota_probe_requested",
-        "quota_probe_observed"
+        "quota_probe_observed",
+        "evaluator_dispatch_requested",
+        "evaluator_dispatch_acknowledged",
+        "evaluator_termination_confirmed",
+        "evaluator_reconciliation_requested",
+        "evaluator_reconciliation_observed"
       ]
     },
     "recorded_at": {
@@ -1562,6 +1567,232 @@
         }
       },
       "additionalProperties": false
+    },
+    "evaluator_dispatch_requested": {
+      "type": "object",
+      "required": [
+        "judge_call_id",
+        "judge_index",
+        "dispatch_idempotency_key",
+        "evaluator_family_id",
+        "evaluator_model_vendor",
+        "evaluator_target_ref",
+        "subscription_id",
+        "quota_pool_id",
+        "runtime_ref",
+        "runtime_version",
+        "requested_model_id",
+        "prompt_template_ref",
+        "rendered_prompt_digest",
+        "eval_workspace_digest",
+        "deadline_at"
+      ],
+      "properties": {
+        "judge_call_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "judge_index": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "dispatch_idempotency_key": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "evaluator_family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "evaluator_model_vendor": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 128
+        },
+        "evaluator_target_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "subscription_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "quota_pool_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "runtime_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "runtime_version": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 256
+        },
+        "requested_model_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_template_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "rendered_prompt_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "eval_workspace_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "deadline_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluator_dispatch_acknowledged": {
+      "type": "object",
+      "required": [
+        "judge_call_id",
+        "external_call_id"
+      ],
+      "properties": {
+        "judge_call_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluator_termination_confirmed": {
+      "type": "object",
+      "required": [
+        "judge_call_id",
+        "cause",
+        "observed_at",
+        "resolved_model_id",
+        "provider_context_coverage"
+      ],
+      "properties": {
+        "judge_call_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "cause": {
+          "enum": [
+            "finished",
+            "failed",
+            "timeout",
+            "cancel"
+          ]
+        },
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "resolved_model_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_context_coverage": {
+          "enum": [
+            "complete",
+            "platform_only",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluator_reconciliation_requested": {
+      "type": "object",
+      "required": [
+        "judge_call_id",
+        "dispatch_idempotency_key",
+        "external_call_id",
+        "deadline_at"
+      ],
+      "properties": {
+        "judge_call_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "dispatch_idempotency_key": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deadline_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluator_reconciliation_observed": {
+      "type": "object",
+      "required": [
+        "judge_call_id",
+        "outcome",
+        "external_call_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "judge_call_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "outcome": {
+          "enum": [
+            "found_running",
+            "found_finished",
+            "found_failed",
+            "found_stopped",
+            "not_found",
+            "unknown"
+          ]
+        },
+        "external_call_id": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/nonEmptyText",
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "evaluation-report.schema.json#/$defs/evidenceRef"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "allOf": [
@@ -1686,7 +1917,14 @@
               "evaluation_report_recorded",
               "late_observation",
               "artifact_ingested",
-              "error_attached"
+              "error_attached",
+              "evaluator_dispatch_requested",
+              "evaluator_dispatch_acknowledged",
+              "evaluator_termination_confirmed",
+              "evaluator_reconciliation_requested",
+              "evaluator_reconciliation_observed",
+              "usage_attached",
+              "quota_consumption_recorded"
             ]
           }
         }
@@ -2498,6 +2736,218 @@
         "properties": {
           "payload": {
             "$ref": "#/$defs/quota_probe_observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluator_dispatch_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluator_dispatch_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluator_dispatch_acknowledged"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluator_dispatch_acknowledged"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluator_termination_confirmed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluator_termination_confirmed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluator_reconciliation_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluator_reconciliation_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "evaluator_reconciliation_observed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/evaluator_reconciliation_observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "evaluation"
+          },
+          "event_type": {
+            "const": "usage_attached"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "scope_type": {
+                "const": "evaluation"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "not": {
+              "const": "evaluation"
+            }
+          },
+          "event_type": {
+            "const": "usage_attached"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "scope_type": {
+                "not": {
+                  "const": "evaluation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "evaluation"
+          },
+          "event_type": {
+            "const": "quota_consumption_recorded"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "scope_type",
+              "evaluation_id",
+              "judge_call_id"
+            ],
+            "properties": {
+              "scope_type": {
+                "const": "evaluation"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "aggregate_type": {
+            "const": "attempt"
+          },
+          "event_type": {
+            "const": "quota_consumption_recorded"
+          }
+        },
+        "required": [
+          "aggregate_type",
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "scope_type": {
+                "const": "attempt"
+              }
+            }
           }
         }
       }

@@ -35,7 +35,40 @@
       "$ref": "common.schema.json#/$defs/identifier"
     },
     "attempt_id": {
-      "$ref": "common.schema.json#/$defs/identifier"
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scope_type": {
+      "enum": [
+        "attempt",
+        "evaluation"
+      ]
+    },
+    "evaluation_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "judge_call_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "subscription_id": {
       "$ref": "common.schema.json#/$defs/identifier"
@@ -97,5 +130,46 @@
       "$ref": "common.schema.json#/$defs/digest"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "scope_type": {
+            "const": "evaluation"
+          }
+        },
+        "required": [
+          "scope_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "evaluation_id",
+          "judge_call_id"
+        ],
+        "properties": {
+          "evaluation_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "judge_call_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "attempt_id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "evaluation_id": {
+            "type": "null"
+          },
+          "judge_call_id": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
 }
