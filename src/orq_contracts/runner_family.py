@@ -11,7 +11,7 @@ from .canonical import canonical_digest, canonicalize
 from .executor import ExecutorError, seal_record
 from .family_mcp import AttemptKnowledgeSession
 from .knowledge_backend import EligibilityPolicy, create_knowledge_backend
-from .memory_store.config import MemoryScope, resolve_memory_config
+from .memory_store.config import FAMILY_PARTITIONED_REGIME, MEMORY_REGIMES, MemoryScope, resolve_memory_config
 from .projections import record_ref
 from .quota import QuotaStateSnapshot, subscription_category
 from .simulated_executor import format_utc, parse_utc
@@ -32,9 +32,12 @@ class FamilyRuntime:
     backend_factory: object = None
     probe: object = None
     memory_config: object = None
+    memory_regime: str = FAMILY_PARTITIONED_REGIME
 
     def attach(self, runner):
         self.runner = runner
+        if self.memory_regime not in MEMORY_REGIMES:
+            raise ExecutorError("invalid_memory_scope", "memory_regime inválido")
         self.memory_config = self.memory_config or resolve_memory_config()
         self.sessions = {}
         for profile in self.profiles.values():
@@ -50,8 +53,11 @@ class FamilyRuntime:
 
     @property
     def snapshot(self):
-        return {"profiles": self.profiles, "memory_backend": self.memory_config.backend,
+        snap = {"profiles": self.profiles, "memory_backend": self.memory_config.backend,
                 "executor": self.runner.executor.describe().executor_ref}
+        if self.memory_regime != FAMILY_PARTITIONED_REGIME:
+            snap["memory_regime"] = self.memory_regime
+        return snap
 
     def target(self, intent):
         return next(t for t in self.runner.catalog["targets"] if t["target_id"] == intent["target_ref"]["id"])
@@ -73,11 +79,15 @@ class FamilyRuntime:
             config = json.loads((directory / "config.json").read_bytes())
         if config is None:
             scope = MemoryScope(r.knowledge_catalog["catalog_id"], r.request["project_id"],
-                                target["family_id"], task["agent_role"]["id"])
-            config = {"session_id": key, "task": deepcopy(task),
-                "knowledge_status_assertions": deepcopy(r.projection.manifest["knowledge_status_assertions"]), "scope": dict(zip(
+                                target["family_id"], task["agent_role"]["id"],
+                                memory_regime=self.memory_regime)
+            scope_dict = dict(zip(
                 ("catalog_id", "project_id", "family_id", "role_id"),
-                (scope.catalog_id, scope.project_id, scope.family_id, scope.role_id))),
+                (scope.catalog_id, scope.project_id, scope.family_id, scope.role_id)))
+            if scope.memory_regime != FAMILY_PARTITIONED_REGIME:
+                scope_dict["memory_regime"] = scope.memory_regime
+            config = {"session_id": key, "task": deepcopy(task),
+                "knowledge_status_assertions": deepcopy(r.projection.manifest["knowledge_status_assertions"]), "scope": scope_dict,
                 "eligibility": {"project_id": scope.project_id, "as_of": r.clock.now()},
                 "requirements": deepcopy(task["knowledge_requirements"]),
                 "choice": {"run_id": r.journal.run_id, "workflow_ref": r.projection.manifest["workflow_snapshot_ref"],

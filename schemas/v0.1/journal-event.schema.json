@@ -1302,6 +1302,12 @@
                 },
                 "role_id": {
                   "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "memory_regime": {
+                  "enum": [
+                    "family_partitioned_rls",
+                    "shared_global"
+                  ]
                 }
               },
               "additionalProperties": false

@@ -57,11 +57,13 @@ class SequentialRunner:
                knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
                id_factory: Callable = deterministic_id, on_event: Callable | None = None,
                decision_engine: DecisionEngine | None = None,
-               external_inputs: dict[str, bytes] | None = None, family_runtime=None) -> SequentialRunner:
-        script.validate_against_workflow(workflow)
+               external_inputs: dict[str, bytes] | None = None, family_runtime=None,
+               contracts: ContentContractRegistry | None = None) -> SequentialRunner:
+        script.validate_against_workflow(workflow, contracts=contracts)
         journal = RunJournal.create(store_root, request["run_id"], clock=clock)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False, family_runtime)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False,
+                          family_runtime, contracts)
 
     @classmethod
     def open(cls, store_root: Path, *, workflow: Record, request: Record,
@@ -69,8 +71,9 @@ class SequentialRunner:
              knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
              id_factory: Callable = deterministic_id, on_event: Callable | None = None,
              decision_engine: DecisionEngine | None = None,
-             external_inputs: dict[str, bytes] | None = None, family_runtime=None) -> SequentialRunner:
-        script.validate_against_workflow(workflow)
+             external_inputs: dict[str, bytes] | None = None, family_runtime=None,
+             contracts: ContentContractRegistry | None = None) -> SequentialRunner:
+        script.validate_against_workflow(workflow, contracts=contracts)
         def prepare_recovery(events):
             times = [parse_utc(e["recorded_at"]) for e in events]
             directory = confined_path(Path(store_root), f"runs/{request['run_id']}/simulator")
@@ -85,11 +88,13 @@ class SequentialRunner:
                                             timedelta(milliseconds=clock.step_ms)))
         journal = RunJournal.open(store_root, request["run_id"], clock=clock, prepare_recovery=prepare_recovery)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True, family_runtime)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True,
+                          family_runtime, contracts)
 
     @classmethod
     def _build(cls, journal, workflow, request, catalog, policy, script, knowledge_catalog,
-               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed, family_runtime):
+               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed,
+               family_runtime, contracts=None):
         self = cls()
         self.journal, self.clock, self.script = journal, clock, script
         self.workflow, self.request, self.catalog, self.policy, self.knowledge_catalog = deepcopy(
@@ -130,8 +135,9 @@ class SequentialRunner:
             self._input_hash = identity
             self.executor = SimulatedExecutor(script, self.store, clock=clock, state=state, persist=self._persist_executor)
             self.simulated_executor = self.executor
-            contracts = ContentContractRegistry()
-            contracts.register(*simulated_output_contract())
+            contracts = contracts if contracts is not None else ContentContractRegistry()
+            if contracts.validator(simulated_output_contract()[0]) is None:
+                contracts.register(*simulated_output_contract())
             self.evaluator = DeterministicEvaluator(self.store, script, clock=clock, contracts=contracts)
             if self.family_runtime:
                 self.family_runtime.attach(self)
@@ -247,7 +253,7 @@ class SequentialRunner:
             self.append("run_intent_recorded", seal_record({
                 "schema_version": "0.1", "run_id": self.request["run_id"], "project_id": self.request["project_id"],
                 "objective": self.request["objective"], "requested_by": {"kind": "human", "ref": "local-user"},
-                "experiment_metadata": {}, "created_at": self.clock.now(),
+                "experiment_metadata": deepcopy(self.policy.get("experiment_metadata", {})), "created_at": self.clock.now(),
                 "idempotency_key": self.request["run_id"] + "/create",
             }, "run_intent"))
         if self.projection.state == "created":
