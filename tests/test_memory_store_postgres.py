@@ -425,8 +425,8 @@ def test_shared_global_reader_sees_cross_family_units_in_same_catalog_and_projec
     shared = {row["source_id"] for row in ScopedMemoryReader(admin, shared_scope).list_units()}
 
     assert "claude-only" not in partitioned
-    assert {"codex-only", "claude-only", "common-rule", "global-ops"} <= shared
-    assert {"other-project", "deprecated-doc", "draft-doc"} & shared == set()
+    assert {"codex-only", "claude-only", "claude-security", "tester-only", "common-project", "global-ops"} <= shared
+    assert {"other-project", "collection-src"} & shared == set()
     with scoped_transaction(admin, shared_scope) as cursor:
         cursor.execute("SELECT current_user AS who")
         assert cursor.fetchone()["who"] == GLOBAL_READER_ROLE

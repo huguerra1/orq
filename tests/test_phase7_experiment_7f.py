@@ -30,13 +30,35 @@ from orq_contracts.memory_store import build_sync_plan, resolve_memory_config
 PACKAGE_7F = ROOT / "experiments" / "7f"
 
 
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
 @pytest.fixture(autouse=True)
 def _no_network(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _forbidden(*_args, **_kwargs):
+    real_create_connection = socket.create_connection
+    real_getaddrinfo = socket.getaddrinfo
+
+    def _guarded_create_connection(address, *args, **kwargs):
+        host = address[0] if isinstance(address, (tuple, list)) and address else None
+        if host in _LOOPBACK_HOSTS:
+            return real_create_connection(address, *args, **kwargs)
         raise AssertionError("rede externa proibida na execução 7F")
 
-    for name in ("create_connection", "getaddrinfo"):
-        monkeypatch.setattr(socket, name, _forbidden)
+    def _guarded_getaddrinfo(host, *args, **kwargs):
+        if host in _LOOPBACK_HOSTS:
+            return real_getaddrinfo(host, *args, **kwargs)
+        raise AssertionError("rede externa proibida na execução 7F")
+
+    monkeypatch.setattr(socket, "create_connection", _guarded_create_connection)
+    monkeypatch.setattr(socket, "getaddrinfo", _guarded_getaddrinfo)
+
+
+def test_no_network_guard_allows_loopback_and_blocks_external() -> None:
+    assert socket.getaddrinfo("localhost", 5432)
+    with pytest.raises(AssertionError, match="rede externa proibida na execução 7F"):
+        socket.getaddrinfo("example.com", 443)
+    with pytest.raises(AssertionError, match="rede externa proibida na execução 7F"):
+        socket.create_connection(("example.com", 443), timeout=1)
 
 
 def test_verify_package_accepts_canonical_7f_bundle() -> None:
