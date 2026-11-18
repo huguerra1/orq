@@ -1,6 +1,6 @@
 # Cenários de aceitação da Fase 8
 
-Estado: Proposta ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md), aguardando revisão e aceite do dono). Os 25 cenários `R01`–`R25` abaixo especificam os contratos, o comportamento do `CompositeEvaluator` no runner e o protocolo de calibração antes da implementação dos incrementos `8A`–`8E`.
+Estado: Aceita em 2026-11-18 ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md#decisões-do-dono-aceitas-em-2026-11-18)). Os 25 cenários `R01`–`R25` abaixo especificam os contratos, o comportamento do `CompositeEvaluator` no runner e o protocolo de calibração para implementação nos incrementos `8A`–`8E`.
 
 ## Estratégia e convenções
 

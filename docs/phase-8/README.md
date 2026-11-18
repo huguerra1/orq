@@ -1,6 +1,6 @@
 # Fase 8 — Avaliador por modelo e rubrica sobre assinaturas pessoais
 
-Estado: Proposta ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md), aguardando revisão e aceite do dono). A implementação nos incrementos `8A`–`8E` só começa após a conclusão da Fase 7 e o aceite formal da proposta.
+Estado: Aceita em 2026-11-18 ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md#decisões-do-dono-aceitas-em-2026-11-18)); implementação incremental `8A`–`8E` autorizada na branch `dev` (enquanto os gates ao vivo `V01–V12` e lotes diários da Camada B do `7F` aguardam janela local com WSL/Docker/CLIs ativos).
 
 ## Problema
 
@@ -59,9 +59,9 @@ Especificar e, após a conclusão da Fase 7 e o aceite da [ADR 0009](../adr/0009
 | 4 | `WorkflowSpec`, `TaskSpec` e `evaluation_criteria` locais (`task_attempt`) e globais (`workflow`) | Implementado e testado |
 | 5 | `RoutingTargetCatalog`, perfis de família/modelo e regras determinísticas de seleção e preflight | Implementado e testado |
 | 6 | `RunJournal`, `ArtifactStore`, máquina de estados (`TK16`–`TK22`, `TK24`, `RN05`–`RN06`, `RN10`), protocolo `ExecutorAdapter`, `SimulatedExecutor`, `DeterministicEvaluator` e cenários `S14`–`S15`, `S22`–`S26`, `S40`, `S59`–`S61` | `6A`–`6E` implementados e concluídos em 2026-11-14 |
-| 7 | `AgentFamily`, `SubscriptionProfile`, `QuotaStateRecord`, `QuotaConsumptionRecord` (`7A`), Postgres com RLS e modo offline (`7B`/`7D`), quatro adaptadores de CLI e `QuotaLimitDetector` (`7C`), integração MCP/runner (`7E`) e experimento `7F` | `7A`–`7D` implementados; `7E`, smoke V01–V12 e `7F` em andamento |
+| 7 | `AgentFamily`, `SubscriptionProfile`, `QuotaStateRecord`, `QuotaConsumptionRecord` (`7A`), Postgres com RLS e modo offline (`7B`/`7D`), quatro adaptadores de CLI e `QuotaLimitDetector` (`7C`), integração MCP/runner + conector nativo (`7E`) e regime `shared_global` + harness/CI `Q28–Q30` (`7F`) | `7A`–`7F` implementados e verdes no CI com Postgres 16; gate real `V01–V12` e lotes ao vivo da Camada B pendentes de janela local |
 
-## Incrementos de implementação (após aceite)
+## Incrementos de implementação (após aceite em 2026-11-18)
 
 | Incremento | Entrega | Gate |
 | --- | --- | --- |
