@@ -57,6 +57,7 @@ FORBIDDEN_EVENT_CASES = [
     (aggregate, event)
     for aggregate, allowed in VOCABULARY.items()
     for event in sorted({event for events in VOCABULARY.values() for event in events} - set(allowed))
+    if not (aggregate == "evaluation" and event == "usage_attached")  # Fase 8 (ADR 0009): escopo "evaluation".
 ]
 GOLDEN_HASHES = {
     "attempt-header": "3ac77f0d99551b17f2b667b55b8b2edfe70b06dd1fc25447d1425284c1636888",
@@ -365,10 +366,25 @@ def test_journal_vocabulary_matches_the_accepted_contract() -> None:
         "run": {"quota_exhausted_recorded", "quota_reset_observed", "quota_probe_requested", "quota_probe_observed"},
         "attempt": {"quota_consumption_recorded", "attempt_context_sealed"},
     }
+    phase8_events = {
+        "evaluation": {
+            "evaluator_dispatch_requested",
+            "evaluator_dispatch_acknowledged",
+            "evaluator_termination_confirmed",
+            "evaluator_reconciliation_requested",
+            "evaluator_reconciliation_observed",
+            "usage_attached",
+            "quota_consumption_recorded",
+        },
+    }
     assert set(schema["properties"]["aggregate_type"]["enum"]) == set(VOCABULARY)
     assert set(schema["properties"]["event_type"]["enum"]) == {
         event for events in VOCABULARY.values() for event in events
-    } | {event for events in phase7_events.values() for event in events}
+    } | {
+        event for events in phase7_events.values() for event in events
+    } | {
+        event for events in phase8_events.values() for event in events
+    }
     contract = (ROOT / "docs/phase-6/run-contracts.md").read_text(encoding="utf-8")
     for aggregate, events in VOCABULARY.items():
         if aggregate == "attempt":
@@ -385,7 +401,9 @@ def test_journal_vocabulary_matches_the_accepted_contract() -> None:
             if rule.get("if", {}).get("properties", {}).get("aggregate_type", {}).get("const") == aggregate
             and "event_type" in rule.get("then", {}).get("properties", {})
         ]
-        assert len(rules) == 1 and set(rules[0]) == set(events) | phase7_events.get(aggregate, set())
+        assert len(rules) == 1 and set(rules[0]) == (
+            set(events) | phase7_events.get(aggregate, set()) | phase8_events.get(aggregate, set())
+        )
 
 
 @pytest.mark.parametrize(("aggregate", "event_type"), FORBIDDEN_EVENT_CASES)
@@ -521,6 +539,8 @@ def test_error_codes_and_admission_reasons_match_the_documented_enums(payloads) 
     reasons = set(re.findall(r"`([^`]+)`", contract.split("Motivos de rejeição de admissão: ", 1)[1].split(".\n", 1)[0]))
     assert set(validator_for("error_record").schema["properties"]["code"]["enum"]) == codes | {
         "quota_limit_reached", "subscription_policy_violation", "permission_or_empty_output",
+        "evidence_citation_invalid", "evaluator_invalid_output", "evaluator_panel_disagreement",
+        "no_eligible_cross_family_evaluator", "eval_workspace_mutated", "eval_sandbox_escape_attempt",
     }
     assert set(validator_for("journal_event").schema["$defs"]["admission_rejected"]["properties"]["reason"]["enum"]) == reasons | {
         "quota_exhausted", "all_eligible_families_quota_exhausted",

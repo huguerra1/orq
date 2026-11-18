@@ -1,0 +1,111 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "rubric-evidence-T3-1-1-sec-j1",
+  "judge_call_id": "judge-evaluation-T3-1-1-1",
+  "run_id": "run-demo-008",
+  "evaluation_id": "evaluation-T3-1-1",
+  "criterion_id": "security-rubric-ok",
+  "rubric_ref": {
+    "id": "rubric-security-review-v1",
+    "version": "1.0",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "d55cb012e7ceeb957c82497db76409b0eb8aee70a91330cc76f5414cbe25a2f5"
+    }
+  },
+  "prompt_template_ref": {
+    "id": "prompt-rubric-eval-v1",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "e54b6e3ae4e5fbec9ff76d40b38f2878ea6b33113207d446a154867af4c7808c"
+    }
+  },
+  "rendered_prompt_digest": {
+    "algorithm": "sha256",
+    "value": "6100df7fb3b9a8232b4dd4192a895ebf3d5c64107e035a6cc45883155237a633"
+  },
+  "evaluator_family_id": "family_gemini",
+  "evaluator_model_vendor": "google",
+  "author_family_ids": [
+    "family_codex"
+  ],
+  "author_model_vendor": "openai",
+  "evaluator_target_ref": {
+    "id": "target-gemini",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "e65936fa62dc2af5b44dd958eef64ec74b4e4262547d8c2165b3af1ef129d5d7"
+    }
+  },
+  "subscription_id": "sub-gemini",
+  "runtime_ref": {
+    "id": "runtime-agy",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "88ae513a4d37816a43278a67b6942869f6506b8d303b89d5fe3cba778eb208dd"
+    }
+  },
+  "runtime_version": "1.5.10",
+  "requested_model_id": "gemini-2.5-pro",
+  "resolved_model_id": "gemini-2.5-pro",
+  "dimension_assessments": [
+    {
+      "dimension_id": "auth-and-secrets-boundary",
+      "raw_score": 4,
+      "normalized_dimension_score": "1.0000",
+      "meets_mandatory_minimum": true,
+      "rationale": "Artefato valida o escopo e proibe leitura de credenciais.",
+      "citations": [
+        {
+          "output_id": "security_report",
+          "artifact_id": "artifact-T3-1-sec",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "cdf741eb7f66092b179ae599f68f8c7564fbc9a3e5186d963011e1619adfd822"
+          },
+          "locator": {
+            "kind": "line_range",
+            "start_line": 1,
+            "end_line": 3
+          },
+          "verbatim_excerpt": "Nenhuma credencial deve ser extraida das CLIs."
+        }
+      ]
+    },
+    {
+      "dimension_id": "contract-completeness",
+      "raw_score": 3,
+      "normalized_dimension_score": "0.7500",
+      "meets_mandatory_minimum": true,
+      "rationale": "Cobre estados unknown e falhas confirmadas.",
+      "citations": [
+        {
+          "output_id": "security_report",
+          "artifact_id": "artifact-T3-1-sec",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "cdf741eb7f66092b179ae599f68f8c7564fbc9a3e5186d963011e1619adfd822"
+          },
+          "locator": {
+            "kind": "json_pointer",
+            "pointer": "/invariants/0"
+          },
+          "verbatim_excerpt": "reconciliation_timeout_ms"
+        }
+      ]
+    }
+  ],
+  "normalized_score": "0.8750",
+  "blocking_dimension_failed": false,
+  "citation_verification_status": "verified",
+  "derived_status": "pass",
+  "overall_summary": "Aprovado com evidencias literais verificadas nas duas dimensoes.",
+  "recorded_at": "2026-11-18T00:10:00Z",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "abe80500b1493b05ca83d5e6c20baa9c35beaddae6faec4cc3bf00dd3089b3d8"
+  }
+}

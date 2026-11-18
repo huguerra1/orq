@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "quota_event_id": "quota-eval-block-1",
+  "run_id": "run-demo-008",
+  "quota_pool_id": "pool-gemini",
+  "subscription_id": "sub-gemini",
+  "family_id": "family_gemini",
+  "source_attempt_id": null,
+  "source_evaluation_id": "evaluation-T3-1-1",
+  "status": "cooldown",
+  "observed_at": "2026-11-18T00:05:00Z",
+  "reset_at": null,
+  "blocked_until": "2026-11-18T01:05:00Z",
+  "reset_source": "cooldown_policy",
+  "raw_message_excerpt": "Resource exhausted: please try again later.",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "3cc0deac6fd56937f790f8dbcada69651158258b0f074158ca6107d3a667e19f"
+  }
+}

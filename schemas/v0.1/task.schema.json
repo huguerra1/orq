@@ -190,7 +190,48 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {"const": "model_rubric"}
+            },
+            "required": ["method"]
+          },
+          "then": {
+            "properties": {
+              "pass_rule": {
+                "type": "object",
+                "required": ["output_ids", "rubric_ref", "prompt_template_ref"],
+                "properties": {
+                  "output_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {"$ref": "common.schema.json#/$defs/identifier"}
+                  },
+                  "rubric_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+                  "prompt_template_ref": {"$ref": "common.schema.json#/$defs/versionedRef"},
+                  "cross_family_policy": {
+                    "enum": ["require_different", "allow_same_for_calibration"]
+                  },
+                  "panel_size": {"enum": [1, 2]},
+                  "knowledge_requirement_ids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {"$ref": "common.schema.json#/$defs/identifier"}
+                  },
+                  "evaluator_role_id": {
+                    "enum": ["code_reviewer", "security_reviewer"]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "additionalProperties": false

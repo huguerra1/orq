@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "evaluator_routing_policy_id": "eval-routing-default-v1",
+  "version": "0.1",
+  "cross_family_policy": "require_different",
+  "enforce_distinct_model_vendor": true,
+  "primary_evaluator_families": [
+    "family_gemini",
+    "family_kiro"
+  ],
+  "fallback_evaluator_families": [
+    "family_claude",
+    "family_codex"
+  ],
+  "panel_size": 1,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "8e13d552bc16987f7ad6b0bf4ffaa76f41442e54c09b24e55847c447be6b055e"
+  }
+}

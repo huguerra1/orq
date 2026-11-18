@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "quota_consumption_id": "quota-use-judge-T3-1-1-1",
+  "run_id": "run-demo-008",
+  "task_id": "T3",
+  "attempt_id": "attempt-T3-1",
+  "scope_type": "evaluation",
+  "evaluation_id": "evaluation-T3-1-1",
+  "judge_call_id": "judge-evaluation-T3-1-1-1",
+  "subscription_id": "sub-gemini",
+  "quota_pool_id": "pool-gemini",
+  "family_id": "family_gemini",
+  "usage_record_ref": {
+    "id": "usage-judge-evaluation-T3-1-1-1",
+    "version": "0.1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "b65c2a293399f474fb6fc8bf3c8aaf9289814e78b2513378b98abb71139e8894"
+    }
+  },
+  "messages_consumed": 1,
+  "input_tokens": 420,
+  "output_tokens": 180,
+  "credit_multiplier": null,
+  "quota_outcome": "accepted",
+  "recorded_at": "2026-11-18T00:10:00Z",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "3cac85f2072b1975eda7f205e4aad9ca65441dba72475c115f4d10bc55d6b399"
+  }
+}

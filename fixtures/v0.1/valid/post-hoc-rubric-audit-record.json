@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1",
+  "audit_id": "audit-7f-t01-sg-1",
+  "source_run_id": "run-7f-t01-r1-sg",
+  "source_task_id": "exp7f-t01-architect-claude-tools",
+  "source_attempt_id": "attempt-1",
+  "source_evaluation_id": "evaluation-1",
+  "source_run_cutoff_event_hash": {
+    "algorithm": "sha256",
+    "value": "f518a73b175f059a13e6fbf405d67044cbf971d45f4c0685e8018c62ca0d792a"
+  },
+  "source_deterministic_verdict": "pass",
+  "subject_bindings": [
+    {
+      "output_id": "security_report",
+      "artifact": {
+        "artifact_id": "artifact-T3-1-sec",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "cdf741eb7f66092b179ae599f68f8c7564fbc9a3e5186d963011e1619adfd822"
+        }
+      }
+    }
+  ],
+  "author_family_id": "family_claude",
+  "author_model_vendor": "anthropic",
+  "rubric_ref": {
+    "id": "rubric-security-review-v1",
+    "version": "1.0",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "d55cb012e7ceeb957c82497db76409b0eb8aee70a91330cc76f5414cbe25a2f5"
+    }
+  },
+  "calibration_report_ref": {
+    "id": "cal-security-v1",
+    "version": "1",
+    "content_digest": {
+      "algorithm": "sha256",
+      "value": "b5ed55cd500c6340f65ac91990099c82031e28c25a8770b63a7b2a09d314e6bf"
+    }
+  },
+  "rubric_evidence_refs": [
+    {
+      "artifact_id": "artifact-audit-rubric-j1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "abe80500b1493b05ca83d5e6c20baa9c35beaddae6faec4cc3bf00dd3089b3d8"
+      }
+    }
+  ],
+  "audit_derived_status": "pass",
+  "audit_normalized_score": "0.8750",
+  "usage_record_refs": [
+    {
+      "id": "usage-judge-evaluation-T3-1-1-1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "19efd230c95ff70f25b252886c3c73f629e360ea07af23a0a54bb0784f24eb26"
+      }
+    }
+  ],
+  "quota_consumption_refs": [
+    {
+      "id": "quota-use-judge-T3-1-1-1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "3cac85f2072b1975eda7f205e4aad9ca65441dba72475c115f4d10bc55d6b399"
+      }
+    }
+  ],
+  "recorded_at": "2026-11-18T00:12:00Z",
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "2c8e701bfdbd881cc5176536e4ee4c35d4e50097600b290fb52a9c0256ecdd77"
+  }
+}

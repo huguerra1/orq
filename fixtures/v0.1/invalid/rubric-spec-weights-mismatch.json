@@ -1,0 +1,90 @@
+{
+  "schema_version": "0.1",
+  "rubric_id": "rubric-security-review-v1",
+  "version": "1.0",
+  "title": "Rubrica de revisão de segurança e confinamento",
+  "applicable_scope": "task_attempt",
+  "scale": {
+    "min_score": 0,
+    "max_score": 4
+  },
+  "dimensions": [
+    {
+      "dimension_id": "auth-and-secrets-boundary",
+      "name": "Fronteira de credenciais e segredos",
+      "description": "Verifica ausência de extração de tokens ou bypass de permissão.",
+      "requirement_ids": [
+        "R1",
+        "R2"
+      ],
+      "weight": "0.50",
+      "mandatory_minimum_score": 3,
+      "min_citations": 1,
+      "anchors": [
+        {
+          "score": 0,
+          "label": "Violação crítica",
+          "criteria": "Expõe credenciais ou lê tokens."
+        },
+        {
+          "score": 2,
+          "label": "Incompleto",
+          "criteria": "Omite verificação de escopo."
+        },
+        {
+          "score": 3,
+          "label": "Adequado",
+          "criteria": "Cumpre controles obrigatórios com evidência."
+        },
+        {
+          "score": 4,
+          "label": "Exemplar",
+          "criteria": "Cumpre controles e documenta guardas negativas."
+        }
+      ]
+    },
+    {
+      "dimension_id": "contract-completeness",
+      "name": "Completude contratual e tratamento de erros",
+      "description": "Verifica cobertura de estados unknown, erros e invariantes.",
+      "requirement_ids": [
+        "R3"
+      ],
+      "weight": "0.25",
+      "mandatory_minimum_score": 2,
+      "min_citations": 1,
+      "anchors": [
+        {
+          "score": 0,
+          "label": "Ausente",
+          "criteria": "Omite tratamento de falhas."
+        },
+        {
+          "score": 2,
+          "label": "Parcial",
+          "criteria": "Cobre falhas principais."
+        },
+        {
+          "score": 3,
+          "label": "Completo",
+          "criteria": "Cobre todos os estados e erros."
+        },
+        {
+          "score": 4,
+          "label": "Exaustivo",
+          "criteria": "Cobre estados com rastreabilidade completa."
+        }
+      ]
+    }
+  ],
+  "pass_threshold": "0.75",
+  "inconclusive_band": {
+    "lower": "0.65",
+    "upper": "0.75"
+  },
+  "require_evidence_citations": true,
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "1a960343db167aa2494b372cb2c8837ac8ab14ffad80ce61b51c53c7fe4f77ca"
+  }
+}
