@@ -97,6 +97,16 @@ TRANSITIONS = ATTEMPT_TRANSITIONS + TASK_TRANSITIONS + RUN_TRANSITIONS
 TASK_TERMINAL = frozenset({"succeeded", "failed", "blocked", "cancelled", "indeterminate"})
 RUN_TERMINAL = frozenset({"succeeded", "failed", "cancelled", "indeterminate"})
 ATTEMPT_TERMINAL = frozenset({"completed", "failed", "timed_out", "cancelled"})
+# Término `finished` só falha por output inválido; com sessão de conhecimento
+# (Fase 7), também por contexto rejeitado, cota ou erro da própria CLI.
+FINISHED_OUTPUT_ERRORS = frozenset({"output_missing", "output_contract_mismatch", "integrity_mismatch"})
+FINISHED_FAMILY_ERRORS = frozenset({"context_rejected", "quota_limit_reached", "execution_failed", "permission_or_empty_output"})
+
+
+def _finished_error_allowed(attempt, code: str) -> bool:
+    """Mesmo conjunto para AT07 (término finished) e AT13 (found_finished)."""
+    return code in FINISHED_OUTPUT_ERRORS or bool(
+        attempt.intent.get("knowledge_session_ref") and code in FINISHED_FAMILY_ERRORS)
 
 
 def require(condition: Any, code: str, message: str) -> None:
@@ -204,6 +214,9 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             proof(p["reason"] == "crash" or any(e["event_type"] == "error_attached" and
                   e["payload"]["termination_certainty"] == "unknown" for e in local))
         elif row.id in {"AT06", "AT12"}:
+            if a.intent.get("knowledge_session_ref"):
+                guard(a.effective_context_manifest_ref is not None)
+                proof(has("attempt_context_sealed"))
             terminations = projection.history("attempt", id, "termination_confirmed") if row.id == "AT06" else observed
             termination = terminations[-1] if terminations else None
             proof(termination and termination in local and (termination["payload"]["cause"] == "finished"
@@ -219,8 +232,7 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             termination = terminations[-1] if terminations else None
             proof(termination and termination in local and termination["payload"]["cause"] in {"failed", "finished"})
             proof(failure_error and failure_error["global_sequence"] > termination["global_sequence"])
-            guard(termination["payload"]["cause"] != "finished" or failure_error["payload"]["code"] in {
-                "output_missing", "output_contract_mismatch", "integrity_mismatch"})
+            guard(termination["payload"]["cause"] != "finished" or _finished_error_allowed(a, failure_error["payload"]["code"]))
         elif row.id == "AT08":
             proof(has("deadline_exceeded") and has("cancel_requested") and has("termination_confirmed", cause="timeout"))
             proof(any(d["global_sequence"] < c["global_sequence"] < t["global_sequence"] for d in local if d["event_type"] == "deadline_exceeded"
@@ -243,7 +255,7 @@ def validate_transition(projection: RunProjection, event: dict[str, Any]) -> Tra
             if outcome == "found_stopped":
                 guard(error["code"] == "execution_failed" and error["retryability"] == "unknown")
             if outcome == "found_finished":
-                guard(error["code"] in {"output_missing", "output_contract_mismatch", "integrity_mismatch"})
+                guard(_finished_error_allowed(a, error["code"]))
         elif row.id == "AT14":
             proof(outcome == "found_stopped" and deadline)
             guard(any(e["global_sequence"] < observed[-1]["global_sequence"] for e in

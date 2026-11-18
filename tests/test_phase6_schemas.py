@@ -362,8 +362,8 @@ def test_each_event_has_a_valid_closed_payload(aggregate, event_type, payloads) 
 def test_journal_vocabulary_matches_the_accepted_contract() -> None:
     schema = validator_for("journal_event").schema
     phase7_events = {
-        "run": {"quota_exhausted_recorded", "quota_reset_observed"},
-        "attempt": {"quota_consumption_recorded"},
+        "run": {"quota_exhausted_recorded", "quota_reset_observed", "quota_probe_requested", "quota_probe_observed"},
+        "attempt": {"quota_consumption_recorded", "attempt_context_sealed"},
     }
     assert set(schema["properties"]["aggregate_type"]["enum"]) == set(VOCABULARY)
     assert set(schema["properties"]["event_type"]["enum"]) == {
@@ -520,7 +520,7 @@ def test_error_codes_and_admission_reasons_match_the_documented_enums(payloads) 
     codes = set(re.findall(r"`([^`]+)`", contract.split("Códigos iniciais do runner: ", 1)[1].split(".\n", 1)[0]))
     reasons = set(re.findall(r"`([^`]+)`", contract.split("Motivos de rejeição de admissão: ", 1)[1].split(".\n", 1)[0]))
     assert set(validator_for("error_record").schema["properties"]["code"]["enum"]) == codes | {
-        "quota_limit_reached", "subscription_policy_violation",
+        "quota_limit_reached", "subscription_policy_violation", "permission_or_empty_output",
     }
     assert set(validator_for("journal_event").schema["$defs"]["admission_rejected"]["properties"]["reason"]["enum"]) == reasons | {
         "quota_exhausted", "all_eligible_families_quota_exhausted",

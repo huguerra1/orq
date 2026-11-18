@@ -29,10 +29,23 @@ if mode == "quota":
                "claude": "Rate limit reached.", "agy": "RESOURCE_EXHAUSTED: quota exceeded", "kiro-cli": "Monthly limit exceeded."}[cli]
     print("ERROR: " + message, file=sys.stderr)
     sys.exit(1)
+if mode == "quota_absolute":
+    # Formato real de 14/11/2026 (codex-quota-v2): data absoluta no fuso local.
+    print("ERROR: You’ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit "
+          "https://chatgpt.com/settings/usage to purchase more credits or try again at Nov 15th, 2026 2:00 AM.", file=sys.stderr)
+    sys.exit(1)
+if mode == "quota_no_reset":
+    print("usage limit", file=sys.stderr)
+    sys.exit(1)
 if mode == "login":
     print("Could not load your login: dispatch failure (io error): an i/o error occurred", file=sys.stderr)
     sys.exit(1)
-if mode == "empty":
+if mode == "network":
+    print("network error: DNS unavailable", file=sys.stderr)
+    sys.exit(1)
+if mode in {"empty", "agy_permission"}:
+    if mode == "agy_permission":
+        print("logging before google.Init", file=sys.stderr)
     print("no output produced", file=sys.stderr)
     sys.exit(0)
 if mode == "noise_only":
@@ -40,6 +53,15 @@ if mode == "noise_only":
     print("[tool] read_file: usage limit")
     sys.exit(0)
 final = 'ORQ_FINAL:{"outputs":{"report":{"ok":true}}}'
+if mode == "literal_success":
+    if cli == "claude":
+        print(json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_result", "content": "You've hit your usage limit"}]}}))
+    elif cli == "codex":
+        print(json.dumps({"type": "item.completed", "item": {"type": "command_execution",
+              "aggregated_output": "You've hit your usage limit"}}))
+    else:
+        print("[tool] read_file: You've hit your usage limit")
 if mode == "bad_contract":
     final = 'ORQ_FINAL:{"outputs":{"report":{"ok":"yes"}}}'
 if mode == "file":

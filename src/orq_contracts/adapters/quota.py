@@ -11,7 +11,14 @@ from ..executor import Record, seal_record, stable_id
 from ..simulated_executor import format_utc, parse_utc
 
 
-VERSIONS = {cli: f"{cli}-quota-v1" for cli in ("claude", "codex", "agy", "kiro-cli")}
+# codex-quota-v2 (2026-11-14): aceita também a data absoluta observada no Codex CLI,
+# "try again at Nov 15th, 2026 2:00 AM", resolvida no fuso local do perfil.
+VERSIONS = {**{cli: f"{cli}-quota-v1" for cli in ("claude", "agy", "kiro-cli")}, "codex": "codex-quota-v2"}
+_ABSOLUTE_DATE = frozenset({"codex"})
+_MONTHS = {name: number for number, names in enumerate((
+    ("jan", "january"), ("feb", "february"), ("mar", "march"), ("apr", "april"), ("may",), ("jun", "june"),
+    ("jul", "july"), ("aug", "august"), ("sep", "sept", "september"), ("oct", "october"), ("nov", "november"),
+    ("dec", "december")), 1) for name in names}
 _PATTERNS = {
     "codex": r"(?:you['’]ve hit your usage limit|usage limit(?: reached| exceeded)?)(?:[ .:].*)?",
     "claude": r"(?:you(?:['’]ve)? (?:have )?hit your (?:usage|session) limit|rate limit(?: reached| exceeded)?|usage limit(?: reached| exceeded)?|limit reached)(?:[ .:].*)?",
@@ -38,6 +45,7 @@ class QuotaDetection:
 class QuotaLimitDetector:
     def __init__(self, cli: str, *, local_timezone: str = "UTC", default_cooldown_ms: int = 3600000):
         self.version = VERSIONS[cli]
+        self.absolute_date = cli in _ABSOLUTE_DATE
         self.pattern = re.compile(_PATTERNS[cli], re.IGNORECASE)
         self.zone = ZoneInfo(local_timezone)
         if type(default_cooldown_ms) is not int or default_cooldown_ms <= 0:
@@ -83,19 +91,37 @@ class QuotaLimitDetector:
                 return value.astimezone(timezone.utc) if value > now else None
             except ValueError:
                 return None
+        if self.absolute_date:
+            match = re.search(r"(?:try again at|resets? at)\s+([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4}),?"
+                              r"\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*(AM|PM)?(?![\w:])", line, re.I)
+            if match:
+                month, hour = _MONTHS.get(match[1].lower()), self._hour(int(match[4]), int(match[5]), match[6])
+                if month is None or hour is None:
+                    return None
+                try:
+                    reset = datetime(int(match[3]), month, int(match[2]), hour, int(match[5]), tzinfo=self.zone)
+                except ValueError:
+                    return None
+                return self._existing(reset) if reset > now else None
         match = re.search(r"(?:try again at|resets? at)\s+(\d{1,2}):(\d{2})\s*(AM|PM)?\b", line, re.I)
         if not match:
             return None
-        hour, minute = int(match[1]), int(match[2])
-        meridiem = match[3]
-        if minute > 59 or (meridiem and not 1 <= hour <= 12) or (not meridiem and hour > 23):
+        hour, minute = self._hour(int(match[1]), int(match[2]), match[3]), int(match[2])
+        if hour is None:
             return None
-        if meridiem:
-            hour = hour % 12 + (12 if meridiem.upper() == "PM" else 0)
         local = now.astimezone(self.zone)
         reset = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if reset <= local:
             reset += timedelta(days=1)
+        return self._existing(reset)
+
+    @staticmethod
+    def _hour(hour: int, minute: int, meridiem: str | None) -> int | None:
+        if minute > 59 or (meridiem and not 1 <= hour <= 12) or (not meridiem and hour > 23):
+            return None
+        return hour % 12 + (12 if meridiem.upper() == "PM" else 0) if meridiem else hour
+
+    def _existing(self, reset: datetime) -> datetime | None:
         # Hora inexistente na mudança de DST não deve virar um horário inventado.
         utc = reset.astimezone(timezone.utc)
         if utc.astimezone(self.zone).replace(tzinfo=None) != reset.replace(tzinfo=None):

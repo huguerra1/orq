@@ -425,10 +425,13 @@ class CLIAdapter:
                 if type(value) is int and value >= 0:
                     setattr(parsed, key, value)
 
-    def _error(self, intent: Record, code: str, message: str, now: str, *, quota_state=None) -> Record:
+    def _error(self, intent: Record, code: str, message: str, now: str, *, quota_state=None, unavailable=False) -> Record:
+        # Cota e indisponibilidade não-cota (rede/login) confirmadas pelo detector
+        # permitem nova tentativa; o Router exclui o destino na próxima decisão.
+        retryable = quota_state is not None or unavailable
         record = error_record(run_id=intent["run_id"], scope_type="attempt", scope_ref=intent["attempt_id"],
                               phase="collect", category="provider", code="execution_failed" if quota_state else code, message=message[:4096],
-                              timestamp=now, retryability="retryable" if quota_state else "unknown",
+                              timestamp=now, retryability="retryable" if retryable else "unknown",
                               termination_certainty="confirmed")
         if quota_state:
             record["code"] = code
@@ -464,7 +467,10 @@ class CLIAdapter:
             errors.append(self._error(intent, "quota_limit_reached", detection.excerpt, now, quota_state=state))
         elif observation.status != "finished" or not parsed.final:
             reason = detection.reason if detection.reason != "none" else receipt["stop_reason"] or "permission_or_empty_output"
-            errors.append(self._error(intent, "execution_failed", reason, now))
+            code = ("permission_or_empty_output" if self.cli == "agy" and not parsed.final and
+                    any("no output produced" in line.lower() for line in parsed.diagnostics) else "execution_failed")
+            errors.append(self._error(intent, code, reason, now, unavailable=code == "execution_failed" and
+                                      detection.reason in {"network_unavailable", "authentication_unavailable"}))
         if not errors:
             pending = []
             try:

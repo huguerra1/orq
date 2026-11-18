@@ -43,7 +43,8 @@ def build(tmp_path, monkeypatch):
     # Rede bloqueada também no processo pytest; as CLIs falsas não importam clientes de rede.
     monkeypatch.setattr(socket, "create_connection", lambda *a, **k: pytest.fail("rede proibida"))
 
-    def create(adapter_class=CodexAdapter, mode="success", timeout_ms=10000, permissions=CLIPermissions(), fake=True, clock=None):
+    def create(adapter_class=CodexAdapter, mode="success", timeout_ms=10000, permissions=CLIPermissions(), fake=True, clock=None,
+               cooldown_ms=3600000):
         root = tmp_path / str(len(resources))
         root.mkdir()
         clock = clock if clock is not None else lambda: NOW
@@ -53,7 +54,7 @@ def build(tmp_path, monkeypatch):
         family = {"claude": "claude", "codex": "codex", "agy": "gemini", "kiro-cli": "kiro"}[cli]
         profile = seal({"schema_version": "0.1", "subscription_id": "subscription-test", "family_id": "family_" + family,
                         "cli_executable": cli, "quota_pool_id": "pool-test", "billing_mode": "personal_subscription",
-                        "default_cooldown_ms": 3600000, "local_timezone": "America/Sao_Paulo", "detector_version": VERSIONS[cli]})
+                        "default_cooldown_ms": cooldown_ms, "local_timezone": "America/Sao_Paulo", "detector_version": VERSIONS[cli]})
         schema = {"type": "object", "properties": {"ok": {"const": True}}, "required": ["ok"], "additionalProperties": False}
         reference = {"id": "cli-test-output", "version": "0.1", "content_digest": canonical_digest(schema)}
         registry = ContentContractRegistry()
@@ -345,6 +346,52 @@ def test_kiro_login_failure_is_not_quota(build):
     _, result = finish(adapter, intent, bundle, workspace)
     assert result.errors[0]["message"] == "authentication_unavailable"
     assert "quota_state" not in result.errors[0]
+    assert result.errors[0]["retryability"] == "retryable"
+    assert result.errors[0]["termination_certainty"] == "confirmed"
+
+
+@pytest.mark.parametrize("cls", ADAPTERS)
+def test_cooldown_profile_override_is_executed(build, cls):
+    adapter, intent, bundle, workspace = build(cls, mode="quota_no_reset", cooldown_ms=120000)
+    _, result = finish(adapter, intent, bundle, workspace)
+    state = result.errors[0]["quota_state"]
+    assert state["status"] == "cooldown" and state["reset_at"] is None
+    assert state["blocked_until"] == "2026-11-15T00:32:00.000000Z"
+    assert state["default_cooldown_ms"] == 120000
+    assert result.errors[0]["code"] == "quota_limit_reached" and result.errors[0]["retryability"] == "retryable"
+
+
+@pytest.mark.parametrize("cls", ADAPTERS)
+@pytest.mark.parametrize("mode,reason", [("network", "network_unavailable"), ("login", "authentication_unavailable")])
+def test_non_quota_unavailability_is_retryable_without_quota_state(build, cls, mode, reason):
+    # Regressão do problema 1: sem cota não há reset_at, mas o erro confirmado
+    # é retryable para o runner trocar de destino (sem isso a tarefa falhava).
+    adapter, intent, bundle, workspace = build(cls, mode=mode)
+    _, result = finish(adapter, intent, bundle, workspace)
+    [error] = result.errors
+    assert (error["code"], error["message"]) == ("execution_failed", reason)
+    assert error["retryability"] == "retryable" and error["termination_certainty"] == "confirmed"
+    assert "quota_state" not in error and "reset_at" not in error
+    assert adapter.quota_consumption(intent)["quota_outcome"] == "unknown"
+
+
+def test_empty_output_without_unavailability_stays_unknown(build):
+    adapter, intent, bundle, workspace = build(AgyAdapter, mode="empty")
+    _, result = finish(adapter, intent, bundle, workspace)
+    assert result.errors[0]["code"] == "permission_or_empty_output"
+    assert result.errors[0]["retryability"] == "unknown"
+
+
+def test_codex_absolute_reset_date_through_real_adapter(build):
+    # Formato real de 14/11/2026: "try again at Nov 15th, 2026 2:00 AM" (São Paulo).
+    adapter, intent, bundle, workspace = build(CodexAdapter, mode="quota_absolute")
+    _, result = finish(adapter, intent, bundle, workspace)
+    [error] = result.errors
+    state = error["quota_state"]
+    assert error["code"] == "quota_limit_reached"
+    assert state["status"] == "quota_exhausted" and state["reset_source"] == "cli_reported"
+    assert state["reset_at"] == state["blocked_until"] == "2026-11-15T05:00:00.000000Z"
+    assert adapter.profile["detector_version"] == "codex-quota-v2"
 
 
 def test_multiline_json_envelope_among_noise(build):

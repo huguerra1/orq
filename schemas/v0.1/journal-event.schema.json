@@ -85,7 +85,10 @@
         "usage_attached",
         "quota_exhausted_recorded",
         "quota_reset_observed",
-        "quota_consumption_recorded"
+        "quota_consumption_recorded",
+        "attempt_context_sealed",
+        "quota_probe_requested",
+        "quota_probe_observed"
       ]
     },
     "recorded_at": {
@@ -1248,6 +1251,311 @@
     },
     "quota_consumption_recorded": {
       "$ref": "quota-consumption-record.schema.json"
+    },
+    "attempt_context_sealed": {
+      "type": "object",
+      "required": [
+        "session_config",
+        "audit",
+        "audit_hash",
+        "selection",
+        "manifest"
+      ],
+      "properties": {
+        "session_config": {
+          "type": "object",
+          "required": [
+            "session_id",
+            "task",
+            "scope",
+            "eligibility",
+            "requirements",
+            "choice",
+            "materialize",
+            "backend_id",
+            "knowledge_status_assertions"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "task": {
+              "$ref": "task.schema.json"
+            },
+            "scope": {
+              "type": "object",
+              "required": [
+                "catalog_id",
+                "project_id",
+                "family_id",
+                "role_id"
+              ],
+              "properties": {
+                "catalog_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "project_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "family_id": {
+                  "$ref": "common.schema.json#/$defs/familyId"
+                },
+                "role_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            "eligibility": {
+              "type": "object",
+              "required": [
+                "project_id",
+                "as_of"
+              ],
+              "properties": {
+                "project_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "as_of": {
+                  "$ref": "common.schema.json#/$defs/utcTimestamp"
+                }
+              },
+              "additionalProperties": false
+            },
+            "requirements": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "choice": {
+              "type": "object",
+              "required": [
+                "run_id",
+                "workflow_ref",
+                "task_id",
+                "candidate_attempt_number",
+                "created_at",
+                "max_tokens",
+                "policy_snapshot_refs",
+                "selection_id"
+              ],
+              "properties": {
+                "run_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "workflow_ref": {
+                  "$ref": "common.schema.json#/$defs/versionedRef"
+                },
+                "task_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                },
+                "candidate_attempt_number": {
+                  "$ref": "common.schema.json#/$defs/positiveInteger"
+                },
+                "created_at": {
+                  "$ref": "common.schema.json#/$defs/utcTimestamp"
+                },
+                "max_tokens": {
+                  "$ref": "common.schema.json#/$defs/positiveInteger"
+                },
+                "policy_snapshot_refs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/versionedRef"
+                  }
+                },
+                "selection_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            "materialize": {
+              "type": "object",
+              "required": [
+                "routing_decision_ref",
+                "target_ref",
+                "target_context_limit_tokens",
+                "reserved_output_tokens",
+                "context_manifest_id"
+              ],
+              "properties": {
+                "routing_decision_ref": {
+                  "$ref": "common.schema.json#/$defs/versionedRef"
+                },
+                "target_ref": {
+                  "$ref": "common.schema.json#/$defs/versionedRef"
+                },
+                "target_context_limit_tokens": {
+                  "$ref": "common.schema.json#/$defs/positiveInteger"
+                },
+                "reserved_output_tokens": {
+                  "$ref": "common.schema.json#/$defs/positiveInteger"
+                },
+                "context_manifest_id": {
+                  "$ref": "common.schema.json#/$defs/identifier"
+                }
+              },
+              "additionalProperties": false
+            },
+            "backend_id": {
+              "enum": [
+                "offline_markdown_bm25",
+                "postgres_fts_trgm"
+              ]
+            },
+            "knowledge_status_assertions": {
+              "type": "array",
+              "items": {
+                "$ref": "knowledge-catalog.schema.json#/$defs/statusAssertion"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "audit": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "required": [
+              "session_ref",
+              "sequence",
+              "tool",
+              "arguments",
+              "recorded_at",
+              "intent_hash",
+              "response",
+              "previous_hash",
+              "entry_hash"
+            ],
+            "properties": {
+              "session_ref": {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              },
+              "sequence": {
+                "$ref": "common.schema.json#/$defs/positiveInteger"
+              },
+              "tool": {
+                "enum": [
+                  "search_family_knowledge",
+                  "select_family_knowledge"
+                ]
+              },
+              "arguments": {
+                "type": "object"
+              },
+              "recorded_at": {
+                "$ref": "common.schema.json#/$defs/utcTimestamp"
+              },
+              "intent_hash": {
+                "$ref": "common.schema.json#/$defs/digest"
+              },
+              "response": {
+                "type": "object"
+              },
+              "previous_hash": {
+                "oneOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/digest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "entry_hash": {
+                "$ref": "common.schema.json#/$defs/digest"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "audit_hash": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "selection": {
+          "oneOf": [
+            {
+              "$ref": "knowledge-selection.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manifest": {
+          "oneOf": [
+            {
+              "$ref": "context-manifest.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "quota_probe_requested": {
+      "type": "object",
+      "required": [
+        "probe_id",
+        "quota_pool_id",
+        "blocked_record_ref",
+        "requested_at"
+      ],
+      "properties": {
+        "probe_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "quota_pool_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "blocked_record_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
+        },
+        "requested_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "quota_probe_observed": {
+      "type": "object",
+      "required": [
+        "probe_id",
+        "quota_pool_id",
+        "available",
+        "observed_at",
+        "evidence_refs"
+      ],
+      "properties": {
+        "probe_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "quota_pool_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "available": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "observed_at": {
+          "$ref": "common.schema.json#/$defs/utcTimestamp"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/artifactRef"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "allOf": [
@@ -1281,7 +1589,9 @@
               "run_closed",
               "artifact_ingested",
               "quota_exhausted_recorded",
-              "quota_reset_observed"
+              "quota_reset_observed",
+              "quota_probe_requested",
+              "quota_probe_observed"
             ]
           }
         }
@@ -1344,7 +1654,8 @@
               "error_attached",
               "state_transition",
               "late_observation",
-              "quota_consumption_recorded"
+              "quota_consumption_recorded",
+              "attempt_context_sealed"
             ]
           }
         }
@@ -2124,6 +2435,63 @@
         "properties": {
           "payload": {
             "$ref": "#/$defs/quota_consumption_recorded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "attempt_context_sealed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/attempt_context_sealed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "quota_probe_requested"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/quota_probe_requested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "quota_probe_observed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/quota_probe_observed"
           }
         }
       }
