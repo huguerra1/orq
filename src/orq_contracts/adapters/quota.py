@@ -129,18 +129,24 @@ class QuotaLimitDetector:
         return utc
 
     def state_record(self, detection: QuotaDetection, *, profile: Record, intent: Record,
-                     observed_at: str) -> Record:
+                     observed_at: str, evaluation_id: str | None = None) -> Record:
         if detection.reason != "quota_exhausted":
             raise ValueError("observação não comprova cota")
+        eval_id = evaluation_id if evaluation_id is not None else (
+            intent.get("evaluation_id") if intent.get("judge_call_id") else None
+        )
         record = {
             "schema_version": "0.1", "quota_event_id": stable_id("quota", intent["dispatch_idempotency_key"]),
-            "run_id": intent["run_id"], "source_attempt_id": intent["attempt_id"],
+            "run_id": intent["run_id"],
+            "source_attempt_id": None if eval_id is not None else intent["attempt_id"],
             **{key: profile[key] for key in ("subscription_id", "family_id", "quota_pool_id")},
             "status": "cooldown" if detection.requires_probe else "quota_exhausted",
             "observed_at": observed_at, "reset_at": detection.reset_at,
             "blocked_until": detection.blocked_until, "reset_source": detection.reset_source,
             "raw_message_excerpt": detection.excerpt,
         }
+        if eval_id is not None:
+            record["source_evaluation_id"] = eval_id
         if detection.requires_probe:
             record["default_cooldown_ms"] = self.cooldown_ms
         return seal_record(record, "quota_state_record")
