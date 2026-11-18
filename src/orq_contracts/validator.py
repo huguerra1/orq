@@ -163,6 +163,7 @@ def validate_instance(
         "rubric_evaluation_evidence",
         "evaluator_routing_policy",
         "post_hoc_rubric_audit_record",
+        "calibration_report",
     }
     if schema_name in signed_schemas or (schema_name == "usage_record" and "subscription_id" in instance):
         issues.extend(_record_hash_issues(instance))
@@ -174,6 +175,8 @@ def validate_instance(
         issues.extend(_evaluator_routing_policy_issues(instance))
     if schema_name == "post_hoc_rubric_audit_record":
         issues.extend(_timestamp_issues(instance, ("recorded_at",)))
+    if schema_name == "calibration_report":
+        issues.extend(_calibration_report_issues(instance))
     if schema_name == "task":
         issues.extend(_task_semantic_issues(instance, calibration_mode=bool(calibration_mode)))
     if schema_name == "workflow":
@@ -490,6 +493,44 @@ def _evaluator_routing_policy_issues(policy: dict[str, Any]) -> list[ValidationI
             f"famílias não podem repetir entre primárias e fallback: {sorted(overlap)}",
         )]
     return []
+
+
+def _calibration_report_issues(report: dict[str, Any]) -> list[ValidationIssue]:
+    issues = _timestamp_issues(report, ("recorded_at",))
+    counts = report["sample_counts"]
+    expected_total = counts["gold_pass"] + counts["seeded_semantic_fail"] + counts["borderline_cases"]
+    if counts["total"] != expected_total:
+        issues.append(ValidationIssue(
+            "semantic.calibration_sample_count_mismatch",
+            "/sample_counts/total",
+            "total deve igualar a soma das categorias do corpus",
+        ))
+    tested = set(report["evaluator_families_tested"])
+    per_fam = report["per_family_metrics"]
+    issues.extend(_duplicate_issues(per_fam, "family_id", "/per_family_metrics"))
+    if {item["family_id"] for item in per_fam} != tested:
+        issues.append(ValidationIssue(
+            "semantic.calibration_family_metrics_mismatch",
+            "/per_family_metrics",
+            "per_family_metrics deve cobrir exatamente evaluator_families_tested",
+        ))
+    if bool(report["gates_passed"]) != (len(report["failed_gates"]) == 0):
+        issues.append(ValidationIssue(
+            "semantic.calibration_gates_mismatch",
+            "/gates_passed",
+            "gates_passed deve refletir failed_gates vazia",
+        ))
+    rec = report["recommended_thresholds"]
+    thresh = _parse_decimal(rec["pass_threshold"])
+    lower = _parse_decimal(rec["inconclusive_band"]["lower"])
+    upper = _parse_decimal(rec["inconclusive_band"]["upper"])
+    if thresh is None or lower is None or upper is None or not (Decimal(0) <= lower <= thresh <= upper <= Decimal(1)):
+        issues.append(ValidationIssue(
+            "semantic.invalid_inconclusive_band",
+            "/recommended_thresholds/inconclusive_band",
+            "limiares recomendados exigem 0 <= lower <= pass_threshold <= upper <= 1",
+        ))
+    return issues
 
 
 def _run_intent_issues(intent: dict[str, Any]) -> list[ValidationIssue]:

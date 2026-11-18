@@ -6,7 +6,7 @@
 
 **Plataforma experimental de orquestração de agentes de IA em Python com MCP, projetada para desacoplar papéis, modelos, provedores, runtimes e executores sob contratos verificáveis, contexto auditável e avaliação determinística.**
 
-O baseline documental v0.1 e as Fases 2–6 estão concluídos, e os incrementos **7A–7F** da **Fase 7** estão implementados na arquitetura local/CI: contratos de assinaturas e cota, banco PostgreSQL com RLS particionada (`orq_memory_reader`) e modo de controle `shared_global` (`orq_memory_global_reader`), busca híbrida (`postgres_fts_trgm`) + fallback offline BM25 (`bm25-v1`), quatro adaptadores de CLI (`ClaudeCodeAdapter`, `CodexAdapter`, `AgyAdapter`, `KiroAdapter`) com conector MCP nativo por tentativa e supervisão POSIX/WSL, runner ciente de cota com `FamilyRuntime`/`SubscriptionHub`, harness executável do **Experimento 7F** (`Q28`–`Q30`) e CLI (`orq plan`, `orq route`, `orq run simulate`, `orq adapters probe-versions`, `orq experiment-7f`). O gate real **V01–V12** contra binários vivos de assinatura continua aberto aguardando sessão real com `ArtifactRef` por versão.
+O baseline documental v0.1 e as Fases 2–6 estão concluídos, os incrementos **7A–7F** da **Fase 7** e os incrementos **8A–8E** da **Fase 8** (conforme a ADR 0009) estão implementados e verificados na suíte local/CI: contratos de assinaturas e cota, banco PostgreSQL com RLS particionada (`orq_memory_reader`) e modo de controle `shared_global` (`orq_memory_global_reader`), busca híbrida (`postgres_fts_trgm`) + fallback offline BM25 (`bm25-v1`), quatro adaptadores de CLI (`ClaudeCodeAdapter`, `CodexAdapter`, `AgyAdapter`, `KiroAdapter`) com modo somente leitura para juízes (`ORQ_FINAL:`) e conector MCP nativo por tentativa, `CompositeEvaluator` (Estágio 1 determinístico + Estágio 2 `model_rubric` em `task_attempt` sob seleção cross-family e espera `TK19→TK22`), calibração/viés $\Delta_{\text{self}}$ (`orq calibrate evaluator`), auditoria pós-hoc somente leitura (`orq audit rubric`) e harness do **Experimento 7F** (`Q28`–`Q30`). Ficam em aberto apenas os gates manuais ao vivo do operador: smoke real **V01–V12** contra binários vivos de assinatura, lotes ao vivo da Camada B do `7F` e revisão humana + calibração piloto da rubrica e do corpus iniciais em rascunho (`fixtures/v0.1/calibration/`).
 
 ---
 
@@ -54,7 +54,7 @@ flowchart TD
 ```
 
 - **Onde entra o MCP:** o servidor `orq-knowledge-mcp` recebe a raiz do Vault (e, quando ativo, a configuração `Postgres`) com escopo fixado pelo host na sessão da tentativa (`AttemptKnowledgeSession`), expondo resources e tools somente leitura/escopadas (`search_family_knowledge` e `select_family_knowledge` + `orq://catalog/summary` e `orq://knowledge/{source_id}/{revision}/{unit_id}` com reconfirmação de digest SHA-256).
-- **Próxima integração:** fechar o gate **V01–V12** com `ArtifactRef` em binários reais de assinatura e avançar na **Fase 8** (avaliador por modelo/rubrica sob ADR 0009).
+- **Próxima integração:** executar o gate real **V01–V12** em binários vivos de assinatura, os lotes da Camada B do `7F` e a calibração piloto humana sobre a rubrica/corpus iniciais (`fixtures/v0.1/calibration/`).
 
 ---
 
@@ -69,8 +69,9 @@ flowchart TD
 | **Fase 5** | Concluída | Schemas e núcleo do `Model Router` (`route_and_finalize`) com filtro determinístico de elegibilidade, modos `fixed`/`rules`, interface `DecisionEngine`, motor simulado e adaptador opcional TypeSafe/Jev (`typesafe-sdk==0.7.2`). |
 | **Fase 6** | Concluída | Contratos, journal/artefatos, projeções/guardas, executor simulado, avaliador e runner com `orq run simulate`. S02 succeeded, S03 reproduzível byte a byte; 63 cenários auditados. |
 | **Fase 7 (`7A–7F`)** | Implementada localmente / CI (gate real V01–V12 pendente) | Hub de assinaturas, detector de cota versionado, Postgres RLS (`orq_memory_reader` v1 + `orq_memory_global_reader` v2), busca híbrida FTS português + `pg_trgm` com fallback BM25 offline, adaptadores CLI com conector MCP nativo por tentativa, subcomandos `orq plan`/`orq route`/`orq adapters probe-versions`/`orq experiment-7f` e cenários `Q01`–`Q30`. |
+| **Fase 8 (`8A–8E`)** | Implementada localmente / CI (calibração piloto ao vivo e revisão humana de rubricas pendentes) | Contratos fechados (`RubricSpec`, `RubricEvaluationEvidence`, `EvaluatorRoutingPolicy`, `PostHocRubricAuditRecord`, `CalibrationReport`), renderizador anti-injeção com `IsolatedEvalWorkspace`, seleção cross-family/vendor, `RubricModelEvaluator` read-only nas 4 CLIs (`ORQ_FINAL:`), `CompositeEvaluator` no `SequentialRunner` (`TK19→TK22`/`TK21`), `orq calibrate evaluator`, `orq audit rubric`, corpus inicial em rascunho (`24` itens) e cenários `R01`–`R25`. |
 
-Detalhes em [HANDOFF](docs/HANDOFF.md) e [Fase 7](docs/phase-7/README.md).
+Detalhes em [HANDOFF](docs/HANDOFF.md), [Fase 7](docs/phase-7/README.md) e [Fase 8](docs/phase-8/README.md).
 
 ---
 

@@ -1,5 +1,6 @@
 """Contratos executáveis do ORQ."""
 
+from .calibration import run_calibration, run_post_hoc_rubric_audit
 from .canonical import canonical_digest, canonicalize
 from .composite_evaluator import CompositeEvaluator, default_evaluator_routing_policy
 from .context import ContextError, MaterializedContext, materialize_knowledge_context
@@ -50,6 +51,8 @@ __all__ = [
     "canonicalize",
     "CompositeEvaluator",
     "default_evaluator_routing_policy",
+    "run_calibration",
+    "run_post_hoc_rubric_audit",
     "ingest_markdown_source",
     "materialize_unit",
     "materialize_knowledge_context",

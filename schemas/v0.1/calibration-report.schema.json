@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/calibration-report.schema.json",
+  "title": "ORQ CalibrationReport v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "calibration_report_id",
+    "corpus_id",
+    "corpus_digest",
+    "rubric_ref",
+    "prompt_template_ref",
+    "evaluator_families_tested",
+    "sample_counts",
+    "per_family_metrics",
+    "inter_evaluator_metrics",
+    "self_preference_metrics",
+    "calibrated_from_pilot",
+    "curation_status",
+    "recommended_thresholds",
+    "gates_passed",
+    "failed_gates",
+    "usage_record_refs",
+    "quota_consumption_refs",
+    "recorded_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "calibration_report_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "corpus_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "corpus_digest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "rubric_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "prompt_template_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "evaluator_families_tested": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/familyId"
+      }
+    },
+    "sample_counts": {
+      "type": "object",
+      "required": [
+        "total",
+        "gold_pass",
+        "seeded_semantic_fail",
+        "borderline_cases"
+      ],
+      "properties": {
+        "total": {
+          "$ref": "common.schema.json#/$defs/positiveInteger"
+        },
+        "gold_pass": {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        },
+        "seeded_semantic_fail": {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        },
+        "borderline_cases": {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        }
+      },
+      "additionalProperties": false
+    },
+    "per_family_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/familyMetrics"
+      }
+    },
+    "inter_evaluator_metrics": {
+      "type": "object",
+      "required": [
+        "krippendorff_alpha_ordinal_global",
+        "krippendorff_alpha_by_dimension",
+        "kendall_tau_b_pairs",
+        "mad_inter"
+      ],
+      "properties": {
+        "krippendorff_alpha_ordinal_global": {
+          "$ref": "#/$defs/signedDecimal"
+        },
+        "krippendorff_alpha_by_dimension": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dimensionAlpha"
+          }
+        },
+        "kendall_tau_b_pairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/kendallPair"
+          }
+        },
+        "mad_inter": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "self_preference_metrics": {
+      "type": "object",
+      "required": [
+        "matrix",
+        "by_family"
+      ],
+      "properties": {
+        "matrix": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/selfPreferenceCell"
+          }
+        },
+        "by_family": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/familySelfPreference"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "calibrated_from_pilot": {
+      "type": "boolean"
+    },
+    "curation_status": {
+      "enum": [
+        "draft_pending_owner_review",
+        "curated_verified"
+      ]
+    },
+    "recommended_thresholds": {
+      "type": "object",
+      "required": [
+        "pass_threshold",
+        "inconclusive_band",
+        "disqualified_evaluator_families"
+      ],
+      "properties": {
+        "pass_threshold": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "inconclusive_band": {
+          "$ref": "#/$defs/band"
+        },
+        "disqualified_evaluator_families": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/familyId"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "gates_passed": {
+      "type": "boolean"
+    },
+    "failed_gates": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/nonEmptyText"
+      }
+    },
+    "usage_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "quota_consumption_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "signedDecimal": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "band": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "upper": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "familyMetrics": {
+      "type": "object",
+      "required": [
+        "family_id",
+        "cfpr",
+        "precision",
+        "recall",
+        "f1",
+        "valid_citation_rate",
+        "cohen_kappa_vs_human"
+      ],
+      "properties": {
+        "family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "cfpr": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "precision": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "recall": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "f1": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "valid_citation_rate": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "cohen_kappa_vs_human": {
+          "$ref": "#/$defs/signedDecimal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dimensionAlpha": {
+      "type": "object",
+      "required": [
+        "dimension_id",
+        "alpha"
+      ],
+      "properties": {
+        "dimension_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "alpha": {
+          "$ref": "#/$defs/signedDecimal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "kendallPair": {
+      "type": "object",
+      "required": [
+        "family_a",
+        "family_b",
+        "tau_b"
+      ],
+      "properties": {
+        "family_a": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "family_b": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "tau_b": {
+          "$ref": "#/$defs/signedDecimal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "selfPreferenceCell": {
+      "type": "object",
+      "required": [
+        "author_family_id",
+        "evaluator_family_id",
+        "mean_normalized_score",
+        "sample_count"
+      ],
+      "properties": {
+        "author_family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "evaluator_family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "mean_normalized_score": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "sample_count": {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        }
+      },
+      "additionalProperties": false
+    },
+    "familySelfPreference": {
+      "type": "object",
+      "required": [
+        "family_id",
+        "delta_self",
+        "wilcoxon_w_plus",
+        "wilcoxon_p_value",
+        "n_paired",
+        "disqualified"
+      ],
+      "properties": {
+        "family_id": {
+          "$ref": "common.schema.json#/$defs/familyId"
+        },
+        "delta_self": {
+          "$ref": "#/$defs/signedDecimal"
+        },
+        "wilcoxon_w_plus": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "wilcoxon_p_value": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "n_paired": {
+          "$ref": "common.schema.json#/$defs/nonNegativeInteger"
+        },
+        "disqualified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
