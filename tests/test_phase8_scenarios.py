@@ -33,23 +33,54 @@ from orq_contracts.validator import validate_instance, validate_workflow
 EXPECTED_SIMULATE_DIGEST = "2e571353f5f6a19eb8049e70cde2d93c7f6f2d5f93d93bb6da1b5aa0393af64c"
 
 
+_LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+
+
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch: pytest.MonkeyPatch):
+    real_getaddrinfo = socket.getaddrinfo
+    real_create_connection = socket.create_connection
+    original_connect = socket.socket.connect
+    original_connect_ex = socket.socket.connect_ex
+    original_sendto = socket.socket.sendto
+
     def forbidden(*args, **kwargs):
         raise AssertionError("rede externa proibida")
 
-    for name in ("create_connection", "getaddrinfo", "gethostbyname", "gethostbyname_ex"):
-        monkeypatch.setattr(socket, name, forbidden)
-    for name in ("connect_ex", "send", "sendall", "sendto"):
-        monkeypatch.setattr(socket.socket, name, forbidden)
-    original_connect = socket.socket.connect
+    def guarded_getaddrinfo(host, *args, **kwargs):
+        if host in _LOOPBACK:
+            return real_getaddrinfo(host, *args, **kwargs)
+        return forbidden(host, *args, **kwargs)
 
-    def loopback_only(sock, address):
-        if isinstance(address, tuple) and address[0] in {"127.0.0.1", "localhost", "::1"}:
+    def guarded_create_connection(address, *args, **kwargs):
+        host = address[0] if isinstance(address, (tuple, list)) and address else None
+        if host in _LOOPBACK:
+            return real_create_connection(address, *args, **kwargs)
+        return forbidden(address, *args, **kwargs)
+
+    def loopback_connect(sock, address):
+        if isinstance(address, tuple) and address[0] in _LOOPBACK:
             return original_connect(sock, address)
         return forbidden(sock, address)
 
-    monkeypatch.setattr(socket.socket, "connect", loopback_only)
+    def loopback_connect_ex(sock, address):
+        if isinstance(address, tuple) and address[0] in _LOOPBACK:
+            return original_connect_ex(sock, address)
+        return forbidden(sock, address)
+
+    def loopback_sendto(sock, data, *args):
+        address = args[-1] if args else None
+        if isinstance(address, tuple) and address[0] in _LOOPBACK:
+            return original_sendto(sock, data, *args)
+        return forbidden(sock, address)
+
+    for name in ("gethostbyname", "gethostbyname_ex"):
+        monkeypatch.setattr(socket, name, forbidden)
+    monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
+    monkeypatch.setattr(socket, "create_connection", guarded_create_connection)
+    monkeypatch.setattr(socket.socket, "connect", loopback_connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", loopback_connect_ex)
+    monkeypatch.setattr(socket.socket, "sendto", loopback_sendto)
 
 
 def _seal(record: dict) -> dict:
@@ -647,10 +678,11 @@ def test_R16_normative_context_under_evaluator_rls_offline(tmp_path: Path) -> No
 
 
 @pytest.mark.skipif(not os.environ.get("ORQ_MEMORY_DSN"), reason="ORQ_MEMORY_DSN ausente")
-def test_R16_normative_context_under_postgres_rls(tmp_path: Path) -> None:
+def test_R16_normative_context_under_postgres_rls(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     psycopg = pytest.importorskip("psycopg")
     from orq_contracts.memory_store.postgres import apply_schema, connect, sync_catalog
 
+    monkeypatch.delenv("ORQ_KNOWLEDGE_BACKEND", raising=False)
     data, kw, *_ = _setup_phase8_bundle(
         tmp_path,
         rubric_eval_script={"raw_scores": {"auth-and-secrets-boundary": 4, "contract-completeness": 4}},
@@ -676,8 +708,9 @@ def test_R16_normative_context_under_postgres_rls(tmp_path: Path) -> None:
             assert "codex-only" not in sources
     finally:
         with connect(cfg) as admin:
-            admin.execute("DELETE FROM orq_memory.knowledge_units WHERE catalog_id = %s", (data["knowledge_catalog"]["catalog_id"],))
-            admin.commit()
+            with admin.transaction():
+                for table in ("knowledge_units", "knowledge_sources", "knowledge_catalogs"):
+                    admin.execute(f"DELETE FROM orq_memory.{table} WHERE catalog_id = %s", (data["knowledge_catalog"]["catalog_id"],))
 
 
 def test_R17_R18_inconclusive_band_vs_valid_fail(tmp_path: Path) -> None:
