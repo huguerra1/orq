@@ -214,7 +214,7 @@ class SimulationScript:
             return value[evaluation_number - 1]
         return value
 
-    def validate_against_workflow(self, workflow: Record) -> None:
+    def validate_against_workflow(self, workflow: Record, *, contracts: Any = None) -> None:
         """Confere o roteiro contra o WorkflowSpec antes da admissão (antes de qualquer evento).
 
         Limites da tarefa são o mínimo dos valores presentes na TaskSpec e no WorkflowSpec;
@@ -259,7 +259,11 @@ class SimulationScript:
             ):
                 raise ScriptError("unknown_hook_scope", f"hook {hook['hook_id']} fora do workflow")
         for task_id, task in tasks.items():
-            if any(output["content_contract_ref"] != contract for output in task["expected_output"]):
+            if any(
+                output["content_contract_ref"] != contract
+                and (contracts is None or contracts.validator(output["content_contract_ref"]) is None)
+                for output in task["expected_output"]
+            ):
                 raise ScriptError("unsupported_content_contract",
                                   f"{task_id}: OutputSpec deve declarar o envelope simulated-output")
             max_attempts = limit("max_attempts", task)

@@ -7,22 +7,38 @@ from pathlib import Path
 
 
 SCHEMA_VERSION = 1
+SCHEMA_V2_VERSION = 2
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+SCHEMA_V2_PATH = Path(__file__).with_name("schema_v2.sql")
 SCHEMA_NAME = "orq_memory"
 OWNER_ROLE = "orq_memory_owner"
 WRITER_ROLE = "orq_memory_writer"
 READER_ROLE = "orq_memory_reader"
+GLOBAL_READER_ROLE = "orq_memory_global_reader"
 MEMORY_ROLES = (OWNER_ROLE, WRITER_ROLE, READER_ROLE)
+ALL_MEMORY_ROLES = (OWNER_ROLE, WRITER_ROLE, READER_ROLE, GLOBAL_READER_ROLE)
 MEMORY_TABLES = ("knowledge_catalogs", "knowledge_sources", "knowledge_units")
 
 
 def load_schema_sql() -> str:
-    """Texto do DDL com fins de linha normalizados para LF."""
+    """Texto do DDL v1 com fins de linha normalizados para LF."""
 
     return SCHEMA_PATH.read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
 def schema_digest() -> str:
-    """SHA-256 do DDL (LF), registrado em `orq_memory.schema_migrations`."""
+    """SHA-256 do DDL v1 (LF), registrado em `orq_memory.schema_migrations`."""
 
     return hashlib.sha256(load_schema_sql().encode("utf-8")).hexdigest()
+
+
+def load_schema_v2_sql() -> str:
+    """Texto do DDL v2 com fins de linha normalizados para LF."""
+
+    return SCHEMA_V2_PATH.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def schema_v2_digest() -> str:
+    """SHA-256 do DDL v2 (LF), registrado em `orq_memory.schema_migrations`."""
+
+    return hashlib.sha256(load_schema_v2_sql().encode("utf-8")).hexdigest()

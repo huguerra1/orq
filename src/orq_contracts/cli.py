@@ -13,6 +13,13 @@ from typing import Any, Sequence
 from .canonical import CanonicalizationError, canonical_digest, canonicalize
 from ._storage import StorageError
 from .adapters import probe_cli_versions
+from .experiment_7f import (
+    Experiment7FError,
+    audit_and_analyze,
+    run_quota_stress_comparison,
+    run_simulated_experiment,
+    verify_package,
+)
 from .planner import FixedTemplatePlanner, PlanningError, plan_and_validate
 from .router import RoutingError, route_and_finalize
 from .runner import SequentialRunner
@@ -148,6 +155,28 @@ def _parser() -> argparse.ArgumentParser:
         "probe-versions", help="sonda disponibilidade e versão local das CLIs sem alterar controles unknown"
     )
     probe_versions.add_argument("--include-wsl", action="store_true")
+
+    exp7f = subparsers.add_parser("experiment-7f", help="executa e audita o Experimento 7F")
+    exp7f_commands = exp7f.add_subparsers(dest="exp7f_command", required=True)
+    verify_cmd = exp7f_commands.add_parser("verify-package", help="verifica digests e manifesto do pacote 7F")
+    verify_cmd.add_argument("--package-dir", type=Path, required=True)
+
+    sim_cmd = exp7f_commands.add_parser("simulate", help="executa Camada A pareada (Q28)")
+    sim_cmd.add_argument("--package-dir", type=Path, required=True)
+    sim_cmd.add_argument("--store-root", type=Path, required=True)
+    sim_cmd.add_argument("--repetitions", type=int, default=1)
+    sim_cmd.add_argument("--selection-mode", choices=("agent_mcp_choice", "static_top_k"), default="agent_mcp_choice")
+    sim_cmd.add_argument("--output", type=Path)
+
+    stress_cmd = exp7f_commands.add_parser("quota-stress", help="executa estresse de cota pareado (Q29)")
+    stress_cmd.add_argument("--package-dir", type=Path, required=True)
+    stress_cmd.add_argument("--store-root", type=Path, required=True)
+    stress_cmd.add_argument("--output", type=Path)
+
+    audit_cmd = exp7f_commands.add_parser("audit", help="audita journals e calcula estatísticas pareadas (Q30)")
+    audit_cmd.add_argument("--package-dir", type=Path, required=True)
+    audit_cmd.add_argument("--store-root", type=Path, required=True)
+    audit_cmd.add_argument("--output", type=Path)
     return parser
 
 
@@ -287,6 +316,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(probe_cli_versions(include_wsl=arguments.include_wsl), ensure_ascii=False, indent=2))
             return 0
 
+        if arguments.command == "experiment-7f":
+            if arguments.exp7f_command == "verify-package":
+                payload = verify_package(arguments.package_dir)
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+                return 0
+            if arguments.exp7f_command == "simulate":
+                payload = run_simulated_experiment(
+                    arguments.store_root,
+                    package_dir=arguments.package_dir,
+                    repetitions=arguments.repetitions,
+                    selection_mode=arguments.selection_mode,
+                    memory_config=resolve_memory_config(),
+                )
+            elif arguments.exp7f_command == "quota-stress":
+                payload = run_quota_stress_comparison(
+                    arguments.store_root,
+                    package_dir=arguments.package_dir,
+                    memory_config=resolve_memory_config(),
+                )
+            else:
+                payload = audit_and_analyze(arguments.store_root, package_dir=arguments.package_dir)
+                if not payload["audit"]["valid"]:
+                    print(json.dumps(payload, ensure_ascii=False, indent=2))
+                    return 1
+            if getattr(arguments, "output", None) is not None:
+                _write_exclusive(arguments.output, _json_bytes(payload))
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return 0
+
         if arguments.command == "run":
             document = _read_json(arguments.script)
             script = SimulationScript(document, expected_digest=canonical_digest(document))
@@ -321,6 +379,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         StorageError,
         PlanningError,
         RoutingError,
+        Experiment7FError,
     ) as error:
         result = {"valid": False, "error": str(error)}
         if arguments.command == "run" and hasattr(error, "code"):

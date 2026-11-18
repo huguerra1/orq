@@ -20,11 +20,13 @@ import pytest
 from _memory_vault import PROJECT, SOURCES, build_family_vault, rehash
 from orq_contracts.canonical import canonical_digest
 from orq_contracts.cli import main
+from orq_contracts.knowledge_backend import scope_allows
 from orq_contracts.memory_store import (
     DEFAULT_AUDIENCE,
     FAMILY_IDS,
     OFFLINE_BACKEND,
     POSTGRES_BACKEND,
+    SHARED_GLOBAL_REGIME,
     MemoryConfig,
     MemoryScope,
     MemoryStoreError,
@@ -32,12 +34,17 @@ from orq_contracts.memory_store import (
     resolve_memory_config,
 )
 from orq_contracts.memory_store.ddl import (
+    ALL_MEMORY_ROLES,
+    GLOBAL_READER_ROLE,
     MEMORY_ROLES,
     MEMORY_TABLES,
     READER_ROLE,
+    SCHEMA_V2_VERSION,
     WRITER_ROLE,
     load_schema_sql,
+    load_schema_v2_sql,
     schema_digest,
+    schema_v2_digest,
 )
 from orq_contracts.schemas import load_schemas
 from orq_contracts.selection import select_knowledge
@@ -445,3 +452,46 @@ def test_sync_db_cli_respects_forced_offline_backend(monkeypatch, capsys) -> Non
     output = capsys.readouterr().out
     assert "memory_dsn_missing" in json.loads(output)["error"]
     assert "segredo-de-teste" not in output
+
+
+def test_ddl_v2_creates_global_reader_without_family_filter() -> None:
+    raw = (ROOT / "src" / "orq_contracts" / "memory_store" / "schema_v2.sql").read_bytes()
+    assert b"\r" not in raw
+    assert SCHEMA_V2_VERSION == 2
+    assert schema_v2_digest() == hashlib.sha256(raw).hexdigest()
+    assert "%" not in load_schema_v2_sql()
+
+    sql = _statements(load_schema_v2_sql())
+    assert GLOBAL_READER_ROLE in ALL_MEMORY_ROLES
+    assert re.search(rf"ALTER ROLE {GLOBAL_READER_ROLE} NOLOGIN NOSUPERUSER NOBYPASSRLS ", sql)
+    assert re.search(r"(?<!NO)BYPASSRLS", sql) is None
+    assert re.search(r"(?<!NO)SUPERUSER", sql) is None
+
+    compact = " ".join(sql.split())
+    grants = re.findall(r"GRANT ([A-Z, ]+) ON (?!SCHEMA)[^;]+ TO ([a-z_, ]+);", compact)
+    assert ("SELECT", GLOBAL_READER_ROLE) in grants
+    assert {privileges for privileges, role in grants if GLOBAL_READER_ROLE in role} == {"SELECT"}
+
+    policies = re.findall(r"CREATE POLICY (\w+) ON orq_memory\.(\w+) (.*?);", compact)
+    global_policies = {table: body for name, table, body in policies if name.endswith("_global_reader_scope")}
+    assert set(global_policies) == set(MEMORY_TABLES)
+    for table, body in global_policies.items():
+        assert f"FOR SELECT TO {GLOBAL_READER_ROLE}" in body
+        for setting in ("app.catalog_id", "app.current_project_id", "app.current_family_id", "app.current_role_id"):
+            assert f"current_setting('{setting}', true)" in body, (table, setting)
+        assert "target_families" not in body and "target_roles" not in body
+
+
+def test_shared_global_regime_allows_cross_family_active_units_of_same_project(family_vault) -> None:
+    _root, snapshot = family_vault
+    codex_entry = next(e for e in snapshot["source_entries"] if e["source_metadata"]["source_id"] == "codex-only")
+    claude_entry = next(e for e in snapshot["source_entries"] if e["source_metadata"]["source_id"] == "claude-only")
+    partitioned = scope(family_id="family_claude")
+    shared = scope(family_id="family_claude", memory_regime=SHARED_GLOBAL_REGIME)
+
+    assert partitioned.settings() == shared.settings()
+    assert not scope_allows(codex_entry, codex_entry["source_metadata"], codex_entry["units"][0], partitioned)
+    assert scope_allows(codex_entry, codex_entry["source_metadata"], codex_entry["units"][0], shared)
+    assert scope_allows(claude_entry, claude_entry["source_metadata"], claude_entry["units"][0], shared)
+    with pytest.raises(MemoryStoreError, match="invalid_memory_scope"):
+        scope(memory_regime="invalid_regime")

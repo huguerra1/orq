@@ -19,6 +19,10 @@ OFFLINE_BACKEND = "offline_markdown_bm25"
 POSTGRES_BACKEND = "postgres"
 KNOWLEDGE_BACKENDS = (OFFLINE_BACKEND, POSTGRES_BACKEND)
 
+FAMILY_PARTITIONED_REGIME = "family_partitioned_rls"
+SHARED_GLOBAL_REGIME = "shared_global"
+MEMORY_REGIMES = (FAMILY_PARTITIONED_REGIME, SHARED_GLOBAL_REGIME)
+
 # Mesmo enum de `common.schema.json#/$defs/familyId` (um teste confere a igualdade).
 FAMILY_IDS = (
     "family_claude",
@@ -114,12 +118,15 @@ class MemoryScope:
     project_id: str
     family_id: str
     role_id: str
+    memory_regime: str = FAMILY_PARTITIONED_REGIME
 
     def __post_init__(self) -> None:
         for _setting, field_name in SCOPE_SETTINGS:
             _check_identifier(field_name, getattr(self, field_name))
         if self.family_id not in FAMILY_IDS:
             raise MemoryStoreError("invalid_memory_scope", "family_id fora do enum de famílias")
+        if self.memory_regime not in MEMORY_REGIMES:
+            raise MemoryStoreError("invalid_memory_scope", "memory_regime inválido")
 
     def settings(self) -> list[tuple[str, str]]:
         """Pares (variável, valor) aplicados com `set_config(..., true)` (equivale a `SET LOCAL`)."""

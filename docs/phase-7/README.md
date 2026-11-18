@@ -231,7 +231,13 @@ Os seis achados da revisão cruzada foram corrigidos com regressões, preservand
 5. **Unicidade e vínculo de sondagem (`quota_probe_observed`):** exige resposta vinculada ao `blocked_record_ref` do bloqueio ativo, sem duplicar `probe_id` nem anteceder `requested_at`.
 6. **Fallback e desbloqueio em `all_eligible_families_quota_exhausted`:** o Router considera toda a lista de alternativas na ordem da regra e cita os eventos bloqueantes junto ao menor `blocked_until`.
 
-Além disso, entrou a gramática `codex-quota-v2` (com a fixture real `fixtures/v0.1/cli-output/codex/usage-limit-2026-11-14.txt` para datas absolutas locais) e foram reforçados os cenários `Q03`, `Q09`, `Q10`, `Q11` e `Q12`. Próximo passo: CI com Postgres/stdio, merge na `dev`, conector MCP nativo/V01–V12 e **7F**.
+Além disso, entrou a gramática `codex-quota-v2` (com a fixture real `fixtures/v0.1/cli-output/codex/usage-limit-2026-11-14.txt` para datas absolutas locais) e foram reforçados os cenários `Q03`, `Q09`, `Q10`, `Q11` e `Q12`.
+
+## Notas de implementação 7F
+
+- **Regime `shared_global` isolado em DDL v2 (`schema_v2.sql`):** mantém intocado o schema v1 (`schema.sql` / `orq_memory_reader`) e cria a role sem login `orq_memory_global_reader` (`NOSUPERUSER`, `NOBYPASSRLS`) com políticas fail-closed que continuam exigindo as 4 variáveis de sessão, `catalog_id`, `resolved_status = 'active'` e escopo de projeto/operacional global, omitindo apenas `area_scope`/`target_families`/`target_roles` para o braço de controle experimental. Em `OfflineMarkdownBackend`, `scope_allows` espelha o mesmo comportamento via `MemoryScope.memory_regime`.
+- **Harness `orq_contracts.experiment_7f` e CLI `experiment-7f`:** executa verificação criptográfica do pacote (`verify-package`), Camada A pareada com MCP real por tentativa (`simulate`, cobrindo `Q28`), comparação de estresse de cota (`quota-stress`, cobrindo `Q29`), execução em lotes de Camada B (`run_live_batch` para chamadores com CLIs reais) e auditoria criptográfica/estatística (`audit`, cobrindo `Q30` + mediana, IQR, Wilcoxon bilateral exato, McNemar exato, odds ratio e delta de Cliff em stdlib). O diretório `experiments/7f/` não é modificado em runtime.
+- **Compatibilidade retroativa do `SequentialRunner` e `journal-event.schema.json`:** adicionados `contracts` opcional em `SequentialRunner.create`/`open` e `SimulationScript.validate_against_workflow` (para contratos de resposta específicos das 10 tarefas 7F), `experiment_metadata` em `policy` e propriedade opcional `memory_regime` em `attempt_context_sealed.session_config.scope`. Nenhum digest fixado anterior foi alterado.
 
 ## Documentos da Fase 7
 
