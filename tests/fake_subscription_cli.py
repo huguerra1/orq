@@ -91,6 +91,39 @@ if mode == "json_prefix_noise":
     sys.exit(1)
 if mode == "error_then_final":
     print(json.dumps({"type": "error", "message": "connection failed, retrying..."}))
+if mode == "mcp_roundtrip":
+    import asyncio
+    from mcp import Client, StdioServerParameters
+
+    if cli == "claude":
+        cfg = json.loads(Path(".orq-mcp.json").read_text(encoding="utf-8"))["mcpServers"]["orq-knowledge"]
+    elif cli == "agy":
+        cfg = json.loads(Path(".gemini/antigravity-cli/settings.json").read_text(encoding="utf-8"))["mcpServers"]["orq-knowledge"]
+    elif cli == "kiro-cli":
+        cfg = json.loads(Path(".kiro/settings/mcp.json").read_text(encoding="utf-8"))["mcpServers"]["orq-knowledge"]
+    else:
+        cfg = {}
+        for index, item in enumerate(args):
+            if item == "-c" and index + 1 < len(args):
+                kv = args[index + 1]
+                if kv.startswith("mcp_servers.orq_knowledge.command="):
+                    cfg["command"] = json.loads(kv.split("=", 1)[1])
+                elif kv.startswith("mcp_servers.orq_knowledge.args="):
+                    cfg["args"] = json.loads(kv.split("=", 1)[1])
+                elif kv.startswith("mcp_servers.orq_knowledge.env={PYTHONPATH="):
+                    cfg["env"] = {"PYTHONPATH": json.loads(kv.split("PYTHONPATH=", 1)[1][:-1])}
+
+    async def _run_mcp():
+        params = StdioServerParameters(command=cfg["command"], args=cfg["args"], env=cfg.get("env"))
+        async with Client(params, read_timeout_seconds=15) as client:
+            res = await client.call_tool("search_family_knowledge", {"requirement_id": "K1", "query": "reconciliação"})
+            cands = json.loads(res.content[0].text)["candidates"]
+            refs = [{k: c[k] for k in ("source_id", "revision", "unit_id")} for c in cands]
+            sel = await client.call_tool("select_family_knowledge", {"selections": {"K1": refs}})
+            data = json.loads(sel.content[0].text)
+            assert "error" not in data, data
+
+    asyncio.run(_run_mcp())
 print("progresso sem JSON")
 if cli == "claude":
     print(json.dumps({"type": "result", "subtype": "success", "result": final, "session_id": "session-claude",

@@ -115,7 +115,8 @@ class CLIAdapter:
     def __init__(self, profile: Record, store: ArtifactStore, *, state_directory: Path,
                  workspace_root: Path, clock: Callable[[], str], runtime_version: str,
                  contracts: ContentContractRegistry, permissions: CLIPermissions = CLIPermissions(),
-                 reasoning_effort: str = "medium", platform: str | None = None):
+                 reasoning_effort: str = "medium", platform: str | None = None,
+                 vault_root: Path | None = None):
         if validate_instance(profile, "subscription_profile") or profile["cli_executable"] != self.cli:
             raise ExecutorError("subscription_policy_violation", "perfil inválido ou CLI divergente")
         if profile["detector_version"] != VERSIONS[self.cli]:
@@ -128,6 +129,7 @@ class CLIAdapter:
             raise ExecutorError("clock_mismatch", "executor e journal devem compartilhar o relógio")
         self.permissions, self.reasoning_effort = permissions, reasoning_effort
         self.platform = platform or sys.platform
+        self.vault_root = Path(vault_root) if vault_root is not None else None
         self.state_directory = Path(state_directory).absolute()
         self.workspace_root = Path(workspace_root).absolute()
         if self.state_directory.is_relative_to(self.workspace_root) or self.workspace_root.is_relative_to(self.state_directory):
@@ -137,6 +139,27 @@ class CLIAdapter:
         self.detector = QuotaLimitDetector(self.cli, local_timezone=profile["local_timezone"],
                                           default_cooldown_ms=profile["default_cooldown_ms"])
         self._processes: dict[str, subprocess.Popen] = {}
+        self._sessions: dict[str, object] = {}
+        self._active_mcp: dict[str, object] | None = None
+
+    def bind_knowledge_session(self, intent: Record, session) -> None:
+        if self.vault_root is None:
+            raise ExecutorError("mcp_binding_unverified", "vault_root obrigatório para conectar sessão MCP",
+                                retryability="non_retryable", termination_certainty="confirmed")
+        if intent.get("knowledge_session_ref") != getattr(session, "reference", None):
+            raise ExecutorError("knowledge_session_mismatch", "sessão MCP diverge da intenção",
+                                retryability="non_retryable", termination_certainty="confirmed")
+        self._sessions[intent["dispatch_idempotency_key"]] = session
+
+    def _mcp_context(self, key: str) -> dict[str, object] | None:
+        session = self._sessions.get(key)
+        if session is None or self.vault_root is None:
+            return None
+        mapper = wsl_path if self._wsl else str
+        py_exe = "python3" if self._wsl else sys.executable
+        launch = session.stdio_launch(self.vault_root, python_executable=py_exe, path_mapper=mapper)
+        src_path = mapper(Path(__file__).resolve().parents[2])
+        return {"entry": {**launch, "env": {"PYTHONPATH": src_path}}}
 
     def _now(self) -> str:
         # DeterministicClock.now não avança, inclusive com until já vencido.
@@ -235,8 +258,13 @@ class CLIAdapter:
         prompt = self._prompt(bundle, workspace)
         cli_work = wsl_path(work, workspace=True) if self._wsl else str(work)
         final = work / ".orq-last-message"
-        argv = self._argv(cli_work, workspace.requested_model_id, prompt,
-                          wsl_path(final) if self._wsl else str(final), intent["attempt_timeout_ms"])
+        mcp_context = self._mcp_context(intent["dispatch_idempotency_key"])
+        self._active_mcp = mcp_context
+        try:
+            argv = self._argv(cli_work, workspace.requested_model_id, prompt,
+                              wsl_path(final) if self._wsl else str(final), intent["attempt_timeout_ms"])
+        finally:
+            self._active_mcp = None
         timeout_ms = min(intent["attempt_timeout_ms"], max(0, int((parse_utc(intent["deadline_at"]) - parse_utc(now)).total_seconds() * 1000)))
         meta = {"intent": copy.deepcopy(intent), "profile": self.profile, "fingerprint": fingerprint,
                 "runtime_version": self.runtime_version, "phase": "prepared", "workspace": str(work), "workspace_id": workspace.workspace_id,
@@ -252,7 +280,11 @@ class CLIAdapter:
             raise
         work.mkdir()  # workspace novo; não reutiliza estado de outra tentativa
         ensure_directory(work / ".orq-output")
-        self._prepare_permissions(work)
+        self._active_mcp = mcp_context
+        try:
+            self._prepare_permissions(work)
+        finally:
+            self._active_mcp = None
         try:
             if timeout_ms == 0:
                 write_record(directory / "receipt.json", {"fingerprint": fingerprint, "phase": "not_started"})
@@ -534,9 +566,17 @@ class CodexAdapter(CLIAdapter):
     cli = "codex"
 
     def _argv(self, workspace, model, prompt, final_file, timeout_ms):
-        return ["codex", "exec", "-C", workspace, "-s", "workspace-write" if self.permissions.workspace_write else "read-only",
+        args = ["codex", "exec", "-C", workspace, "-s", "workspace-write" if self.permissions.workspace_write else "read-only",
                 "-m", model, "-c", f'model_reasoning_effort="{self.reasoning_effort}"', "--json", "-o", final_file,
-                "--skip-git-repo-check", prompt]
+                "--skip-git-repo-check"]
+        if self._active_mcp:
+            entry = self._active_mcp["entry"]
+            args += [
+                "-c", f"mcp_servers.orq_knowledge.command={json.dumps(entry['command'])}",
+                "-c", f"mcp_servers.orq_knowledge.args={json.dumps(entry['args'])}",
+                "-c", f"mcp_servers.orq_knowledge.env={{PYTHONPATH={json.dumps(entry['env']['PYTHONPATH'])}}}",
+            ]
+        return [*args, prompt]
 
 
 class ClaudeCodeAdapter(CLIAdapter):
@@ -547,10 +587,31 @@ class ClaudeCodeAdapter(CLIAdapter):
         if self.permissions.workspace_write:
             allowed += [f"Edit({workspace}/**)", f"Write({workspace}/**)"]
         allowed += ["Bash(" + " ".join(prefix) + ":*)" for prefix in self.permissions.command_prefixes]
+        if self._active_mcp:
+            allowed += ["mcp__orq-knowledge__search_family_knowledge", "mcp__orq-knowledge__select_family_knowledge"]
         denied = ["WebFetch", "WebSearch"] + ([] if self.permissions.command_prefixes else ["Bash"])
-        return ["claude", "-p", prompt, "--output-format", "json", "--model", model,
+        args = ["claude", "-p", prompt, "--output-format", "json", "--model", model,
                 "--permission-mode", "acceptEdits" if self.permissions.workspace_write else "plan",
                 "--allowedTools", ",".join(allowed), "--disallowedTools", ",".join(denied)]
+        if self._active_mcp:
+            args += ["--mcp-config", f"{workspace}/.orq-mcp.json", "--strict-mcp-config"]
+        return args
+
+    def _prepare_permissions(self, workspace: Path) -> None:
+        if not self._active_mcp:
+            return
+        path = confined_path(workspace, ".orq-mcp.json")
+        with path.open("xb") as stream:
+            stream.write(canonicalize({"mcpServers": {"orq-knowledge": self._active_mcp["entry"]}}))
+            stream.flush()
+            os.fsync(stream.fileno())
+        fsync_directory(path.parent)
+
+    def _restore_permissions(self, workspace: Path) -> None:
+        path = confined_path(workspace, ".orq-mcp.json")
+        if path.exists():
+            path.unlink()
+            fsync_directory(path.parent)
 
 
 class AgyAdapter(CLIAdapter):
@@ -567,9 +628,13 @@ class AgyAdapter(CLIAdapter):
         if self.permissions.workspace_write:
             allow += [f"write_file({workspace}/**)", f"edit_file({workspace}/**)"]
         allow += ["command(" + " ".join(prefix) + ")" for prefix in self.permissions.command_prefixes]
+        payload: dict[str, object] = {"permissions": {"allow": allow}}
+        if self._active_mcp:
+            allow += ["mcp_orq-knowledge_search_family_knowledge", "mcp_orq-knowledge_select_family_knowledge"]
+            payload["mcpServers"] = {"orq-knowledge": self._active_mcp["entry"]}
         # Arquivo novo do workspace isolado. Nunca lê/modifica settings do HOME.
         with path.open("xb") as stream:
-            stream.write(canonicalize({"permissions": {"allow": allow}}))
+            stream.write(canonicalize(payload))
             stream.flush()
             os.fsync(stream.fileno())
         fsync_directory(path.parent)
@@ -588,5 +653,24 @@ class KiroAdapter(CLIAdapter):
         tools = ["fs_read"] + (["fs_write"] if self.permissions.workspace_write else [])
         if self.permissions.command_prefixes:
             tools.append("execute_bash")
+        if self._active_mcp:
+            tools += ["@orq-knowledge/search_family_knowledge", "@orq-knowledge/select_family_knowledge"]
         return ["kiro-cli", "chat", "--no-interactive", "--trust-workspace", "--trust-tools=" + ",".join(tools),
                 "--model", model, prompt]
+
+    def _prepare_permissions(self, workspace: Path) -> None:
+        if not self._active_mcp:
+            return
+        path = confined_path(workspace, ".kiro", "settings", "mcp.json")
+        ensure_directory(path.parent)
+        with path.open("xb") as stream:
+            stream.write(canonicalize({"mcpServers": {"orq-knowledge": self._active_mcp["entry"]}}))
+            stream.flush()
+            os.fsync(stream.fileno())
+        fsync_directory(path.parent)
+
+    def _restore_permissions(self, workspace: Path) -> None:
+        path = confined_path(workspace, ".kiro", "settings", "mcp.json")
+        if path.exists():
+            path.unlink()
+            fsync_directory(path.parent)
