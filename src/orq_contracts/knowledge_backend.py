@@ -192,6 +192,8 @@ def scope_allows(entry: dict[str, Any], source: dict[str, Any], unit: dict[str, 
     ) or (project_scope["kind"] == "project" and project_scope["project_id"] == scope.project_id)
     if not in_project:
         return False
+    if scope.memory_regime == "shared_global":
+        return True
     audience = effective_audience(source, unit)
     if audience["area_scope"] == "common":
         return True

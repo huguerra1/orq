@@ -62,6 +62,7 @@ class AttemptProjection(AggregateProjection):
     effect_proven: bool = False
     reconciliation_deadline: str | None = None
     failure_error_id: str | None = None
+    effective_context_manifest_ref: dict | None = None
 
     @property
     def undeclared_artifacts(self) -> list[dict]:
@@ -70,9 +71,22 @@ class AttemptProjection(AggregateProjection):
 
 
 @dataclass
+class JudgeCallProjection:
+    judge_call_id: str
+    intent_payload: dict
+    external_call_id: str | None = None
+    termination_certainty: str = "unknown"
+    terminal_cause: str | None = None
+    reconciliation_deadline: str | None = None
+    reconciled_outcome: str | None = None
+
+
+@dataclass
 class EvaluationProjection(AggregateProjection):
     request: dict = field(default_factory=dict)
     report: dict | None = None
+    judge_calls: dict[str, JudgeCallProjection] = field(default_factory=dict)
+    reconciliation_deadline: str | None = None
 
 
 @dataclass
@@ -105,6 +119,11 @@ class RunProjection(AggregateProjection):
     published_cutoff: int | None = None
     reconcile_not_found_authoritative: bool = False
     stopping_cause: str | None = None
+    quota_states: dict[str, dict] = field(default_factory=dict)
+    quota_consumptions: dict[str, dict] = field(default_factory=dict)
+    # Snapshot do catálogo de conhecimento (conferido contra o manifesto) para
+    # validar escopo/revogação do contexto lacrado no replay. Não entra na igualdade.
+    knowledge_catalog: dict | None = field(default=None, compare=False, repr=False)
 
     def aggregate(self, kind: str, id: str) -> AggregateProjection:
         if kind == "run":
@@ -162,16 +181,26 @@ class RunProjection(AggregateProjection):
             return timestamp(now) >= timestamp(a.reconciliation_deadline)
         evals = self.task_evaluations(task_id)
         starts = self.history("task", task_id, "state_transition")
-        if evals and (evals[-1].report is None or evals[-1].report["execution_status"] == "indeterminate") and starts:
-            deadline = min(timestamp(starts[-1]["recorded_at"]) + timedelta(milliseconds=self.limit("reconciliation_timeout_ms")),
-                           timestamp(self.intent["created_at"]) + timedelta(milliseconds=self.limit("max_run_duration_ms")))
-            return timestamp(now) >= deadline
+        if evals and (evals[-1].report is None or evals[-1].report["execution_status"] == "indeterminate"):
+            if evals[-1].reconciliation_deadline:
+                return timestamp(now) >= timestamp(evals[-1].reconciliation_deadline)
+            if starts:
+                deadline = min(timestamp(starts[-1]["recorded_at"]) + timedelta(milliseconds=self.limit("reconciliation_timeout_ms")),
+                               timestamp(self.intent["created_at"]) + timedelta(milliseconds=self.limit("max_run_duration_ms")))
+                return timestamp(now) >= deadline
         return False
 
     def evaluation_capacity(self, task_id: str) -> bool:
-        """Capacidade para outra avaliação local: contador e reserva conservadora."""
-        if len(self.task_evaluations(task_id)) >= self.limit("max_evaluations_per_attempt", task_id):
+        """Capacidade para outra avaliação local: contador, tiebreaker e reserva conservadora."""
+        evals = self.task_evaluations(task_id)
+        if len(evals) >= self.limit("max_evaluations_per_attempt", task_id):
             return False
+        if evals and evals[-1].report is not None:
+            notes = set(evals[-1].report.get("limitations", []))
+            for crit_res in evals[-1].report.get("criterion_results", []):
+                notes.update(crit_res.get("observations", []))
+            if notes & {"no_third_family_tiebreaker_available", "no_eligible_evaluator_before_deadline"}:
+                return False
         budget = self.manifest["budget_snapshot"]
         estimates = [e for e in budget["cost_estimates"] if e["scope"] == "evaluation" and
                      e["subject_ref"] == self.manifest["evaluator_snapshot"]["evaluator_ref"]]
@@ -225,7 +254,8 @@ class RunProjection(AggregateProjection):
         leaves = self.latest_usages()
         lines = [line for u in leaves for line in u["cost_lines"]]
         currency = (self.manifest or {}).get("budget_snapshot")
-        currencies = {line["currency"] for line in lines}
+        currencies = {line["currency"] for u in leaves for line in u["cost_lines"]
+                      if not (u.get("subscription_id") and line["currency"] is None and line["status"] == "unavailable")}
         currency = currency["currency"] if currency else (next(iter(currencies)) if currencies else None)
         require(not currencies or currencies == {currency}, "currency_mismatch", "run aceita uma moeda")
         # Precisão cresce com os operandos; o contexto Decimal padrão não pode arredondar custo.
@@ -238,6 +268,11 @@ class RunProjection(AggregateProjection):
         # Avaliador/planner/router locais não são chamadas debitáveis presumidas.
         unavailable += sum(not self.attempt_has_usage(a) and not self.dispatch_proven_not_executed(a)
                            for a in self.attempts.values())
+        for ev in self.evaluations.values():
+            for jc in ev.judge_calls.values():
+                has_usage = any(u["usage_id"] == f"usage-{jc.judge_call_id}" for u in leaves)
+                if not has_usage and not (jc.termination_certainty == "confirmed" and jc.reconciled_outcome == "not_found"):
+                    unavailable += 1
         estimated = any(l["status"] == "estimated" for l in lines)
         return {"currency": currency, **{s: format(n, "f") for s, n in totals.items()},
                 "unavailable_count": unavailable, "total_cost_exact": not unavailable and not estimated}
@@ -310,6 +345,12 @@ class RunProjection(AggregateProjection):
                         (u["scope_type"], u["scope_ref"]) not in covered)
             gaps.update(("attempt", a.id) for a in self.attempts.values() if not (
                 self.attempt_has_usage(a) or self.dispatch_proven_not_executed(a) or ("attempt", a.id) in covered))
+            for ev in self.evaluations.values():
+                for jc in ev.judge_calls.values():
+                    has_usage = any(u["usage_id"] == f"usage-{jc.judge_call_id}" for u in self.latest_usages())
+                    if not (has_usage or (jc.termination_certainty == "confirmed" and jc.reconciled_outcome == "not_found")
+                            or ("evaluation", ev.id) in covered):
+                        gaps.add(("evaluation", ev.id))
             return total, tuple(sorted(gaps))
 
 
@@ -334,7 +375,8 @@ def _record_hash(record: dict, field: str = "record_hash") -> None:
 
 def project_journal(events: Iterable[dict[str, Any]], *, workflow: dict | None = None,
                     as_of_global_sequence: int | None = None,
-                    reconcile_not_found_authoritative: bool = False) -> RunProjection:
+                    reconcile_not_found_authoritative: bool = False,
+                    knowledge_catalog: dict | None = None) -> RunProjection:
     """Reconstrói um prefixo inteiro, usando os mesmos dicts de RunJournal.events.
 
     Não ordena nem deduplica entradas: o journal já deduplica no append. Verifica
@@ -343,7 +385,8 @@ def project_journal(events: Iterable[dict[str, Any]], *, workflow: dict | None =
     conservador False. Evidência versionada continua obrigatória no evento.
     """
     projection = RunProjection("", workflow=deepcopy(workflow),
-                               reconcile_not_found_authoritative=reconcile_not_found_authoritative)
+                               reconcile_not_found_authoritative=reconcile_not_found_authoritative,
+                               knowledge_catalog=deepcopy(knowledge_catalog))
     for event in events:
         if as_of_global_sequence is not None and event.get("global_sequence", 0) > as_of_global_sequence:
             break
@@ -436,6 +479,63 @@ def _apply(s: RunProjection, e: dict) -> None:
         _unique_record(s, p, "planning_record_id")
     elif type == "run_manifest_closed":
         _manifest(s, e)
+    elif type == "attempt_context_sealed":
+        _seal_attempt_context(s, e)
+    elif type in {"quota_exhausted_recorded", "quota_reset_observed"}:
+        previous = s.quota_states.get(p["quota_pool_id"])
+        if type == "quota_exhausted_recorded":
+            source_ok = (p.get("source_attempt_id") in s.attempts) or (p.get("source_evaluation_id") in s.evaluations)
+            require(source_ok, "quota_attempt_mismatch", "bloqueio sem tentativa ou avaliação")
+        else:
+            require(previous and previous["status"] == p["previous_status"] and
+                    timestamp(p["observed_at"]) >= timestamp(previous["blocked_until"]),
+                    "quota_reset_premature", "reset sem bloqueio vencido")
+            if previous["status"] == "cooldown":
+                # A prova precisa responder a uma sondagem deste bloqueio, não a
+                # uma sondagem de cooldown anterior do mesmo pool.
+                blocked = record_ref(previous, "quota_event_id")
+                probe_ids = {event["payload"]["probe_id"] for event in s.events.values()
+                             if event["event_type"] == "quota_probe_requested"
+                             and event["payload"]["quota_pool_id"] == p["quota_pool_id"]
+                             and event["payload"]["blocked_record_ref"] == blocked}
+                probes = [event for event in s.events.values() if event["event_type"] == "quota_probe_observed"
+                          and event["payload"]["probe_id"] in probe_ids]
+                require(probes and probes[-1]["payload"]["available"] is True and
+                        probes[-1]["payload"]["evidence_refs"] == p["probe_evidence_refs"],
+                        "quota_probe_required", "cooldown exige sondagem conclusiva")
+        _unique_record(s, p, "quota_event_id")
+        s.quota_states[p["quota_pool_id"]] = p
+    elif type == "quota_consumption_recorded":
+        from .validator import validate_quota_consumption_record
+        usage = s.usages.get(p["usage_record_ref"]["id"])
+        if kind == "evaluation":
+            require(p.get("scope_type") == "evaluation" and p.get("evaluation_id") == id
+                    and p.get("judge_call_id") in agg.judge_calls and usage
+                    and not validate_quota_consumption_record(p, usage_record=usage),
+                    "quota_usage_mismatch", "consumo de outro uso/avaliação")
+        else:
+            require(p["attempt_id"] == id and p["task_id"] == agg.header["task_id"] and usage and
+                    not validate_quota_consumption_record(p, usage_record=usage), "quota_usage_mismatch", "consumo de outro uso/tentativa")
+        _unique_record(s, p, "quota_consumption_id")
+        s.quota_consumptions[p["quota_consumption_id"]] = p
+    elif type == "quota_probe_requested":
+        previous = s.quota_states.get(p["quota_pool_id"])
+        require(previous and previous["status"] == "cooldown" and
+                p["blocked_record_ref"] == record_ref(previous, "quota_event_id") and
+                timestamp(p["requested_at"]) >= timestamp(previous["blocked_until"]),
+                "quota_probe_premature", "sondagem sem cooldown vencido")
+        require(not any(x["payload"]["probe_id"] == p["probe_id"] for x in s.events.values()
+                        if x["event_type"] == type), "quota_probe_reused", "sondagem já pedida")
+    elif type == "quota_probe_observed":
+        requested = [x for x in s.events.values() if x["event_type"] == "quota_probe_requested"
+                     and x["payload"]["probe_id"] == p["probe_id"] and x["payload"]["quota_pool_id"] == p["quota_pool_id"]]
+        require(requested and all(ref["artifact_id"] in s.artifacts and
+                s.artifacts[ref["artifact_id"]]["content_digest"] == ref["content_digest"] for ref in p["evidence_refs"]),
+                "quota_probe_evidence_missing", "resultado sem intenção/evidência")
+        require(not any(x["event_type"] == type and x["payload"]["probe_id"] == p["probe_id"] for x in s.events.values()),
+                "quota_probe_reused", "sondagem já observada")
+        require(timestamp(p["observed_at"]) >= timestamp(requested[0]["payload"]["requested_at"]),
+                "quota_probe_out_of_order", "resultado anterior ao pedido da sondagem")
     elif type in {"knowledge_selection_recorded", "routing_decision_recorded", "context_manifest_recorded"}:
         require(agg.state == "ready" and s.state == "running" and not s.cancel_requested,
                 "event_out_of_order", "admissão exige tarefa ready e run ativo")
@@ -505,6 +605,10 @@ def _apply(s: RunProjection, e: dict) -> None:
     elif type in {"dispatch_acknowledged", "execution_started", "termination_confirmed", "result_collected",
                   "reconciliation_requested", "reconciliation_observed"}:
         _observation(s, e)
+    elif type in {"evaluator_dispatch_requested", "evaluator_dispatch_acknowledged",
+                  "evaluator_termination_confirmed", "evaluator_reconciliation_requested",
+                  "evaluator_reconciliation_observed"}:
+        _evaluator_judge(s, e)
     elif type == "admission_rejected":
         require(agg.state == "ready", "event_out_of_order", "rejeição exige ready")
         require(p["error_record_ids"] and all(x in s.errors and x in agg.error_record_ids for x in p["error_record_ids"]),
@@ -545,7 +649,8 @@ def _manifest(s: RunProjection, e: dict) -> None:
         require(plan["planning_request_snapshot"]["objective"] == s.intent["objective"],
                 "reference_mismatch", "plano de outro objetivo")
         require(s.workflow is not None, "workflow_snapshot_required", "forneça WorkflowSpec para resolver tarefas")
-        require(not validate_workflow(s.workflow), "workflow_snapshot_invalid", "workflow inválido")
+        calibration_mode = bool((s.intent or {}).get("experiment_metadata", {}).get("calibration_mode"))
+        require(not validate_workflow(s.workflow, calibration_mode=calibration_mode), "workflow_snapshot_invalid", "workflow inválido")
         ref = {"id": s.workflow["workflow_id"], "version": s.workflow["version"], "content_digest": canonical_digest(s.workflow)}
         require(ref == p["workflow_snapshot_ref"], "workflow_snapshot_mismatch", "workflow não corresponde ao manifesto")
         require(s.workflow["project_id"] == p["project_id"] and s.workflow["objective"] == s.intent["objective"],
@@ -569,6 +674,8 @@ def _manifest(s: RunProjection, e: dict) -> None:
 
 def _dispatch(s: RunProjection, e: dict) -> None:
     h, d = e["payload"]["attempt_header"], e["payload"]["dispatch_intent"]
+    require(h.get("knowledge_session_ref") == d.get("knowledge_session_ref"),
+            "knowledge_session_mismatch", "sessão do cabeçalho diverge da intenção")
     _record_hash(h)
     _record_hash(d)
     require(not any(a.intent["dispatch_intent_id"] == d["dispatch_intent_id"] for a in s.attempts.values()),
@@ -606,7 +713,9 @@ def _dispatch(s: RunProjection, e: dict) -> None:
             "target_mismatch", "target_ref divergente")
     require(context["bundle_hash"] == d["bundle_hash"], "bundle_hash_mismatch", "bundle_hash divergente")
     require(context["routing_decision_ref"] == d["routing_decision_ref"] and
-            h["execution_target_snapshot"]["executor_ref"] == d["executor_ref"] == s.manifest["executor_snapshot"]["executor_ref"],
+            h["execution_target_snapshot"]["executor_ref"] == d["executor_ref"] and
+            d["executor_ref"] in [s.manifest["executor_snapshot"]["executor_ref"],
+                                  *s.manifest["executor_snapshot"].get("target_executor_refs", [])],
             "reference_mismatch", "contexto/executor divergente")
     for ref in context["knowledge_selection_refs"]:
         selection = _resolve(s, ref, "selection_id")
@@ -641,6 +750,90 @@ def _dispatch(s: RunProjection, e: dict) -> None:
     a = AttemptProjection(h["attempt_id"], "queued", header=h, intent=d, dispatch_sequence=e["global_sequence"])
     s.attempts[a.id] = a
     task.attempt_ids.append(a.id)
+
+
+def _seal_attempt_context(s, e):
+    from .family_mcp import validate_audit
+    p, aid = e["payload"], e["aggregate_id"]
+    a = s.attempts[aid]
+    config = p["session_config"]
+    task = s.tasks[a.header["task_id"]].spec
+    require(a.termination_certainty == "confirmed" and not s.history("attempt", aid, "attempt_context_sealed"),
+            "event_out_of_order", "selagem exige término confirmado e é única")
+    require(a.intent.get("knowledge_session_ref") == {"id": config["session_id"], "version": "0.1",
+            "content_digest": canonical_digest(config)}, "knowledge_session_mismatch", "sessão diverge da intenção")
+    require(config["choice"]["run_id"] == s.id and config["choice"]["task_id"] == a.header["task_id"] and
+            config["choice"]["candidate_attempt_number"] == a.header["attempt_number"] and
+            config["scope"]["project_id"] == s.intent["project_id"] and
+            config["scope"]["role_id"] == s.tasks[a.header["task_id"]].spec["agent_role"]["id"] and
+            config["scope"]["catalog_id"] == s.manifest["knowledge_catalog_snapshot_ref"]["id"] and
+            config["choice"]["workflow_ref"] == s.manifest["workflow_snapshot_ref"] and
+            config["task"] == task and config["requirements"] == task["knowledge_requirements"] and
+            config["knowledge_status_assertions"] == s.manifest["knowledge_status_assertions"],
+            "knowledge_session_mismatch", "escopo de outra tentativa/projeto/papel/catálogo")
+    try:
+        delivered = validate_audit(p["audit"], a.intent["knowledge_session_ref"])
+    except ValueError:
+        require(False, "knowledge_audit_integrity_mismatch", "trilha inválida")
+    require(p["audit_hash"] == canonical_digest(p["audit"]), "knowledge_audit_integrity_mismatch", "hash da trilha diverge")
+    require((delivered is None and p["selection"] is None and p["manifest"] is None) or
+            delivered and delivered["selection"] == p["selection"] and delivered["manifest"] == p["manifest"],
+            "knowledge_audit_integrity_mismatch", "contexto não corresponde ao entregue")
+    if delivered:
+        selection, manifest = p["selection"], p["manifest"]
+        require(not validate_instance(selection, "knowledge_selection") and not validate_context_manifest(manifest),
+                "context_manifest_invalid", "contexto efetivo inválido")
+        require(manifest["routing_decision_ref"] == a.intent["routing_decision_ref"] and
+                manifest["target_ref"] == a.intent["target_ref"] and
+                manifest["candidate_attempt_number"] == a.header["attempt_number"] and
+                manifest["task_id"] == a.header["task_id"] and
+                selection["requirement_snapshots"] == task["knowledge_requirements"] and
+                selection["catalog_snapshot_ref"] == s.manifest["knowledge_catalog_snapshot_ref"] and
+                selection["status"] in {"satisfied", "partial"} and
+                manifest["knowledge_selection_refs"] == [record_ref(selection, "selection_id")],
+                "knowledge_session_mismatch", "contexto efetivo de outra tentativa")
+        # Cada item do manifesto lacrado corresponde, em ordem, a uma unidade escolhida.
+        require([item.get("knowledge_provenance", {}).get("unit_ref") for item in manifest["items"]] ==
+                [unit["unit_ref"] for unit in selection["selected_units"]] and
+                all(item["knowledge_provenance"]["selection_id"] == selection["selection_id"] for item in manifest["items"]),
+                "knowledge_session_mismatch", "itens do manifesto divergem da seleção")
+        _knowledge_status(s, manifest, a.intent)
+    _sealed_scope(s, p, delivered)
+    if delivered:
+        _record_hash(selection, "selection_hash")
+        _unique_record(s, selection, "selection_id")
+        _unique_record(s, manifest, "context_manifest_id")
+        a.effective_context_manifest_ref = record_ref(manifest, "context_manifest_id")
+
+
+def _sealed_scope(s, p, delivered):
+    """Unidades buscadas/escolhidas pertencem ao escopo da sessão e não estão revogadas."""
+    from .knowledge_backend import catalog_units, scope_allows
+    from .memory_store.config import MemoryScope
+    catalog, config = s.knowledge_catalog, p["session_config"]
+    require(catalog is not None, "knowledge_catalog_snapshot_required", "forneça o catálogo para validar o contexto lacrado")
+    require({"id": catalog["catalog_id"], "version": catalog.get("version", catalog.get("schema_version")),
+             "content_digest": catalog["catalog_hash"]} == s.manifest["knowledge_catalog_snapshot_ref"],
+            "knowledge_catalog_mismatch", "catálogo diverge do manifesto")
+    scope, index = MemoryScope(**config["scope"]), catalog_units(catalog)
+    searched = [(c["source_id"], c["revision"], c["unit_id"]) for entry in p["audit"]
+                if entry["tool"] == "search_family_knowledge" and "error" not in entry["response"]
+                for c in entry["response"]["candidates"]]
+    selected = [unit["unit_ref"] for unit in (delivered["selection"]["selected_units"] if delivered else [])]
+    for key in searched + [(ref["source_id"], ref["revision"], ref["unit_id"]) for ref in selected]:
+        require(key in index and scope_allows(*index[key], scope), "knowledge_scope_mismatch", "unidade fora do escopo da sessão")
+    as_of = timestamp(config["eligibility"]["as_of"])
+    for ref in selected:
+        _, source, unit = index[(ref["source_id"], ref["revision"], ref["unit_id"])]
+        require(ref["source_digest"] == source["content_digest"] and ref["unit_digest"] == unit["content_digest"],
+                "knowledge_session_mismatch", "digest da unidade diverge do catálogo")
+        source_ref = {"source_id": source["source_id"], "revision": source["revision"], "content_digest": source["content_digest"]}
+        assertions = [x for x in (*catalog["status_assertions"], *s.manifest["knowledge_status_assertions"])
+                      if x["source_ref"] == source_ref and timestamp(x["effective_at"]) <= as_of]
+        if assertions:
+            latest = max(timestamp(x["effective_at"]) for x in assertions)
+            require(all(x["status"] == "active" for x in assertions if timestamp(x["effective_at"]) == latest),
+                    "knowledge_revoked", "contexto lacrado usa fonte revogada")
 
 
 def _check_inputs(s: RunProjection, task: TaskProjection, bindings: list[dict]) -> None:
@@ -739,7 +932,11 @@ def _evaluation_request(s: RunProjection, e: dict) -> None:
                 "reevaluation_not_allowed", "não repetir pass/fail válido")
         bindings, criteria = a.output_bindings, task.spec["evaluation_criteria"]
     require(_bindings(p["subject_bindings"]) == _bindings(bindings), "evaluation_bindings_mismatch", "subjects divergentes")
-    require(p["criteria_snapshot"] == {"criteria": criteria, "criteria_hash": canonical_digest(criteria)},
+    expected_criteria_snap = {"criteria": criteria, "criteria_hash": canonical_digest(criteria)}
+    rubric_refs = p["criteria_snapshot"].get("rubric_refs")
+    if rubric_refs is not None:
+        expected_criteria_snap["rubric_refs"] = rubric_refs
+    require(p["criteria_snapshot"] == expected_criteria_snap,
             "evaluation_criteria_mismatch", "critérios diferentes do snapshot")
     require(p["evaluator_snapshot"] == s.manifest["evaluator_snapshot"], "reference_mismatch", "avaliador divergente")
     for rid in p["budget_reservation_ids"]:
@@ -779,9 +976,21 @@ def _evaluation_report(s: RunProjection, e: dict) -> None:
         require(p["verdict"] == expected, "evaluation_verdict_invalid", "agregação do veredicto diverge")
     else:
         require(p["verdict"] in {"not_run", "inconclusive"}, "evaluation_verdict_invalid", "execução não concluída")
+    if ev.judge_calls:
+        require(all(jc.termination_certainty == "confirmed" for jc in ev.judge_calls.values()),
+                "evaluation_termination_unknown", "S40: juiz sem término confirmado")
     require(all(x in ev.error_record_ids for x in p["error_record_ids"]), "reference_mismatch", "erro de avaliação não anexado")
-    require(not p["usage_record_ids"] and all(x in ev.error_record_ids for r in p["criterion_results"] for x in r["error_record_ids"]),
-            "reference_mismatch", "avaliador local não inventa uso nem erros")
+    require(all(x in ev.error_record_ids for r in p["criterion_results"] for x in r["error_record_ids"]),
+            "reference_mismatch", "avaliador local não inventa erros")
+    if p["evaluator_snapshot"]["kind"] == "deterministic":
+        require(not p["usage_record_ids"], "reference_mismatch", "avaliador determinístico não inventa uso")
+    else:
+        require(len(p["usage_record_ids"]) == len(ev.usage_record_ids)
+                and set(p["usage_record_ids"]) == set(ev.usage_record_ids),
+                "reference_mismatch", "uso no relatório diverge dos usos anexados na avaliação")
+    require(all(s.artifacts.get(ref["artifact_id"], {}).get("content_digest") == ref["content_digest"]
+                for ref in p["evidence_refs"] if "artifact_id" in ref),
+            "reference_mismatch", "evidência da avaliação não ingerida")
     ev.report, ev.state = p, p["execution_status"]
     s.records[p["evaluation_id"]] = p
 
@@ -809,12 +1018,20 @@ def _attachment(s: RunProjection, e: dict) -> None:
     if usage:
         previous = p["supersedes_usage_id"]
         same_scope = [u for u in s.usages.values() if (u["scope_type"], u["scope_ref"]) == (scope, ref)]
-        require(not same_scope if previous is None else previous in s.usages and
-                s.usages[previous] in same_scope and not any(u["supersedes_usage_id"] == previous for u in s.usages.values()),
-                "usage_supersedes_invalid", "correção deve estender cadeia do mesmo escopo")
+        if scope == "evaluation" and previous is None:
+            agg = s.evaluations[ref]
+            root_usages = [u for u in same_scope if u["supersedes_usage_id"] is None]
+            require(len(root_usages) < len(agg.judge_calls),
+                    "usage_supersedes_invalid", "uso em avaliação exige judge_call correspondente")
+        else:
+            require(not same_scope if previous is None else previous in s.usages and
+                    s.usages[previous] in same_scope and not any(u["supersedes_usage_id"] == previous for u in s.usages.values()),
+                    "usage_supersedes_invalid", "correção deve estender cadeia do mesmo escopo")
         currency = (s.manifest or {}).get("budget_snapshot")
         if currency:
-            require(all(l["currency"] == currency["currency"] for l in p["cost_lines"]), "currency_mismatch", "moeda diferente do run")
+            require(all(l["currency"] == currency["currency"] or
+                        (p.get("subscription_id") and l["currency"] is None and l["status"] == "unavailable" and l["amount"] is None)
+                        for l in p["cost_lines"]), "currency_mismatch", "moeda diferente do run")
         s.aggregate(kind, id).usage_record_ids.append(p[field])
     else:
         s.aggregate(kind, id).error_record_ids.append(p[field])
@@ -831,7 +1048,9 @@ def _budget(s: RunProjection, e: dict) -> None:
         require(rid not in s.reservations, "duplicate_id", "reserva já existe")
         require(s.state == "running" and s.manifest and not s.cancel_requested, "event_out_of_order", "run não admite reserva")
         budget = s.manifest["budget_snapshot"]
-        require(p["currency"] == budget["currency"], "currency_mismatch", "moeda da reserva diverge")
+        require(p["currency"] == budget["currency"] or
+                (p.get("subscription_id") and p["currency"] is None and p["status"] == "unavailable" and p["amount"] is None),
+                "currency_mismatch", "moeda da reserva diverge")
         require(p["amount"] is not None or not (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject"),
                 "budget_unknown", "política exige estimativa")
         s.reservations[rid] = ReservationProjection(p)
@@ -855,8 +1074,11 @@ def _budget(s: RunProjection, e: dict) -> None:
                 require(s.attempts[ref].termination_certainty == "confirmed" and s.dispatch_proven_not_executed(s.attempts[ref]),
                         "reservation_release_invalid", "execução ativa/incerta ou com uso deve permanecer/liquidar")
             if scope == "evaluation" and ref in s.evaluations:
-                report = s.evaluations[ref].report
+                ev = s.evaluations[ref]
+                report = ev.report
                 require(report and report["execution_status"] != "indeterminate", "reservation_release_invalid", "avaliação sem término confirmado")
+                if ev.usage_record_ids:
+                    require(False, "reservation_release_invalid", "avaliação com uso registrado deve ser liquidada via budget_settled")
             r.state, r.release_reason = "released", p["reason"]
 
 
@@ -909,6 +1131,70 @@ def _external_call(a: AttemptProjection, value: str | None) -> None:
         a.external_call_id = value
 
 
+def _evaluator_judge(s: RunProjection, e: dict) -> None:
+    etype, p, kind, id = e["event_type"], e["payload"], e["aggregate_type"], e["aggregate_id"]
+    require(kind == "evaluation", "aggregate_mismatch", "evento de juiz pertence ao agregado evaluation")
+    ev = s.evaluations[id]
+    require(ev.report is None, "evaluation_already_reported", "relatório já gravado para esta avaliação")
+    scope = ev.request["scope"]
+    if scope["kind"] == "task_attempt":
+        require(s.tasks[scope["task_id"]].state != "indeterminate", "evaluation_reconciliation_closed", "usar late_observation após reconciliação esgotada")
+    jid = p["judge_call_id"]
+    if etype == "evaluator_dispatch_requested":
+        require(jid not in ev.judge_calls, "duplicate_id", "judge_call_id repetido na avaliação")
+        require(
+            not any(
+                jc.intent_payload["dispatch_idempotency_key"] == p["dispatch_idempotency_key"]
+                for other_ev in s.evaluations.values()
+                for jc in other_ev.judge_calls.values()
+            ),
+            "dispatch_intent_reused",
+            "dispatch_idempotency_key de juiz reutilizada",
+        )
+        ev.judge_calls[jid] = JudgeCallProjection(jid, deepcopy(p))
+        return
+    jc = ev.judge_calls.get(jid)
+    require(jc is not None, "dispatch_not_known", "juiz não despachado nesta avaliação")
+    if etype == "evaluator_dispatch_acknowledged":
+        ext = p["external_call_id"]
+        require(jc.external_call_id is None or ext is None or ext == jc.external_call_id,
+                "external_call_mismatch", "identidade externa do juiz mudou")
+        if ext is not None:
+            jc.external_call_id = ext
+    elif etype == "evaluator_termination_confirmed":
+        jc.termination_certainty = "confirmed"
+        jc.terminal_cause = p["cause"]
+    elif etype == "evaluator_reconciliation_requested":
+        require(p["dispatch_idempotency_key"] == jc.intent_payload["dispatch_idempotency_key"]
+                and p["external_call_id"] == jc.external_call_id,
+                "reconciliation_key_mismatch", "chave ou chamada de reconciliação do juiz diverge")
+        deadline = timestamp(jc.reconciliation_deadline) if jc.reconciliation_deadline else min(
+            timestamp(e["recorded_at"]) + timedelta(milliseconds=s.limit("reconciliation_timeout_ms")),
+            timestamp(s.intent["created_at"]) + timedelta(milliseconds=s.limit("max_run_duration_ms")),
+        )
+        require(timestamp(p["deadline_at"]) == deadline, "reconciliation_deadline_mismatch", "prazo de reconciliação do juiz diverge")
+        if jc.reconciliation_deadline is None:
+            jc.reconciliation_deadline = p["deadline_at"]
+        if ev.reconciliation_deadline is None:
+            ev.reconciliation_deadline = p["deadline_at"]
+    elif etype == "evaluator_reconciliation_observed":
+        require(jc.reconciliation_deadline is not None, "event_out_of_order", "observação sem requisição de reconciliação")
+        ext = p["external_call_id"]
+        require(jc.external_call_id is None or ext is None or ext == jc.external_call_id,
+                "external_call_mismatch", "identidade externa do juiz mudou")
+        if ext is not None:
+            jc.external_call_id = ext
+        outcome = p["outcome"]
+        jc.reconciled_outcome = outcome
+        if outcome in {"found_finished", "found_failed", "found_stopped"} or (
+            outcome == "not_found" and s.reconcile_not_found_authoritative and p["evidence_refs"]
+        ):
+            jc.termination_certainty = "confirmed"
+        elif outcome == "found_running":
+            require(jc.termination_certainty != "confirmed", "termination_evidence_conflict", "juiz ativo após término confirmado")
+            jc.termination_certainty = "not_terminated"
+
+
 def _close(s: RunProjection, e: dict) -> None:
     p = e["payload"]
     require(s.state in RUN_TERMINAL and all(t.state in TASK_TERMINAL for t in s.tasks.values()),
@@ -919,7 +1205,8 @@ def _close(s: RunProjection, e: dict) -> None:
     require(all(event["event_type"] in {"usage_attached", "late_observation"} for event in s.events.values()
                 if event["global_sequence"] > cutoff), "cutoff_invalid", "somente observações/uso podem seguir o cutoff")
     prefix = s if cutoff == s.as_of_global_sequence else project_journal(s.events.values(), workflow=s.workflow,
-        as_of_global_sequence=cutoff, reconcile_not_found_authoritative=s.reconcile_not_found_authoritative)
+        as_of_global_sequence=cutoff, reconcile_not_found_authoritative=s.reconcile_not_found_authoritative,
+        knowledge_catalog=s.knowledge_catalog)
     require(prefix.state in RUN_TERMINAL and all(t.state in TASK_TERMINAL for t in prefix.tasks.values()),
             "cutoff_invalid", "cutoff anterior ao término")
     summary = p["run_summary"]
@@ -993,7 +1280,8 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
         scope = ev.request["scope"]
         if ev.report is not None and ev.report["execution_status"] != "indeterminate":
             if any(s.reservations[rid].state == "open" for rid in ev.request["budget_reservation_ids"]):
-                actions.append(RecoveryAction("release_evaluation", ev.id))
+                action_kind = "settle_evaluation" if ev.usage_record_ids else "release_evaluation"
+                actions.append(RecoveryAction(action_kind, ev.id))
         uncertain_global = scope["kind"] == "workflow" and ev.report is None and any(
             s.errors[id]["code"] == "evaluator_failed" and s.errors[id]["termination_certainty"] == "unknown"
             for id in ev.error_record_ids)
@@ -1004,8 +1292,19 @@ def recovery_actions(s: RunProjection) -> tuple[RecoveryAction, ...]:
         if scope["kind"] == "task_attempt" and s.tasks[scope["task_id"]].state in TASK_TERMINAL:
             continue
         if ev.report is None:
-            actions.append(RecoveryAction("record_interrupted_evaluation", ev.id, {
-                "execution_status": "failed", "verdict": "not_run"}))
+            if ev.judge_calls:
+                unconfirmed = [
+                    jc.judge_call_id for jc in ev.judge_calls.values()
+                    if jc.termination_certainty != "confirmed"
+                ]
+                actions.append(RecoveryAction("reconcile_evaluation", ev.id, {
+                    "task_id": scope.get("task_id"),
+                    "transition_to_reconciling": scope["kind"] == "task_attempt" and s.tasks[scope["task_id"]].state == "evaluating",
+                    "judge_call_ids": unconfirmed,
+                }))
+            else:
+                actions.append(RecoveryAction("record_interrupted_evaluation", ev.id, {
+                    "execution_status": "failed", "verdict": "not_run"}))
     if s.state == "running" and must_stop:
         actions.append(RecoveryAction("stop_run", s.id))
     if actions:

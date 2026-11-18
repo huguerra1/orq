@@ -60,9 +60,7 @@
     "evaluator_snapshot": {
       "$ref": "#/$defs/evaluatorSnapshot"
     },
-    "context_manifest_ref": {
-      "type": "null"
-    },
+    "context_manifest_ref": {},
     "started_at": {
       "oneOf": [
         {
@@ -115,7 +113,10 @@
     },
     "usage_record_ids": {
       "type": "array",
-      "maxItems": 0
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "uniqueItems": true
     },
     "error_record_ids": {
       "type": "array",
@@ -228,7 +229,10 @@
       ],
       "properties": {
         "kind": {
-          "const": "deterministic"
+          "enum": [
+            "deterministic",
+            "composite_rubric"
+          ]
         },
         "evaluator_ref": {
           "$ref": "common.schema.json#/$defs/versionedRef"
@@ -244,14 +248,60 @@
               "output_binding_present",
               "digest_matches",
               "content_contract_valid",
-              "simulated_verdict"
+              "simulated_verdict",
+              "model_rubric"
             ]
           },
           "minItems": 1,
           "uniqueItems": true
+        },
+        "cross_family_policy": {
+          "enum": [
+            "require_different",
+            "allow_same_for_calibration"
+          ]
+        },
+        "routing_policy_ref": {
+          "$ref": "common.schema.json#/$defs/versionedRef"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "deterministic"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "supported_methods": {
+                "items": {
+                  "enum": [
+                    "output_binding_present",
+                    "digest_matches",
+                    "content_contract_valid",
+                    "simulated_verdict"
+                  ]
+                }
+              },
+              "cross_family_policy": false,
+              "routing_policy_ref": false
+            }
+          },
+          "else": {
+            "required": [
+              "cross_family_policy",
+              "routing_policy_ref"
+            ]
+          }
+        }
+      ]
     },
     "criteriaSnapshot": {
       "type": "object",
@@ -399,6 +449,72 @@
                     }
                   }
                 }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "model_rubric"
+                    }
+                  },
+                  "required": [
+                    "method"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "pass_rule": {
+                      "type": "object",
+                      "required": [
+                        "output_ids",
+                        "rubric_ref",
+                        "prompt_template_ref"
+                      ],
+                      "properties": {
+                        "output_ids": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "common.schema.json#/$defs/identifier"
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        },
+                        "rubric_ref": {
+                          "$ref": "common.schema.json#/$defs/versionedRef"
+                        },
+                        "prompt_template_ref": {
+                          "$ref": "common.schema.json#/$defs/versionedRef"
+                        },
+                        "cross_family_policy": {
+                          "enum": [
+                            "require_different",
+                            "allow_same_for_calibration"
+                          ]
+                        },
+                        "panel_size": {
+                          "enum": [
+                            1,
+                            2
+                          ]
+                        },
+                        "knowledge_requirement_ids": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "common.schema.json#/$defs/identifier"
+                          },
+                          "uniqueItems": true
+                        },
+                        "evaluator_role_id": {
+                          "enum": [
+                            "code_reviewer",
+                            "security_reviewer"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                }
               }
             ]
           },
@@ -413,6 +529,13 @@
               "required"
             ]
           }
+        },
+        "rubric_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/versionedRef"
+          },
+          "uniqueItems": true
         },
         "criteria_hash": {
           "$ref": "common.schema.json#/$defs/digest"
@@ -490,7 +613,8 @@
                     "output_binding_present",
                     "digest_matches",
                     "content_contract_valid",
-                    "simulated_verdict"
+                    "simulated_verdict",
+                    "model_rubric"
                   ]
                 }
               }
@@ -668,6 +792,70 @@
             "enum": [
               "inconclusive",
               "not_run"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evaluator_snapshot": {
+            "properties": {
+              "kind": {
+                "const": "deterministic"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "evaluator_snapshot"
+        ]
+      },
+      "then": {
+        "properties": {
+          "context_manifest_ref": {
+            "type": "null"
+          },
+          "usage_record_ids": {
+            "maxItems": 0
+          },
+          "criterion_results": {
+            "items": {
+              "if": {
+                "properties": {
+                  "method": {
+                    "const": "model_rubric"
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "status": {
+                    "const": "not_run"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "context_manifest_ref": {
+            "oneOf": [
+              {
+                "$ref": "common.schema.json#/$defs/versionedRef"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }

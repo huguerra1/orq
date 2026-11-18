@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/rubric-evaluation-evidence.schema.json",
+  "title": "ORQ RubricEvaluationEvidence v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "judge_call_id",
+    "run_id",
+    "evaluation_id",
+    "criterion_id",
+    "rubric_ref",
+    "prompt_template_ref",
+    "rendered_prompt_digest",
+    "evaluator_family_id",
+    "evaluator_model_vendor",
+    "author_family_ids",
+    "author_model_vendor",
+    "evaluator_target_ref",
+    "subscription_id",
+    "runtime_ref",
+    "runtime_version",
+    "requested_model_id",
+    "resolved_model_id",
+    "dimension_assessments",
+    "normalized_score",
+    "blocking_dimension_failed",
+    "citation_verification_status",
+    "derived_status",
+    "overall_summary",
+    "recorded_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "evidence_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "judge_call_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "evaluation_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "criterion_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "rubric_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "prompt_template_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "rendered_prompt_digest": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "evaluator_family_id": {
+      "$ref": "common.schema.json#/$defs/familyId"
+    },
+    "evaluator_model_vendor": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "author_family_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/familyId"
+      }
+    },
+    "author_model_vendor": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "evaluator_target_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "subscription_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "runtime_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "runtime_version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 256
+    },
+    "requested_model_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved_model_id": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 4096
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dimension_assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/dimensionAssessment"
+      }
+    },
+    "normalized_score": {
+      "$ref": "common.schema.json#/$defs/decimal"
+    },
+    "blocking_dimension_failed": {
+      "type": "boolean"
+    },
+    "citation_verification_status": {
+      "enum": [
+        "verified",
+        "invalid_citation"
+      ]
+    },
+    "derived_status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ]
+    },
+    "overall_summary": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 2048
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "citationLocator": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "start_line",
+            "end_line"
+          ],
+          "properties": {
+            "kind": {
+              "const": "line_range"
+            },
+            "start_line": {
+              "$ref": "common.schema.json#/$defs/positiveInteger"
+            },
+            "end_line": {
+              "$ref": "common.schema.json#/$defs/positiveInteger"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "pointer"
+          ],
+          "properties": {
+            "kind": {
+              "const": "json_pointer"
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^(/([^/~]|~[01])*)*$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "citationItem": {
+      "type": "object",
+      "required": [
+        "output_id",
+        "artifact_id",
+        "content_digest",
+        "locator",
+        "verbatim_excerpt"
+      ],
+      "properties": {
+        "output_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "artifact_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "content_digest": {
+          "$ref": "common.schema.json#/$defs/digest"
+        },
+        "locator": {
+          "$ref": "#/$defs/citationLocator"
+        },
+        "verbatim_excerpt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false
+    },
+    "dimensionAssessment": {
+      "type": "object",
+      "required": [
+        "dimension_id",
+        "raw_score",
+        "normalized_dimension_score",
+        "meets_mandatory_minimum",
+        "rationale",
+        "citations"
+      ],
+      "properties": {
+        "dimension_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "raw_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "normalized_dimension_score": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "meets_mandatory_minimum": {
+          "type": "boolean"
+        },
+        "rationale": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "minLength": 10,
+          "maxLength": 1024
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citationItem"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

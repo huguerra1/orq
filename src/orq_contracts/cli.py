@@ -12,12 +12,22 @@ from typing import Any, Sequence
 
 from .canonical import CanonicalizationError, canonical_digest, canonicalize
 from ._storage import StorageError
-from .planner import PlanningError
+from .adapters import probe_cli_versions
+from .experiment_7f import (
+    Experiment7FError,
+    audit_and_analyze,
+    run_quota_stress_comparison,
+    run_simulated_experiment,
+    verify_package,
+)
+from .planner import FixedTemplatePlanner, PlanningError, plan_and_validate
+from .router import RoutingError, route_and_finalize
 from .runner import SequentialRunner
 from .simulated_executor import SimulationScript
 from .context import ContextError, materialize_knowledge_context
 from .memory_store import POSTGRES_BACKEND, MemoryStoreError, build_sync_plan, resolve_memory_config
 from .selection import select_knowledge
+from .calibration import run_calibration, run_post_hoc_rubric_audit
 from .validator import (
     validate_context_manifest,
     validate_instance,
@@ -87,6 +97,11 @@ def _parser() -> argparse.ArgumentParser:
             "knowledge_catalog",
             "knowledge_selection",
             "context_manifest",
+            "rubric_spec",
+            "evaluator_routing_policy",
+            "rubric_evaluation_evidence",
+            "calibration_report",
+            "post_hoc_rubric_audit_record",
         ),
     )
     validate.add_argument("path", type=Path)
@@ -126,6 +141,69 @@ def _parser() -> argparse.ArgumentParser:
     simulate = run_commands.add_parser("simulate", help="executa com o executor simulado, sem rede")
     for flag in ("store-root", "workflow", "request", "catalog", "policy", "script", "knowledge-catalog", "vault-root"):
         simulate.add_argument("--" + flag, type=Path, required=True)
+
+    plan = subparsers.add_parser("plan", help="propõe e valida um WorkflowSpec via FixedTemplatePlanner")
+    plan.add_argument("--request", type=Path, required=True)
+    plan.add_argument("--template", type=Path, action="append", required=True)
+    plan.add_argument("--output-record", type=Path, required=True)
+    plan.add_argument("--output-workflow", type=Path)
+    plan.add_argument("--completed-at")
+
+    route = subparsers.add_parser("route", help="decide destino elegível e emite RoutingDecision assinada")
+    route.add_argument("--request", type=Path, required=True)
+    route.add_argument("--catalog", type=Path, required=True)
+    route.add_argument("--policy", type=Path, required=True)
+    route.add_argument("--output", type=Path, required=True)
+
+    adapters = subparsers.add_parser("adapters", help="inspeciona os adaptadores de CLI")
+    adapters_commands = adapters.add_subparsers(dest="adapters_command", required=True)
+    probe_versions = adapters_commands.add_parser(
+        "probe-versions", help="sonda disponibilidade e versão local das CLIs sem alterar controles unknown"
+    )
+    probe_versions.add_argument("--include-wsl", action="store_true")
+
+    exp7f = subparsers.add_parser("experiment-7f", help="executa e audita o Experimento 7F")
+    exp7f_commands = exp7f.add_subparsers(dest="exp7f_command", required=True)
+    verify_cmd = exp7f_commands.add_parser("verify-package", help="verifica digests e manifesto do pacote 7F")
+    verify_cmd.add_argument("--package-dir", type=Path, required=True)
+
+    sim_cmd = exp7f_commands.add_parser("simulate", help="executa Camada A pareada (Q28)")
+    sim_cmd.add_argument("--package-dir", type=Path, required=True)
+    sim_cmd.add_argument("--store-root", type=Path, required=True)
+    sim_cmd.add_argument("--repetitions", type=int, default=1)
+    sim_cmd.add_argument("--selection-mode", choices=("agent_mcp_choice", "static_top_k"), default="agent_mcp_choice")
+    sim_cmd.add_argument("--output", type=Path)
+
+    stress_cmd = exp7f_commands.add_parser("quota-stress", help="executa estresse de cota pareado (Q29)")
+    stress_cmd.add_argument("--package-dir", type=Path, required=True)
+    stress_cmd.add_argument("--store-root", type=Path, required=True)
+    stress_cmd.add_argument("--output", type=Path)
+
+    audit_cmd = exp7f_commands.add_parser("audit", help="audita journals e calcula estatísticas pareadas (Q30)")
+    audit_cmd.add_argument("--package-dir", type=Path, required=True)
+    audit_cmd.add_argument("--store-root", type=Path, required=True)
+    audit_cmd.add_argument("--output", type=Path)
+
+    cal = subparsers.add_parser("calibrate", help="calibra avaliadores por rubrica em corpus rotulado")
+    cal_commands = cal.add_subparsers(dest="calibrate_command", required=True)
+    cal_eval = cal_commands.add_parser("evaluator", help="executa protocolo de calibração e verifica gates")
+    cal_eval.add_argument("--corpus", type=Path, required=True)
+    cal_eval.add_argument("--rubric", type=Path, required=True)
+    cal_eval.add_argument("--output-dir", type=Path, required=True)
+    cal_eval.add_argument("--responses", type=Path)
+    cal_eval.add_argument("--recorded-at", type=str, default="2026-11-18T00:00:00Z")
+
+    audit_top = subparsers.add_parser("audit", help="auditoria somente leitura de runs encerrados")
+    audit_commands = audit_top.add_subparsers(dest="audit_command", required=True)
+    audit_rubric = audit_commands.add_parser("rubric", help="executa auditoria pós-hoc por rubrica sem mutar o run")
+    audit_rubric.add_argument("--store-root", type=Path, required=True)
+    audit_rubric.add_argument("--run-id", type=str, required=True)
+    audit_rubric.add_argument("--rubric", type=Path, required=True)
+    audit_rubric.add_argument("--calibration-report", type=Path, required=True)
+    audit_rubric.add_argument("--output-dir", type=Path, required=True)
+    audit_rubric.add_argument("--task-id", type=str)
+    audit_rubric.add_argument("--simulate-script", type=Path)
+    audit_rubric.add_argument("--recorded-at", type=str, default="2026-11-18T00:00:00Z")
     return parser
 
 
@@ -137,6 +215,11 @@ def _validate(kind: str, document: Any):
         "knowledge_catalog": lambda value: validate_instance(value, "knowledge_catalog"),
         "knowledge_selection": lambda value: validate_instance(value, "knowledge_selection"),
         "context_manifest": validate_context_manifest,
+        "rubric_spec": lambda value: validate_instance(value, "rubric_spec"),
+        "evaluator_routing_policy": lambda value: validate_instance(value, "evaluator_routing_policy"),
+        "rubric_evaluation_evidence": lambda value: validate_instance(value, "rubric_evaluation_evidence"),
+        "calibration_report": lambda value: validate_instance(value, "calibration_report"),
+        "post_hoc_rubric_audit_record": lambda value: validate_instance(value, "post_hoc_rubric_audit_record"),
     }
     return validators[kind](document)
 
@@ -203,6 +286,124 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(_run_vault(arguments), ensure_ascii=False, indent=2))
             return 0
 
+        if arguments.command == "plan":
+            request = _read_json(arguments.request)
+            templates = [_read_json(path) for path in arguments.template]
+            planner_ref = {
+                "id": "fixed-template-planner",
+                "version": "0.1",
+                "content_digest": canonical_digest("fixed-template-planner:0.1"),
+            }
+            result = plan_and_validate(
+                FixedTemplatePlanner(templates, planner_ref),
+                request,
+                completed_at=arguments.completed_at or request["created_at"],
+            )
+            _write_exclusive(arguments.output_record, _json_bytes(result.record))
+            if arguments.output_workflow is not None and result.workflow is not None:
+                _write_exclusive(arguments.output_workflow, _json_bytes(result.workflow))
+            summary = {
+                "status": result.record["status"],
+                "planning_record_id": result.record["planning_record_id"],
+                "record_output": str(arguments.output_record),
+            }
+            if arguments.output_workflow is not None and result.workflow is not None:
+                summary["workflow_output"] = str(arguments.output_workflow)
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+            return 0 if result.record["status"] == "accepted" else 1
+
+        if arguments.command == "route":
+            request = _read_json(arguments.request)
+            catalog = _read_json(arguments.catalog)
+            policy = _read_json(arguments.policy)
+            decision = route_and_finalize(
+                request,
+                catalog,
+                policy,
+                preflight_checks=[
+                    {
+                        "control": "limits",
+                        "status": "passed",
+                        "observed_at": request["created_at"],
+                        "evidence_refs": [],
+                    }
+                ],
+            )
+            _write_exclusive(arguments.output, _json_bytes(decision))
+            print(
+                json.dumps(
+                    {
+                        "decision_status": decision["decision_status"],
+                        "routing_decision_id": decision["routing_decision_id"],
+                        "effective_selection": decision["effective_selection"],
+                        "output": str(arguments.output),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 0 if decision["decision_status"] == "selected" else 1
+
+        if arguments.command == "adapters":
+            print(json.dumps(probe_cli_versions(include_wsl=arguments.include_wsl), ensure_ascii=False, indent=2))
+            return 0
+
+        if arguments.command == "experiment-7f":
+            if arguments.exp7f_command == "verify-package":
+                payload = verify_package(arguments.package_dir)
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+                return 0
+            if arguments.exp7f_command == "simulate":
+                payload = run_simulated_experiment(
+                    arguments.store_root,
+                    package_dir=arguments.package_dir,
+                    repetitions=arguments.repetitions,
+                    selection_mode=arguments.selection_mode,
+                    memory_config=resolve_memory_config(),
+                )
+            elif arguments.exp7f_command == "quota-stress":
+                payload = run_quota_stress_comparison(
+                    arguments.store_root,
+                    package_dir=arguments.package_dir,
+                    memory_config=resolve_memory_config(),
+                )
+            else:
+                payload = audit_and_analyze(arguments.store_root, package_dir=arguments.package_dir)
+                if not payload["audit"]["valid"]:
+                    print(json.dumps(payload, ensure_ascii=False, indent=2))
+                    return 1
+            if getattr(arguments, "output", None) is not None:
+                _write_exclusive(arguments.output, _json_bytes(payload))
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return 0
+
+        if arguments.command == "calibrate" and arguments.calibrate_command == "evaluator":
+            responses = _read_json(arguments.responses) if arguments.responses else None
+            report = run_calibration(
+                corpus=_read_json(arguments.corpus),
+                rubric=_read_json(arguments.rubric),
+                responses=responses,
+                output_dir=arguments.output_dir,
+                recorded_at=arguments.recorded_at,
+            )
+            print(canonicalize(report).decode("utf-8"))
+            return 0 if report["gates_passed"] else 1
+
+        if arguments.command == "audit" and arguments.audit_command == "rubric":
+            sim_script = _read_json(arguments.simulate_script) if arguments.simulate_script else None
+            record = run_post_hoc_rubric_audit(
+                store_root=arguments.store_root,
+                run_id=arguments.run_id,
+                rubric=_read_json(arguments.rubric),
+                calibration_report=_read_json(arguments.calibration_report),
+                output_dir=arguments.output_dir,
+                task_id=arguments.task_id,
+                simulate_script=sim_script,
+                recorded_at=arguments.recorded_at,
+            )
+            print(canonicalize(record).decode("utf-8"))
+            return 0
+
         if arguments.command == "run":
             document = _read_json(arguments.script)
             script = SimulationScript(document, expected_digest=canonical_digest(document))
@@ -236,6 +437,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         MemoryStoreError,
         StorageError,
         PlanningError,
+        RoutingError,
+        Experiment7FError,
     ) as error:
         result = {"valid": False, "error": str(error)}
         if arguments.command == "run" and hasattr(error, "code"):

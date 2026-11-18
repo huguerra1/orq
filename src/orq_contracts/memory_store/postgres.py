@@ -15,8 +15,18 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from ..knowledge_backend import KnowledgeCandidate, UnitKey
-from .config import POSTGRES_BACKEND, MemoryConfig, MemoryScope, MemoryStoreError
-from .ddl import READER_ROLE, SCHEMA_VERSION, WRITER_ROLE, load_schema_sql, schema_digest
+from .config import POSTGRES_BACKEND, SHARED_GLOBAL_REGIME, MemoryConfig, MemoryScope, MemoryStoreError
+from .ddl import (
+    GLOBAL_READER_ROLE,
+    READER_ROLE,
+    SCHEMA_V2_VERSION,
+    SCHEMA_VERSION,
+    WRITER_ROLE,
+    load_schema_sql,
+    load_schema_v2_sql,
+    schema_digest,
+    schema_v2_digest,
+)
 from .search import (
     SEARCH_SQL,
     UNITS_BY_KEY_SQL,
@@ -52,8 +62,13 @@ def connect(config: MemoryConfig) -> psycopg.Connection:
 def apply_schema(connection: psycopg.Connection) -> str:
     """Aplica o DDL versionado uma única vez. Retorna "applied" ou "unchanged"."""
 
-    ddl = load_schema_sql()
-    digest = schema_digest()
+    ddl_v1 = load_schema_sql()
+    digest_v1 = schema_digest()
+    ddl_v2 = load_schema_v2_sql()
+    digest_v2 = schema_v2_digest()
+    v1_entry = (SCHEMA_VERSION, digest_v1)
+    v2_entry = (SCHEMA_V2_VERSION, digest_v2)
+    expected = [v1_entry, v2_entry]
     with connection.transaction():
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_catalog.pg_advisory_xact_lock(%s)", (MIGRATION_LOCK_KEY,))
@@ -62,17 +77,29 @@ def apply_schema(connection: psycopg.Connection) -> str:
             if row is not None and row[0]:
                 cursor.execute("SELECT version, ddl_digest FROM orq_memory.schema_migrations ORDER BY version")
                 applied = [tuple(item) for item in cursor.fetchall()]
-                if applied == [(SCHEMA_VERSION, digest)]:
+                if applied == expected:
                     return "unchanged"
+                if applied == [v1_entry]:
+                    cursor.execute(ddl_v2)
+                    cursor.execute(
+                        "INSERT INTO orq_memory.schema_migrations (version, ddl_digest) VALUES (%s, %s)",
+                        v2_entry,
+                    )
+                    return "applied"
                 raise MemoryStoreError(
                     "memory_schema_version_conflict",
                     f"banco com versões {[version for version, _ in applied]} ou digest diferente do DDL atual",
                 )
             # Sem parâmetros, o psycopg usa o protocolo simples e executa o arquivo inteiro.
-            cursor.execute(ddl)
+            cursor.execute(ddl_v1)
             cursor.execute(
                 "INSERT INTO orq_memory.schema_migrations (version, ddl_digest) VALUES (%s, %s)",
-                (SCHEMA_VERSION, digest),
+                v1_entry,
+            )
+            cursor.execute(ddl_v2)
+            cursor.execute(
+                "INSERT INTO orq_memory.schema_migrations (version, ddl_digest) VALUES (%s, %s)",
+                v2_entry,
             )
     return "applied"
 
@@ -193,10 +220,11 @@ def scoped_transaction(connection: psycopg.Connection, scope: MemoryScope) -> It
 
     if not isinstance(scope, MemoryScope):
         raise MemoryStoreError("invalid_memory_scope", "escopo deve ser MemoryScope montado pelo host")
+    reader_role = GLOBAL_READER_ROLE if scope.memory_regime == SHARED_GLOBAL_REGIME else READER_ROLE
     with connection.transaction():
         with connection.cursor(row_factory=dict_row) as cursor:
             cursor.execute("SET TRANSACTION READ ONLY")
-            cursor.execute(f"SET LOCAL ROLE {READER_ROLE}")
+            cursor.execute(f"SET LOCAL ROLE {reader_role}")
             for setting, value in scope.settings():
                 cursor.execute("SELECT pg_catalog.set_config(%s, %s, true)", (setting, value))
             cursor.execute(
@@ -204,7 +232,7 @@ def scoped_transaction(connection: psycopg.Connection, scope: MemoryScope) -> It
                 " FROM pg_catalog.pg_roles r WHERE r.rolname = current_user"
             )
             role = cursor.fetchone()
-            if role is None or role["role_name"] != READER_ROLE or role["rolsuper"] or role["rolbypassrls"]:
+            if role is None or role["role_name"] != reader_role or role["rolsuper"] or role["rolbypassrls"]:
                 raise MemoryStoreError("reader_role_can_bypass_rls", "role efetiva não é o leitor restrito")
             yield cursor
 

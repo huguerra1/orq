@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/rubric-spec.schema.json",
+  "title": "ORQ RubricSpec v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "rubric_id",
+    "version",
+    "title",
+    "applicable_scope",
+    "scale",
+    "dimensions",
+    "pass_threshold",
+    "inconclusive_band",
+    "require_evidence_citations",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "rubric_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "title": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 256
+    },
+    "applicable_scope": {
+      "const": "task_attempt"
+    },
+    "scale": {
+      "type": "object",
+      "required": [
+        "min_score",
+        "max_score"
+      ],
+      "properties": {
+        "min_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "max_score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "dimensions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/dimension"
+      }
+    },
+    "pass_threshold": {
+      "$ref": "common.schema.json#/$defs/decimal"
+    },
+    "inconclusive_band": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "lower",
+            "upper"
+          ],
+          "properties": {
+            "lower": {
+              "$ref": "common.schema.json#/$defs/decimal"
+            },
+            "upper": {
+              "$ref": "common.schema.json#/$defs/decimal"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "require_evidence_citations": {
+      "type": "boolean"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "anchor": {
+      "type": "object",
+      "required": [
+        "score",
+        "label",
+        "criteria"
+      ],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "label": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 128
+        },
+        "criteria": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 1024
+        }
+      },
+      "additionalProperties": false
+    },
+    "dimension": {
+      "type": "object",
+      "required": [
+        "dimension_id",
+        "name",
+        "description",
+        "requirement_ids",
+        "weight",
+        "mandatory_minimum_score",
+        "min_citations",
+        "anchors"
+      ],
+      "properties": {
+        "dimension_id": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 256
+        },
+        "description": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 1024
+        },
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          }
+        },
+        "weight": {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        "mandatory_minimum_score": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "min_citations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/anchor"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

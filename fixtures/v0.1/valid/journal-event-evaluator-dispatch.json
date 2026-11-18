@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1",
+  "event_id": "event-eval-dispatch-1",
+  "run_id": "run-demo-008",
+  "global_sequence": 10,
+  "aggregate_type": "evaluation",
+  "aggregate_id": "evaluation-T3-1-1",
+  "aggregate_sequence": 2,
+  "event_type": "evaluator_dispatch_requested",
+  "recorded_at": "2026-11-18T00:09:05Z",
+  "occurred_at": "2026-11-18T00:09:05Z",
+  "actor": {
+    "kind": "orchestrator",
+    "ref": "orq-runner"
+  },
+  "correlation_id": "evaluation-T3-1-1",
+  "causation_event_id": "event-eval-req-1",
+  "idempotency_key": "run-demo-008/eval-T3-1-1/j1",
+  "payload": {
+    "judge_call_id": "judge-evaluation-T3-1-1-1",
+    "judge_index": 1,
+    "dispatch_idempotency_key": "run-demo-008/eval-T3-1-1/j1",
+    "evaluator_family_id": "family_gemini",
+    "evaluator_model_vendor": "google",
+    "evaluator_target_ref": {
+      "id": "target-gemini",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e65936fa62dc2af5b44dd958eef64ec74b4e4262547d8c2165b3af1ef129d5d7"
+      }
+    },
+    "subscription_id": "sub-gemini",
+    "quota_pool_id": "pool-gemini",
+    "runtime_ref": {
+      "id": "runtime-agy",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "88ae513a4d37816a43278a67b6942869f6506b8d303b89d5fe3cba778eb208dd"
+      }
+    },
+    "runtime_version": "1.5.10",
+    "requested_model_id": "gemini-2.5-pro",
+    "prompt_template_ref": {
+      "id": "prompt-rubric-eval-v1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "e54b6e3ae4e5fbec9ff76d40b38f2878ea6b33113207d446a154867af4c7808c"
+      }
+    },
+    "rendered_prompt_digest": {
+      "algorithm": "sha256",
+      "value": "6100df7fb3b9a8232b4dd4192a895ebf3d5c64107e035a6cc45883155237a633"
+    },
+    "eval_workspace_digest": {
+      "algorithm": "sha256",
+      "value": "f9f7f6548bd11f5d19078378e262f7cdfab4a0b4218820c59e873ddb1ffc8346"
+    },
+    "deadline_at": "2026-11-18T00:11:00Z"
+  },
+  "previous_event_hash": {
+    "algorithm": "sha256",
+    "value": "2c804818ce87af0217843accf2daaf684e440a0562a7fd720f1743e8c510d8ee"
+  },
+  "event_hash": {
+    "algorithm": "sha256",
+    "value": "456b56b87528e732b74746fab90877f499dec4a92f1b77b0461136d5b7371ec4"
+  }
+}

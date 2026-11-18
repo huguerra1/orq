@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/evaluator-routing-policy.schema.json",
+  "title": "ORQ EvaluatorRoutingPolicy v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evaluator_routing_policy_id",
+    "version",
+    "cross_family_policy",
+    "enforce_distinct_model_vendor",
+    "primary_evaluator_families",
+    "fallback_evaluator_families",
+    "panel_size",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "evaluator_routing_policy_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "cross_family_policy": {
+      "enum": [
+        "require_different",
+        "allow_same_for_calibration"
+      ]
+    },
+    "enforce_distinct_model_vendor": {
+      "type": "boolean"
+    },
+    "primary_evaluator_families": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/familyId"
+      }
+    },
+    "fallback_evaluator_families": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/familyId"
+      }
+    },
+    "panel_size": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false
+}

@@ -86,7 +86,14 @@
         "run_locked",
         "run_exists",
         "quota_limit_reached",
-        "subscription_policy_violation"
+        "subscription_policy_violation",
+        "permission_or_empty_output",
+        "evidence_citation_invalid",
+        "evaluator_invalid_output",
+        "evaluator_panel_disagreement",
+        "no_eligible_cross_family_evaluator",
+        "eval_workspace_mutated",
+        "eval_sandbox_escape_attempt"
       ]
     },
     "message": {
@@ -175,7 +182,10 @@
         ],
         "properties": {
           "scope_type": {
-            "const": "attempt"
+            "enum": [
+              "attempt",
+              "evaluation"
+            ]
           },
           "category": {
             "const": "provider"
@@ -196,7 +206,52 @@
               }
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "scope_type": {
+                  "const": "attempt"
+                }
+              },
+              "required": [
+                "scope_type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "quota_state": {
+                  "properties": {
+                    "source_attempt_id": {
+                      "$ref": "common.schema.json#/$defs/identifier"
+                    },
+                    "source_evaluation_id": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "quota_state": {
+                  "required": [
+                    "source_evaluation_id"
+                  ],
+                  "properties": {
+                    "source_attempt_id": {
+                      "type": "null"
+                    },
+                    "source_evaluation_id": {
+                      "$ref": "common.schema.json#/$defs/identifier"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       },
       "else": {
         "properties": {

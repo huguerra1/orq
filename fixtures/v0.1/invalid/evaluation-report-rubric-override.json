@@ -1,0 +1,183 @@
+{
+  "schema_version": "0.1",
+  "evaluation_id": "evaluation-T3-1-1",
+  "evaluation_number": 1,
+  "run_id": "run-demo-008",
+  "scope": {
+    "kind": "task_attempt",
+    "task_id": "T3",
+    "attempt_id": "attempt-T3-1"
+  },
+  "subject_bindings": [
+    {
+      "output_id": "security_report",
+      "artifact": {
+        "artifact_id": "artifact-T3-1-sec",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "cdf741eb7f66092b179ae599f68f8c7564fbc9a3e5186d963011e1619adfd822"
+        }
+      }
+    }
+  ],
+  "patch_application_refs": [],
+  "criteria_snapshot": {
+    "criteria": [
+      {
+        "criterion_id": "contract-valid",
+        "requirement_ids": [
+          "R1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "security_report"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "security-rubric-ok",
+        "requirement_ids": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "method": "model_rubric",
+        "pass_rule": {
+          "output_ids": [
+            "security_report"
+          ],
+          "rubric_ref": {
+            "id": "rubric-security-review-v1",
+            "version": "1.0",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "d55cb012e7ceeb957c82497db76409b0eb8aee70a91330cc76f5414cbe25a2f5"
+            }
+          },
+          "prompt_template_ref": {
+            "id": "prompt-rubric-eval-v1",
+            "version": "0.1",
+            "content_digest": {
+              "algorithm": "sha256",
+              "value": "e54b6e3ae4e5fbec9ff76d40b38f2878ea6b33113207d446a154867af4c7808c"
+            }
+          },
+          "cross_family_policy": "require_different",
+          "panel_size": 1,
+          "knowledge_requirement_ids": [],
+          "evaluator_role_id": "security_reviewer"
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ],
+    "rubric_refs": [
+      {
+        "id": "rubric-security-review-v1",
+        "version": "1.0",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "d55cb012e7ceeb957c82497db76409b0eb8aee70a91330cc76f5414cbe25a2f5"
+        }
+      }
+    ],
+    "criteria_hash": {
+      "algorithm": "sha256",
+      "value": "5bef022b777f1172e1e0c2b93c5432efb8f9e5d69d623b70fe6eb45a44db4a44"
+    }
+  },
+  "evaluator_snapshot": {
+    "kind": "composite_rubric",
+    "evaluator_ref": {
+      "id": "evaluator-composite-v1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "1922bbf4304604a22c229b2c7178d520a1012f3a171295d9b1e220f556f9791f"
+      }
+    },
+    "version": "0.1",
+    "supported_methods": [
+      "output_binding_present",
+      "digest_matches",
+      "content_contract_valid",
+      "simulated_verdict",
+      "model_rubric"
+    ],
+    "cross_family_policy": "require_different",
+    "routing_policy_ref": {
+      "id": "eval-routing-default-v1",
+      "version": "0.1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "8e13d552bc16987f7ad6b0bf4ffaa76f41442e54c09b24e55847c447be6b055e"
+      }
+    }
+  },
+  "context_manifest_ref": null,
+  "started_at": "2026-11-18T00:09:00Z",
+  "completed_at": "2026-11-18T00:10:00Z",
+  "execution_status": "completed",
+  "criterion_results": [
+    {
+      "criterion_id": "contract-valid",
+      "required": true,
+      "requirement_ids": [
+        "R1"
+      ],
+      "method": "content_contract_valid",
+      "status": "fail",
+      "evidence_refs": [],
+      "observations": [],
+      "error_record_ids": []
+    },
+    {
+      "criterion_id": "security-rubric-ok",
+      "required": true,
+      "requirement_ids": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "method": "model_rubric",
+      "status": "pass",
+      "evidence_refs": [
+        {
+          "artifact_id": "artifact-eval-T3-1-1-rubric-j1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "abe80500b1493b05ca83d5e6c20baa9c35beaddae6faec4cc3bf00dd3089b3d8"
+          }
+        }
+      ],
+      "observations": [
+        "normalized_score=0.8750",
+        "evaluator_family=family_gemini"
+      ],
+      "error_record_ids": []
+    }
+  ],
+  "verdict": "pass",
+  "evidence_refs": [
+    {
+      "artifact_id": "artifact-eval-T3-1-1-rubric-j1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "abe80500b1493b05ca83d5e6c20baa9c35beaddae6faec4cc3bf00dd3089b3d8"
+      }
+    }
+  ],
+  "usage_record_ids": [
+    "usage-judge-evaluation-T3-1-1-1"
+  ],
+  "error_record_ids": [],
+  "limitations": [],
+  "unknowns": [],
+  "record_hash": {
+    "algorithm": "sha256",
+    "value": "0776b7191960be64e21d819ef5fa1c8e303798b539679271e7d8d5f5189adb86"
+  }
+}

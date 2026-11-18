@@ -24,6 +24,7 @@ from ..evaluator import ContentContractRegistry
 from ..executor import (CancelObservation, DispatchAck, ExecutionObservation, ExecutorDescription,
                         ExecutorError, ExecutorResult, ProducedFile, ReconciliationObservation,
                         Record, WorkspaceHandle, bytes_digest, error_record, seal_record, stable_id)
+from ..rubric_prep import IsolatedEvalWorkspace, JudgeRawOutcome
 from ..simulated_executor import CONTROL_IDS, AUTHORITATIVE_NOT_FOUND_CONTROL, format_utc, parse_utc
 from ..validator import validate_instance, validate_quota_consumption_record
 from ._supervisor import read_bytes, safe_environment, write_record
@@ -39,8 +40,14 @@ class CLIPermissions:
     """
     workspace_write: bool = False
     command_prefixes: tuple[tuple[str, ...], ...] = ()
+    read_only: bool | None = None
+    allow_commands: bool | None = None
 
     def __post_init__(self):
+        if self.read_only is True and self.workspace_write:
+            raise ExecutorError("subscription_policy_violation", "modo read_only proíbe escrita no workspace")
+        if self.allow_commands is False and self.command_prefixes:
+            raise ExecutorError("subscription_policy_violation", "allow_commands=False proíbe comandos")
         for prefix in self.command_prefixes:
             if not prefix or any(not re.fullmatch(r"[A-Za-z0-9_./=-]+", token) for token in prefix):
                 raise ExecutorError("subscription_policy_violation", "prefixo de comando inválido")
@@ -50,11 +57,14 @@ class CLIPermissions:
 class ParsedOutput:
     final: str | None = None
     diagnostics: list[str] = field(default_factory=list)
+    tool_events: list[str] = field(default_factory=list)
     input_tokens: int | None = None
     output_tokens: int | None = None
     model: str | None = None
     session: str | None = None
     failed: bool = False
+    stdout_text: str = ""
+    stderr_text: str = ""
 
 
 def _frames(text: str):
@@ -115,7 +125,8 @@ class CLIAdapter:
     def __init__(self, profile: Record, store: ArtifactStore, *, state_directory: Path,
                  workspace_root: Path, clock: Callable[[], str], runtime_version: str,
                  contracts: ContentContractRegistry, permissions: CLIPermissions = CLIPermissions(),
-                 reasoning_effort: str = "medium", platform: str | None = None):
+                 reasoning_effort: str = "medium", platform: str | None = None,
+                 vault_root: Path | None = None):
         if validate_instance(profile, "subscription_profile") or profile["cli_executable"] != self.cli:
             raise ExecutorError("subscription_policy_violation", "perfil inválido ou CLI divergente")
         if profile["detector_version"] != VERSIONS[self.cli]:
@@ -128,6 +139,7 @@ class CLIAdapter:
             raise ExecutorError("clock_mismatch", "executor e journal devem compartilhar o relógio")
         self.permissions, self.reasoning_effort = permissions, reasoning_effort
         self.platform = platform or sys.platform
+        self.vault_root = Path(vault_root) if vault_root is not None else None
         self.state_directory = Path(state_directory).absolute()
         self.workspace_root = Path(workspace_root).absolute()
         if self.state_directory.is_relative_to(self.workspace_root) or self.workspace_root.is_relative_to(self.state_directory):
@@ -137,6 +149,28 @@ class CLIAdapter:
         self.detector = QuotaLimitDetector(self.cli, local_timezone=profile["local_timezone"],
                                           default_cooldown_ms=profile["default_cooldown_ms"])
         self._processes: dict[str, subprocess.Popen] = {}
+        self._sessions: dict[str, object] = {}
+        self._active_mcp: dict[str, object] | None = None
+        self._judge_mode: bool = False
+
+    def bind_knowledge_session(self, intent: Record, session) -> None:
+        if self.vault_root is None:
+            raise ExecutorError("mcp_binding_unverified", "vault_root obrigatório para conectar sessão MCP",
+                                retryability="non_retryable", termination_certainty="confirmed")
+        if intent.get("knowledge_session_ref") != getattr(session, "reference", None):
+            raise ExecutorError("knowledge_session_mismatch", "sessão MCP diverge da intenção",
+                                retryability="non_retryable", termination_certainty="confirmed")
+        self._sessions[intent["dispatch_idempotency_key"]] = session
+
+    def _mcp_context(self, key: str) -> dict[str, object] | None:
+        session = self._sessions.get(key)
+        if session is None or self.vault_root is None:
+            return None
+        mapper = wsl_path if self._wsl else str
+        py_exe = "python3" if self._wsl else sys.executable
+        launch = session.stdio_launch(self.vault_root, python_executable=py_exe, path_mapper=mapper)
+        src_path = mapper(Path(__file__).resolve().parents[2])
+        return {"entry": {**launch, "env": {"PYTHONPATH": src_path}}}
 
     def _now(self) -> str:
         # DeterministicClock.now não avança, inclusive com until já vencido.
@@ -235,8 +269,13 @@ class CLIAdapter:
         prompt = self._prompt(bundle, workspace)
         cli_work = wsl_path(work, workspace=True) if self._wsl else str(work)
         final = work / ".orq-last-message"
-        argv = self._argv(cli_work, workspace.requested_model_id, prompt,
-                          wsl_path(final) if self._wsl else str(final), intent["attempt_timeout_ms"])
+        mcp_context = self._mcp_context(intent["dispatch_idempotency_key"])
+        self._active_mcp = mcp_context
+        try:
+            argv = self._argv(cli_work, workspace.requested_model_id, prompt,
+                              wsl_path(final) if self._wsl else str(final), intent["attempt_timeout_ms"])
+        finally:
+            self._active_mcp = None
         timeout_ms = min(intent["attempt_timeout_ms"], max(0, int((parse_utc(intent["deadline_at"]) - parse_utc(now)).total_seconds() * 1000)))
         meta = {"intent": copy.deepcopy(intent), "profile": self.profile, "fingerprint": fingerprint,
                 "runtime_version": self.runtime_version, "phase": "prepared", "workspace": str(work), "workspace_id": workspace.workspace_id,
@@ -252,7 +291,11 @@ class CLIAdapter:
             raise
         work.mkdir()  # workspace novo; não reutiliza estado de outra tentativa
         ensure_directory(work / ".orq-output")
-        self._prepare_permissions(work)
+        self._active_mcp = mcp_context
+        try:
+            self._prepare_permissions(work)
+        finally:
+            self._active_mcp = None
         try:
             if timeout_ms == 0:
                 write_record(directory / "receipt.json", {"fingerprint": fingerprint, "phase": "not_started"})
@@ -359,23 +402,32 @@ class CLIAdapter:
         outcome = {"finished": "found_finished", "failed": "found_failed", "stopped": "found_stopped", "running": "found_running"}.get(observation.status, "unknown")
         return ReconciliationObservation(outcome, session, observation.termination_certainty, self._now(), evidence)
 
-    def _parse(self, directory: Path, meta: Record) -> ParsedOutput:
+    def _parse(self, directory: Path, meta: Record, *, final_override_path: Path | None = None) -> ParsedOutput:
         parsed = ParsedOutput()
         for name in ("stdout", "stderr"):
             path = directory / name
             if not path.exists():
                 continue
             text = _read_limited(path).decode("utf-8", errors="replace")
+            if name == "stdout":
+                parsed.stdout_text = text
+            else:
+                parsed.stderr_text = text
             frames = ((line.strip(), None) for line in text.splitlines()) if name == "stdout" and self.cli in {"agy", "kiro-cli"} else _frames(text)
             for line, event in frames:
-                if not line or line.startswith(("[tool]", "logging before google.Init")):
+                if not line:
+                    continue
+                if line.startswith("[tool]"):
+                    parsed.tool_events.append(line)
+                    continue
+                if line.startswith("logging before google.Init"):
                     continue
                 if event is None:
                     # Somente stderr é canal diagnóstico livre. Stdout pode conter arquivos.
                     if name == "stderr":
                         parsed.diagnostics.append(line)
                     elif self.cli in {"agy", "kiro-cli"} and line.startswith("ORQ_FINAL:"):
-                        parsed.final = line[len("ORQ_FINAL:"):]
+                        parsed.final = line
                     continue
                 if not isinstance(event, dict):
                     continue
@@ -386,6 +438,14 @@ class CLIAdapter:
                     message = event.get("message") or (detail.get("message") if isinstance(detail, dict) else None)
                     if isinstance(message, str):
                         parsed.diagnostics.append(message)
+                elif self.cli == "claude" and kind == "assistant":
+                    content_items = ((event.get("message") or {}).get("content") or [])
+                    if isinstance(content_items, list):
+                        for item in content_items:
+                            if isinstance(item, dict) and item.get("type") == "tool_use":
+                                parsed.tool_events.append(
+                                    f"[tool] {item.get('name', 'tool')} {json.dumps(item.get('input', {}), sort_keys=True, ensure_ascii=False)}"
+                                )
                 elif self.cli == "claude" and kind == "result":
                     if event.get("is_error") or event.get("subtype", "success") != "success":
                         parsed.final, parsed.failed = None, True
@@ -402,13 +462,19 @@ class CLIAdapter:
                     elif kind == "turn.completed":
                         self._tokens(parsed, event.get("usage"))
                         parsed.model = event.get("model")
-                    elif kind == "item.completed" and isinstance(event.get("item"), dict) and event["item"].get("type") == "agent_message":
-                        text = event["item"].get("text")
-                        if isinstance(text, str) and text.strip():
-                            parsed.final = text
+                    elif kind == "item.completed" and isinstance(event.get("item"), dict):
+                        item = event["item"]
+                        if item.get("type") == "agent_message":
+                            text = item.get("text")
+                            if isinstance(text, str) and text.strip():
+                                parsed.final = text
+                        elif item.get("type") in {"command_execution", "file_read", "mcp_tool_call", "tool_call", "function_call"}:
+                            parsed.tool_events.append(
+                                f"[tool] {item.get('type')} {json.dumps(item, sort_keys=True, ensure_ascii=False)}"
+                            )
         # -o é controlado pela CLI, mas não serve como fonte de erro/cota.
         if self.cli == "codex" and not parsed.final and not parsed.failed:
-            final = confined_path(Path(meta["workspace"]), ".orq-last-message")
+            final = final_override_path if final_override_path is not None else confined_path(Path(meta["workspace"]), ".orq-last-message")
             if final.is_file():
                 parsed.final = _read_limited(final).decode("utf-8", errors="replace").strip() or None
         for key in ("model", "session"):
@@ -425,10 +491,13 @@ class CLIAdapter:
                 if type(value) is int and value >= 0:
                     setattr(parsed, key, value)
 
-    def _error(self, intent: Record, code: str, message: str, now: str, *, quota_state=None) -> Record:
+    def _error(self, intent: Record, code: str, message: str, now: str, *, quota_state=None, unavailable=False) -> Record:
+        # Cota e indisponibilidade não-cota (rede/login) confirmadas pelo detector
+        # permitem nova tentativa; o Router exclui o destino na próxima decisão.
+        retryable = quota_state is not None or unavailable
         record = error_record(run_id=intent["run_id"], scope_type="attempt", scope_ref=intent["attempt_id"],
                               phase="collect", category="provider", code="execution_failed" if quota_state else code, message=message[:4096],
-                              timestamp=now, retryability="retryable" if quota_state else "unknown",
+                              timestamp=now, retryability="retryable" if retryable else "unknown",
                               termination_certainty="confirmed")
         if quota_state:
             record["code"] = code
@@ -464,7 +533,10 @@ class CLIAdapter:
             errors.append(self._error(intent, "quota_limit_reached", detection.excerpt, now, quota_state=state))
         elif observation.status != "finished" or not parsed.final:
             reason = detection.reason if detection.reason != "none" else receipt["stop_reason"] or "permission_or_empty_output"
-            errors.append(self._error(intent, "execution_failed", reason, now))
+            code = ("permission_or_empty_output" if self.cli == "agy" and not parsed.final and
+                    any("no output produced" in line.lower() for line in parsed.diagnostics) else "execution_failed")
+            errors.append(self._error(intent, code, reason, now, unavailable=code == "execution_failed" and
+                                      detection.reason in {"network_unavailable", "authentication_unavailable"}))
         if not errors:
             pending = []
             try:
@@ -523,14 +595,303 @@ class CLIAdapter:
         directory, _ = self._metadata(intent)
         return copy.deepcopy(_read_state(directory / "consumption.json")["record"])
 
+    @staticmethod
+    def _judge_dir_name(judge_call_id: str) -> str:
+        return re.sub(r"[^A-Za-z0-9._-]", "_", judge_call_id)
+
+    def _judge_directory(self, judge_call_id: str) -> Path:
+        return confined_path(self.state_directory, "evaluations", self._judge_dir_name(judge_call_id))
+
+    def _find_judge_directory(self, dispatch_idempotency_key: str) -> Path | None:
+        eval_root = self.state_directory / "evaluations"
+        if not eval_root.is_dir():
+            return None
+        for entry in sorted(eval_root.iterdir()):
+            state_path = entry / "state.json"
+            if state_path.is_file():
+                meta = _read_state(state_path)
+                if meta.get("intent", {}).get("dispatch_idempotency_key") == dispatch_idempotency_key:
+                    return entry
+        return None
+
+    def _judge_metadata(self, intent: Record) -> tuple[Path, Record]:
+        judge_call_id = intent.get("judge_call_id")
+        if not isinstance(judge_call_id, str) or not judge_call_id:
+            raise ExecutorError("invalid_dispatch_intent", "judge_call_id obrigatório")
+        directory = self._judge_directory(judge_call_id)
+        try:
+            meta = _read_state(directory / "state.json")
+        except FileNotFoundError as error:
+            raise ExecutorError("dispatch_not_known", "juiz sem estado durável") from error
+        if meta.get("kind") != "evaluation_judge" or meta["intent"] != intent:
+            raise ExecutorError("idempotency_conflict", "intenção de juiz diverge da original")
+        if meta["profile"] != self.profile or meta["runtime_version"] != self.runtime_version:
+            raise ExecutorError("invalid_executor_state", "assinatura ou versão do juiz difere do estado")
+        fingerprint = canonical_digest([intent, meta["workspace"], meta["requested_model"],
+                                        self.profile, self.runtime_version, True])
+        if meta["fingerprint"] != fingerprint or meta["phase"] not in {"prepared", "spawning", "launched"}:
+            raise ExecutorError("invalid_executor_state", "workspace, fingerprint ou fase de juiz divergente")
+        return directory, meta
+
+    def _prepare_judge_permissions(self, workspace: Path) -> None:
+        pass
+
+    def _restore_judge_permissions(self, workspace: Path) -> None:
+        pass
+
+    def _judge_status(self, directory: Path, meta: Record, *, receipt: Record | None = None) -> ExecutionObservation:
+        receipt = self._receipt(directory, meta) if receipt is None else receipt
+        now = self._now()
+        phase = receipt["phase"]
+        if phase == "terminal":
+            self._restore_judge_permissions(Path(meta["workspace"]))
+            process = self._processes.get(str(directory))
+            if process:
+                process.wait(timeout=5)
+            status = "stopped" if receipt["stop_reason"] else "finished" if receipt["returncode"] == 0 else "failed"
+            return ExecutionObservation(status, "confirmed", now)
+        if phase == "not_started":
+            self._restore_judge_permissions(Path(meta["workspace"]))
+        process = self._processes.get(str(directory))
+        if phase in {"launched", "launching", "running"} and process and process.poll() is None:
+            return ExecutionObservation("running", "not_terminated", now)
+        return ExecutionObservation("unknown", "unknown", now)
+
+    def dispatch_judge(
+        self,
+        intent: Record,
+        prompt_bytes: bytes,
+        eval_workspace: IsolatedEvalWorkspace | Path,
+    ) -> DispatchAck:
+        if intent.get("run_id") != self.store.journal.run_id:
+            raise ExecutorError("workspace_mismatch", "run do juiz diverge do store")
+        if not isinstance(prompt_bytes, bytes):
+            raise ExecutorError("invalid_bundle", "prompt do juiz deve ser bytes")
+        try:
+            prompt_text = prompt_bytes.decode("utf-8")
+        except UnicodeError as error:
+            raise ExecutorError("invalid_bundle", "prompt do juiz exige UTF-8") from error
+        expected_digest = intent.get("rendered_prompt_digest")
+        if canonical_digest(prompt_text) != expected_digest and bytes_digest(prompt_bytes) != expected_digest:
+            raise ExecutorError("bundle_digest_mismatch", "prompt recebido diverge de rendered_prompt_digest")
+        requested_model = intent.get("requested_model_id")
+        if not isinstance(requested_model, str) or not requested_model.strip() or requested_model.startswith("-"):
+            raise ExecutorError("invalid_workspace", "requested_model_id do juiz deve ser explícito")
+        ws_path = (
+            eval_workspace.path if isinstance(eval_workspace, IsolatedEvalWorkspace) else Path(eval_workspace)
+        ).absolute()
+        if not ws_path.is_dir():
+            raise ExecutorError("invalid_workspace", "eval_workspace deve existir")
+        ws_resolved = ws_path.resolve()
+        if (
+            ws_resolved.is_relative_to(self.state_directory.resolve())
+            or ws_resolved.is_relative_to(self.store.journal.directory.resolve())
+        ):
+            raise ExecutorError("eval_workspace_inside_store", "eval_workspace não pode ficar em state_directory ou journal")
+
+        fingerprint = canonical_digest([intent, str(ws_path), requested_model,
+                                        self.profile, self.runtime_version, True])
+        directory = self._judge_directory(intent["judge_call_id"])
+        now = self._now()
+        if directory.exists():
+            _, meta = self._judge_metadata(intent)
+            if meta["fingerprint"] != fingerprint:
+                raise ExecutorError("idempotency_conflict", "despacho de juiz divergente")
+            return DispatchAck(meta["phase"] == "launched", None, now)
+
+        ensure_directory(self.state_directory / "evaluations")
+        cli_work = wsl_path(ws_path, workspace=True) if self._wsl else str(ws_path)
+        final_file = directory / "last-message.txt"
+        eval_timeout_ms = int(intent.get("evaluation_timeout_ms", 60000))
+        deadline_ms = max(0, int((parse_utc(intent["deadline_at"]) - parse_utc(now)).total_seconds() * 1000))
+        timeout_ms = min(eval_timeout_ms, deadline_ms)
+
+        prev_permissions, prev_mcp, prev_judge = self.permissions, self._active_mcp, self._judge_mode
+        try:
+            self.permissions = CLIPermissions(read_only=True, allow_commands=False)
+            self._active_mcp = None
+            self._judge_mode = True
+            argv = self._argv(
+                cli_work,
+                requested_model,
+                prompt_text,
+                wsl_path(final_file) if self._wsl else str(final_file),
+                eval_timeout_ms,
+            )
+        finally:
+            self.permissions, self._active_mcp, self._judge_mode = prev_permissions, prev_mcp, prev_judge
+
+        meta = {
+            "kind": "evaluation_judge",
+            "intent": copy.deepcopy(intent),
+            "profile": self.profile,
+            "fingerprint": fingerprint,
+            "runtime_version": self.runtime_version,
+            "phase": "prepared",
+            "workspace": str(ws_path),
+            "requested_model": requested_model,
+        }
+        directory.mkdir()
+        try:
+            fsync_directory(directory.parent)
+            write_record(directory / "state.json", meta)
+        except BaseException:
+            if not (directory / "state.json").exists():
+                directory.rmdir()
+                fsync_directory(directory.parent)
+            raise
+
+        self._prepare_judge_permissions(ws_path)
+        try:
+            if timeout_ms == 0:
+                write_record(directory / "receipt.json", {"fingerprint": fingerprint, "phase": "not_started"})
+                self._restore_judge_permissions(ws_path)
+                return DispatchAck(False, None, now)
+            config = {
+                "argv": argv,
+                "cwd": cli_work,
+                "timeout_ms": timeout_ms,
+                "fingerprint": fingerprint,
+                "budget_deadline_ms": time.time_ns() // 1000000 + timeout_ms,
+            }
+            write_record(directory / "launch.json", config)
+            meta["phase"] = "spawning"
+            write_record(directory / "state.json", meta)
+            supervisor = Path(__file__).with_name("_supervisor.py").absolute()
+            command = (
+                ["wsl.exe", "--cd", cli_work, "--", "python3", wsl_path(supervisor), wsl_path(directory)]
+                if self._wsl
+                else [sys.executable, str(supervisor), str(directory)]
+            )
+            try:
+                process = subprocess.Popen(
+                    command, cwd=ws_path, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, shell=False, env=safe_environment(),
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                )
+            except OSError:
+                write_record(directory / "receipt.json", {"fingerprint": fingerprint, "phase": "not_started"})
+                self._restore_judge_permissions(ws_path)
+                return DispatchAck(False, None, now)
+            self._processes[str(directory)] = process
+            meta["phase"] = "launched"
+            write_record(directory / "state.json", meta)
+            return DispatchAck(True, None, now)
+        except BaseException:
+            raise
+
+    def observe_judge(self, intent: Record, until: str) -> ExecutionObservation:
+        directory, meta = self._judge_metadata(intent)
+        seconds = max(0., (parse_utc(until) - parse_utc(self._now())).total_seconds())
+        end = time.monotonic() + seconds
+        while True:
+            observation = self._judge_status(directory, meta)
+            if observation.status in {"finished", "failed", "stopped"}:
+                return observation
+            process = self._processes.get(str(directory))
+            if process is not None and process.poll() is not None:
+                process.wait(timeout=5)
+                return self._judge_status(directory, meta)
+            if process is None or time.monotonic() >= end:
+                return observation
+            time.sleep(min(.02, max(0., end - time.monotonic())))
+
+    def cancel_judge(self, intent: Record, reason: str) -> CancelObservation:
+        directory, meta = self._judge_metadata(intent)
+        write_record(directory / "cancel", {"reason": reason[:512]})
+        end = time.monotonic() + 5
+        while True:
+            observation = self._judge_status(directory, meta)
+            if observation.termination_certainty == "confirmed" or time.monotonic() >= end:
+                return CancelObservation(
+                    observation.termination_certainty if observation.status != "running" else "unknown",
+                    self._now(),
+                )
+            time.sleep(.02)
+
+    def reconcile_judge(self, dispatch_idempotency_key: str, external_call_id: str | None) -> ReconciliationObservation:
+        directory = self._find_judge_directory(dispatch_idempotency_key)
+        if directory is None:
+            return ReconciliationObservation("unknown", None, "unknown", self._now())
+        meta = _read_state(directory / "state.json")
+        self._judge_metadata(meta["intent"])
+        receipt = self._receipt(directory, meta)
+        snapshot = canonicalize({"state": meta, "receipt": receipt})
+        self.store.put(snapshot)
+        evidence = ({"artifact_id": stable_id("state", [dispatch_idempotency_key, bytes_digest(snapshot)]),
+                     "content_digest": bytes_digest(snapshot)},)
+        session = (
+            self._parse(directory, meta, final_override_path=directory / "last-message.txt").session
+            if receipt["phase"] == "terminal"
+            else None
+        )
+        if external_call_id is not None and session != external_call_id:
+            raise ExecutorError("external_call_mismatch", "sessão do juiz não comprovada pelo estado")
+        if receipt["phase"] in {"prepared", "not_started"}:
+            self._restore_judge_permissions(Path(meta["workspace"]))
+            return ReconciliationObservation("not_found", None, "confirmed", self._now(), evidence, True)
+        observation = self._judge_status(directory, meta, receipt=receipt)
+        outcome = {
+            "finished": "found_finished",
+            "failed": "found_failed",
+            "stopped": "found_stopped",
+            "running": "found_running",
+        }.get(observation.status, "unknown")
+        return ReconciliationObservation(outcome, session, observation.termination_certainty, self._now(), evidence)
+
+    def collect_judge(
+        self,
+        intent: Record,
+        *,
+        rubric_spec: Record | None = None,
+        subject_artifacts: tuple[tuple[Record, bytes], ...] = (),
+        eval_workspace: IsolatedEvalWorkspace | Path | None = None,
+    ) -> JudgeRawOutcome:
+        del rubric_spec, subject_artifacts, eval_workspace
+        directory, meta = self._judge_metadata(intent)
+        receipt = self._receipt(directory, meta)
+        if receipt["phase"] != "terminal":
+            raise ExecutorError("result_unavailable", "término local do juiz não confirmado")
+        observation = self._judge_status(directory, meta, receipt=receipt)
+        self._restore_judge_permissions(Path(meta["workspace"]))
+        parsed = self._parse(directory, meta, final_override_path=directory / "last-message.txt")
+        now = self._now()
+        return JudgeRawOutcome(
+            judge_call_id=intent["judge_call_id"],
+            execution_status=observation.status,
+            termination_certainty=observation.termination_certainty,
+            observed_at=now,
+            stdout_text=parsed.stdout_text,
+            stderr_text=parsed.stderr_text,
+            final_text=parsed.final,
+            diagnostics=tuple(parsed.diagnostics),
+            tool_events=tuple(parsed.tool_events),
+            requested_model_id=meta["requested_model"],
+            resolved_model_id=parsed.model,
+            provider_context_coverage="unknown",
+            input_tokens=parsed.input_tokens,
+            output_tokens=parsed.output_tokens,
+            returncode=receipt["returncode"],
+            stop_reason=receipt["stop_reason"],
+            external_call_id=parsed.session,
+        )
+
 
 class CodexAdapter(CLIAdapter):
     cli = "codex"
 
     def _argv(self, workspace, model, prompt, final_file, timeout_ms):
-        return ["codex", "exec", "-C", workspace, "-s", "workspace-write" if self.permissions.workspace_write else "read-only",
+        args = ["codex", "exec", "-C", workspace, "-s", "workspace-write" if self.permissions.workspace_write else "read-only",
                 "-m", model, "-c", f'model_reasoning_effort="{self.reasoning_effort}"', "--json", "-o", final_file,
-                "--skip-git-repo-check", prompt]
+                "--skip-git-repo-check"]
+        if self._active_mcp:
+            entry = self._active_mcp["entry"]
+            args += [
+                "-c", f"mcp_servers.orq_knowledge.command={json.dumps(entry['command'])}",
+                "-c", f"mcp_servers.orq_knowledge.args={json.dumps(entry['args'])}",
+                "-c", f"mcp_servers.orq_knowledge.env={{PYTHONPATH={json.dumps(entry['env']['PYTHONPATH'])}}}",
+            ]
+        return [*args, prompt]
 
 
 class ClaudeCodeAdapter(CLIAdapter):
@@ -541,10 +902,35 @@ class ClaudeCodeAdapter(CLIAdapter):
         if self.permissions.workspace_write:
             allowed += [f"Edit({workspace}/**)", f"Write({workspace}/**)"]
         allowed += ["Bash(" + " ".join(prefix) + ":*)" for prefix in self.permissions.command_prefixes]
-        denied = ["WebFetch", "WebSearch"] + ([] if self.permissions.command_prefixes else ["Bash"])
-        return ["claude", "-p", prompt, "--output-format", "json", "--model", model,
+        if self._active_mcp:
+            allowed += ["mcp__orq-knowledge__search_family_knowledge", "mcp__orq-knowledge__select_family_knowledge"]
+        denied = (
+            ["Bash", "Edit", "Write", "WebFetch", "WebSearch"]
+            if (self._judge_mode or self.permissions.read_only is True)
+            else ["WebFetch", "WebSearch"] + ([] if self.permissions.command_prefixes else ["Bash"])
+        )
+        args = ["claude", "-p", prompt, "--output-format", "json", "--model", model,
                 "--permission-mode", "acceptEdits" if self.permissions.workspace_write else "plan",
                 "--allowedTools", ",".join(allowed), "--disallowedTools", ",".join(denied)]
+        if self._active_mcp:
+            args += ["--mcp-config", f"{workspace}/.orq-mcp.json", "--strict-mcp-config"]
+        return args
+
+    def _prepare_permissions(self, workspace: Path) -> None:
+        if not self._active_mcp:
+            return
+        path = confined_path(workspace, ".orq-mcp.json")
+        with path.open("xb") as stream:
+            stream.write(canonicalize({"mcpServers": {"orq-knowledge": self._active_mcp["entry"]}}))
+            stream.flush()
+            os.fsync(stream.fileno())
+        fsync_directory(path.parent)
+
+    def _restore_permissions(self, workspace: Path) -> None:
+        path = confined_path(workspace, ".orq-mcp.json")
+        if path.exists():
+            path.unlink()
+            fsync_directory(path.parent)
 
 
 class AgyAdapter(CLIAdapter):
@@ -561,9 +947,13 @@ class AgyAdapter(CLIAdapter):
         if self.permissions.workspace_write:
             allow += [f"write_file({workspace}/**)", f"edit_file({workspace}/**)"]
         allow += ["command(" + " ".join(prefix) + ")" for prefix in self.permissions.command_prefixes]
+        payload: dict[str, object] = {"permissions": {"allow": allow}}
+        if self._active_mcp:
+            allow += ["mcp_orq-knowledge_search_family_knowledge", "mcp_orq-knowledge_select_family_knowledge"]
+            payload["mcpServers"] = {"orq-knowledge": self._active_mcp["entry"]}
         # Arquivo novo do workspace isolado. Nunca lê/modifica settings do HOME.
         with path.open("xb") as stream:
-            stream.write(canonicalize({"permissions": {"allow": allow}}))
+            stream.write(canonicalize(payload))
             stream.flush()
             os.fsync(stream.fileno())
         fsync_directory(path.parent)
@@ -574,6 +964,17 @@ class AgyAdapter(CLIAdapter):
             path.unlink()
             fsync_directory(path.parent)
 
+    def _prepare_judge_permissions(self, workspace: Path) -> None:
+        self._prepare_permissions(workspace)
+
+    def _restore_judge_permissions(self, workspace: Path) -> None:
+        self._restore_permissions(workspace)
+        for rel in (".gemini/antigravity-cli", ".gemini"):
+            candidate = confined_path(workspace, rel)
+            if candidate.is_dir() and not any(candidate.iterdir()):
+                candidate.rmdir()
+                fsync_directory(candidate.parent)
+
 
 class KiroAdapter(CLIAdapter):
     cli = "kiro-cli"
@@ -582,5 +983,24 @@ class KiroAdapter(CLIAdapter):
         tools = ["fs_read"] + (["fs_write"] if self.permissions.workspace_write else [])
         if self.permissions.command_prefixes:
             tools.append("execute_bash")
+        if self._active_mcp:
+            tools += ["@orq-knowledge/search_family_knowledge", "@orq-knowledge/select_family_knowledge"]
         return ["kiro-cli", "chat", "--no-interactive", "--trust-workspace", "--trust-tools=" + ",".join(tools),
                 "--model", model, prompt]
+
+    def _prepare_permissions(self, workspace: Path) -> None:
+        if not self._active_mcp:
+            return
+        path = confined_path(workspace, ".kiro", "settings", "mcp.json")
+        ensure_directory(path.parent)
+        with path.open("xb") as stream:
+            stream.write(canonicalize({"mcpServers": {"orq-knowledge": self._active_mcp["entry"]}}))
+            stream.flush()
+            os.fsync(stream.fileno())
+        fsync_directory(path.parent)
+
+    def _restore_permissions(self, workspace: Path) -> None:
+        path = confined_path(workspace, ".kiro", "settings", "mcp.json")
+        if path.exists():
+            path.unlink()
+            fsync_directory(path.parent)

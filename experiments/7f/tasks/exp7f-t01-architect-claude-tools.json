@@ -1,0 +1,340 @@
+{
+  "schema_version": "7f-task-0.1",
+  "task_id": "exp7f-t01-architect-claude-tools",
+  "number": 1,
+  "title": "Ferramentas negadas e custo no Claude Code",
+  "target": {
+    "family_id": "family_claude",
+    "role_id": "software_architect"
+  },
+  "task": {
+    "schema_version": "0.1",
+    "task_id": "exp7f-t01-architect-claude-tools",
+    "objective": "Você atua como software_architect na família Claude. Uma revisão arquitetural sem escrita será executada com o Claude Code sob assinatura. Responda só com o JSON do contrato de saída: `deny_flag` (flag exata da CLI que lista as ferramentas negadas), `denied_tools` (as ferramentas que devem ser negadas quando a tarefa não as autoriza) e `total_cost_usd_treatment` (como tratar o campo total_cost_usd do envelope JSON).",
+    "task_type": "structured_answer",
+    "agent_role": {
+      "id": "software_architect",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "13a197368b221148e8ab0d4b0528c6dea312c684862aa6b7d5327e9ba75aca18"
+      }
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ1",
+        "description": "Responder com o JSON do contrato de saída da tarefa",
+        "required": true
+      }
+    ],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {
+      "max_attempts": 1,
+      "attempt_timeout_ms": 300000,
+      "max_context_input_tokens": 4000,
+      "max_output_tokens_per_attempt": 500
+    },
+    "expected_output": [
+      {
+        "output_id": "answer",
+        "artifact_type": "structured_answer",
+        "description": "Resposta JSON curta e fechada",
+        "content_contract_ref": {
+          "id": "exp7f-t01-architect-claude-tools-output",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "b06a6c9684254a2a417bc1f4cf629255a599f74d89930c8cd5f0b79a5d61a0e6"
+          }
+        }
+      }
+    ],
+    "knowledge_requirements": [
+      {
+        "knowledge_requirement_id": "KR1",
+        "subject": "Ferramentas negadas pelo Claude Code",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "ferramentas"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR2",
+        "subject": "Tratamento do custo informado pela CLI",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "custo"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      }
+    ],
+    "evaluation_criteria": [
+      {
+        "criterion_id": "CRIT1",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT2",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "digest_matches",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT3",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ]
+  },
+  "output_contract": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://orq.local/experiments/7f/exp7f-t01-architect-claude-tools-output.schema.json",
+    "title": "Saída da tarefa exp7f-t01-architect-claude-tools",
+    "type": "object",
+    "properties": {
+      "deny_flag": {
+        "type": "string",
+        "minLength": 1
+      },
+      "denied_tools": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "maxItems": 8,
+        "uniqueItems": true
+      },
+      "total_cost_usd_treatment": {
+        "enum": [
+          "informative_only",
+          "billed_cost",
+          "zero_cost"
+        ]
+      }
+    },
+    "required": [
+      "deny_flag",
+      "denied_tools",
+      "total_cost_usd_treatment"
+    ],
+    "additionalProperties": false
+  },
+  "knowledge": {
+    "gold": [
+      {
+        "requirement_id": "KR1",
+        "source_id": "family-claude-invocation",
+        "revision": "1",
+        "unit_id": "unit-9fc950032faa402edf39",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e557c85d1ab9b402b331085baed075a247f3bd4ae3937952f20cfb628402f0e7"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "common-cost-honesty",
+        "revision": "1",
+        "unit_id": "unit-7382e48ffd455a461f76",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "5afa8b7c8990c4248470959c90ebad4012db5f35cdda454a416ea1ad6b8dd5d9"
+        }
+      }
+    ],
+    "acceptable_alternatives": [
+      {
+        "source_id": "family-claude-security",
+        "revision": "1",
+        "unit_id": "unit-17986d9fc7e62fc2bb19",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "e8983ced68b5eabed740a17594c6eaf30bb4e4443f78d6ab9c0e7f5f45f5cefb"
+        },
+        "reason": "Repete flag, ferramentas negadas e tratamento do custo do Claude Code (visível só ao papel security_reviewer)."
+      }
+    ],
+    "distractors": [
+      {
+        "source_id": "family-kiro-trust-tools",
+        "revision": "1",
+        "unit_id": "unit-9b2b4bc6641a615c50fd",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "f2c6f2c4ab8d7e1ffffbc9fbc9e866add18f3dd7b7cfdd43609d32ed56a0a6e4"
+        },
+        "reason": "Outra flag de permissão (`--trust-tools`), da família Kiro.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "family-gemini-permissions",
+        "revision": "1",
+        "unit_id": "unit-10e0574175525248e1f0",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "6b66490faa580a3399290738959eb02092f4e7abfdc9282eb728cab49b28b424"
+        },
+        "reason": "Regras `permissions.allow` do agy no lugar de `--disallowedTools`.",
+        "kind": "other_family_real"
+      },
+      {
+        "source_id": "syn-codex-process",
+        "revision": "1",
+        "unit_id": "unit-b6ace102b4ce06aba4ed",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "2e133dcba2a7747e3ea8fe05a52b5fd5f9d049ffcad3024e4be9b64ad2afa8b5"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-codex-cost",
+        "revision": "1",
+        "unit_id": "unit-c7721828d3005e012cc0",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "9b163242ca8ea4a86ff6c8b42f051acb07f0f36dc4bf82cd919d326f077e09e7"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      }
+    ],
+    "irrelevant": [
+      {
+        "source_id": "family-kiro-output",
+        "revision": "1",
+        "unit_id": "unit-b74789e8a10c8d52aeab",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "c1a74a0fea609aca4e22334b17031e2bbe4c3304b9efb91666d86e6a84060046"
+        },
+        "reason": "Trata de créditos do Kiro; não menciona `total_cost_usd` nem ferramentas negadas."
+      }
+    ],
+    "answer_sources": {
+      "CHK-deny-flag": [
+        "family-claude-invocation",
+        "family-claude-security"
+      ],
+      "CHK-denied-tools": [
+        "family-claude-invocation",
+        "family-claude-security"
+      ],
+      "CHK-cost": [
+        "common-cost-honesty",
+        "family-claude-security"
+      ]
+    }
+  },
+  "acceptance": {
+    "evaluator_criteria": [
+      "CRIT1",
+      "CRIT2",
+      "CRIT3"
+    ],
+    "deterministic_checks": [
+      {
+        "check_id": "CHK-deny-flag",
+        "kind": "equals",
+        "pointer": "/deny_flag",
+        "value": "--disallowedTools"
+      },
+      {
+        "check_id": "CHK-denied-tools",
+        "kind": "set_equals",
+        "pointer": "/denied_tools",
+        "values": [
+          "Bash",
+          "WebFetch",
+          "WebSearch"
+        ]
+      },
+      {
+        "check_id": "CHK-cost",
+        "kind": "equals",
+        "pointer": "/total_cost_usd_treatment",
+        "value": "informative_only"
+      },
+      {
+        "check_id": "CHK-no-contamination",
+        "kind": "no_forbidden_text",
+        "values": [
+          "-s read-only",
+          "--mode plan",
+          "--trust-tools",
+          "--trust-all-tools"
+        ]
+      }
+    ],
+    "pass_rule": "verdict do avaliador == pass E todas as deterministic_checks passam (pass@1, uma tentativa)"
+  },
+  "reference_answers": {
+    "pass": {
+      "deny_flag": "--disallowedTools",
+      "denied_tools": [
+        "WebFetch",
+        "WebSearch",
+        "Bash"
+      ],
+      "total_cost_usd_treatment": "informative_only"
+    },
+    "contaminated": {
+      "deny_flag": "--trust-tools=fs_read",
+      "denied_tools": [
+        "execute_bash"
+      ],
+      "total_cost_usd_treatment": "billed_cost"
+    }
+  }
+}

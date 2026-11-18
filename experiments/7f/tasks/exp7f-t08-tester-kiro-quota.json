@@ -1,0 +1,372 @@
+{
+  "schema_version": "7f-task-0.1",
+  "task_id": "exp7f-t08-tester-kiro-quota",
+  "number": 8,
+  "title": "Casos de teste do cooldown de cota",
+  "target": {
+    "family_id": "family_kiro",
+    "role_id": "tester"
+  },
+  "task": {
+    "schema_version": "0.1",
+    "task_id": "exp7f-t08-tester-kiro-quota",
+    "objective": "Você atua como tester na família Kiro e vai escrever casos de teste para o bloqueio por cota. Responda só com o JSON do contrato de saída: `default_cooldown_ms` (padrão quando a CLI não informa horário de reset), `cooldown_reset_source` (origem registrada nesse caso), `all_blocked_decision_status` e `all_blocked_reason` (resultado do Router quando todas as famílias elegíveis estão bloqueadas) e `free_stdout_text_is_quota_source` (se texto livre de stdout é fonte de cota).",
+    "task_type": "structured_answer",
+    "agent_role": {
+      "id": "tester",
+      "version": "1",
+      "content_digest": {
+        "algorithm": "sha256",
+        "value": "ef8e062f92248cfa2d62159f4c6775ee95a8b728b06d57db024db153be3ce004"
+      }
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ1",
+        "description": "Responder com o JSON do contrato de saída da tarefa",
+        "required": true
+      }
+    ],
+    "dependencies": [],
+    "inputs": [],
+    "required_capabilities": [],
+    "constraints": {
+      "max_attempts": 1,
+      "attempt_timeout_ms": 300000,
+      "max_context_input_tokens": 4000,
+      "max_output_tokens_per_attempt": 500
+    },
+    "expected_output": [
+      {
+        "output_id": "answer",
+        "artifact_type": "structured_answer",
+        "description": "Resposta JSON curta e fechada",
+        "content_contract_ref": {
+          "id": "exp7f-t08-tester-kiro-quota-output",
+          "version": "1",
+          "content_digest": {
+            "algorithm": "sha256",
+            "value": "9c9ef7410296573db665302b0f2b345a9eb8256ebad5a670b2ce346495a67208"
+          }
+        }
+      }
+    ],
+    "knowledge_requirements": [
+      {
+        "knowledge_requirement_id": "KR1",
+        "subject": "Cooldown e fallback de cota",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "cooldown",
+            "cota"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      },
+      {
+        "knowledge_requirement_id": "KR2",
+        "subject": "Práticas de teste do papel",
+        "required": true,
+        "allowed_kinds": [
+          "project"
+        ],
+        "required_authority_scopes": [],
+        "source_refs": [],
+        "applicability_filters": {
+          "topics": [
+            "testes"
+          ]
+        },
+        "freshness": null,
+        "coverage_rule": "at_least_one",
+        "max_context_tokens": 1500
+      }
+    ],
+    "evaluation_criteria": [
+      {
+        "criterion_id": "CRIT1",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "output_binding_present",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT2",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "digest_matches",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      },
+      {
+        "criterion_id": "CRIT3",
+        "requirement_ids": [
+          "REQ1"
+        ],
+        "method": "content_contract_valid",
+        "pass_rule": {
+          "output_ids": [
+            "answer"
+          ]
+        },
+        "required": true,
+        "verifier_ref": null
+      }
+    ]
+  },
+  "output_contract": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://orq.local/experiments/7f/exp7f-t08-tester-kiro-quota-output.schema.json",
+    "title": "Saída da tarefa exp7f-t08-tester-kiro-quota",
+    "type": "object",
+    "properties": {
+      "default_cooldown_ms": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "cooldown_reset_source": {
+        "enum": [
+          "cli_reported",
+          "cooldown_policy",
+          "clock_expired"
+        ]
+      },
+      "all_blocked_decision_status": {
+        "type": "string",
+        "minLength": 1
+      },
+      "all_blocked_reason": {
+        "type": "string",
+        "minLength": 1
+      },
+      "free_stdout_text_is_quota_source": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "default_cooldown_ms",
+      "cooldown_reset_source",
+      "all_blocked_decision_status",
+      "all_blocked_reason",
+      "free_stdout_text_is_quota_source"
+    ],
+    "additionalProperties": false
+  },
+  "knowledge": {
+    "gold": [
+      {
+        "requirement_id": "KR1",
+        "source_id": "common-quota-cooldown",
+        "revision": "1",
+        "unit_id": "unit-fa962f7386211dfbd6ce",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "81eb2061a2ce94c12a86a894322d5441b3650b65e0f8db29d9e8aaf11cb151d1"
+        }
+      },
+      {
+        "requirement_id": "KR2",
+        "source_id": "role-tester",
+        "revision": "1",
+        "unit_id": "unit-c14fcfce786c6a8a6e19",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "47273b979588bfabd3e7167640c446e64b926cf67e7e3922e3b7f8d7d650caf8"
+        }
+      }
+    ],
+    "acceptable_alternatives": [
+      {
+        "source_id": "family-claude-quota",
+        "revision": "1",
+        "unit_id": "unit-a8ca1df0097cd2d6e563",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "bc2645b51810d12549319c5a421ba5c4fa1067d21dd10d35d56159fc036fa929"
+        },
+        "reason": "Restringe a detecção ao canal de erro/status (sustenta, por paráfrase, `free_stdout_text_is_quota_source=false`)."
+      },
+      {
+        "source_id": "family-gemini-quota",
+        "revision": "1",
+        "unit_id": "unit-a2d934b2f4da610bf077",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "da4e8d14c7ed0bfd1a3735dad5a214e721e66382c80f8d4699b88985d0ab44c8"
+        },
+        "reason": "Restringe a detecção ao canal de erro/status (sustenta, por paráfrase, `free_stdout_text_is_quota_source=false`)."
+      },
+      {
+        "source_id": "family-kiro-quota",
+        "revision": "1",
+        "unit_id": "unit-6c0c14c133a67a61e23b",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "ff310badb339966107df2ef0ff65d52280e6065512f77e7d467e36faa9ebd81d"
+        },
+        "reason": "Restringe a detecção ao canal de erro/status (sustenta, por paráfrase, `free_stdout_text_is_quota_source=false`)."
+      }
+    ],
+    "distractors": [
+      {
+        "source_id": "syn-codex-cooldown",
+        "revision": "1",
+        "unit_id": "unit-bc6e06a39bc9d2204ebe",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "43b5affc3973de4c2f6da77cbd9960959eb172b40aaa4ab16d76f03a74359d35"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-gemini-tests",
+        "revision": "1",
+        "unit_id": "unit-cf0c2b76b10ff268f1a7",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "56c7ed57284f91f8f19e669835812a3062e1d18115e8625e804616dac184fe55"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      },
+      {
+        "source_id": "syn-claude-stdout",
+        "revision": "1",
+        "unit_id": "unit-5760c0ddb95cc06326cb",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "0d53630551a6200d9eaf5058b799a88f77210c67f5d07b70235bbed335c166e3"
+        },
+        "reason": "Regra fictícia que contradiz a regra real do ORQ.",
+        "kind": "other_family_synthetic"
+      }
+    ],
+    "irrelevant": [
+      {
+        "source_id": "family-codex-quota",
+        "revision": "1",
+        "unit_id": "unit-4a97d32c2cb2fc19fd97",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "a5bfac6c73e4e20f4ab0da447464bb0ba7dfaed1f67b8db6a5787fcb51c43577"
+        },
+        "reason": "Mensagem do Codex e horário `try again at`; não trata cooldown padrão nem canal de detecção."
+      },
+      {
+        "source_id": "family-codex-windows-tests",
+        "revision": "1",
+        "unit_id": "unit-0260fdabba556f0d946e",
+        "content_digest": {
+          "algorithm": "sha256",
+          "value": "555cd672ae297d0250a6476dc94bb6f608fde9375e3a8532a6eb8ed68a6eb0a7"
+        },
+        "reason": "Testes no sandbox do Codex; sem relação com cota."
+      }
+    ],
+    "answer_sources": {
+      "CHK-cooldown": [
+        "common-quota-cooldown"
+      ],
+      "CHK-source": [
+        "common-quota-cooldown"
+      ],
+      "CHK-status": [
+        "common-quota-cooldown"
+      ],
+      "CHK-reason": [
+        "common-quota-cooldown"
+      ],
+      "CHK-stdout": [
+        "common-quota-cooldown",
+        "family-claude-quota",
+        "family-gemini-quota",
+        "family-kiro-quota"
+      ]
+    }
+  },
+  "acceptance": {
+    "evaluator_criteria": [
+      "CRIT1",
+      "CRIT2",
+      "CRIT3"
+    ],
+    "deterministic_checks": [
+      {
+        "check_id": "CHK-cooldown",
+        "kind": "equals",
+        "pointer": "/default_cooldown_ms",
+        "value": 3600000
+      },
+      {
+        "check_id": "CHK-source",
+        "kind": "equals",
+        "pointer": "/cooldown_reset_source",
+        "value": "cooldown_policy"
+      },
+      {
+        "check_id": "CHK-status",
+        "kind": "equals",
+        "pointer": "/all_blocked_decision_status",
+        "value": "no_eligible_target"
+      },
+      {
+        "check_id": "CHK-reason",
+        "kind": "equals",
+        "pointer": "/all_blocked_reason",
+        "value": "all_eligible_families_quota_exhausted"
+      },
+      {
+        "check_id": "CHK-stdout",
+        "kind": "equals",
+        "pointer": "/free_stdout_text_is_quota_source",
+        "value": false
+      },
+      {
+        "check_id": "CHK-no-contamination",
+        "kind": "no_forbidden_text",
+        "values": [
+          "1800000"
+        ]
+      }
+    ],
+    "pass_rule": "verdict do avaliador == pass E todas as deterministic_checks passam (pass@1, uma tentativa)"
+  },
+  "reference_answers": {
+    "pass": {
+      "default_cooldown_ms": 3600000,
+      "cooldown_reset_source": "cooldown_policy",
+      "all_blocked_decision_status": "no_eligible_target",
+      "all_blocked_reason": "all_eligible_families_quota_exhausted",
+      "free_stdout_text_is_quota_source": false
+    },
+    "contaminated": {
+      "default_cooldown_ms": 1800000,
+      "cooldown_reset_source": "clock_expired",
+      "all_blocked_decision_status": "no_eligible_target",
+      "all_blocked_reason": "all_eligible_families_quota_exhausted",
+      "free_stdout_text_is_quota_source": false
+    }
+  }
+}

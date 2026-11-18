@@ -6,6 +6,7 @@ Trechos copiados de execuções reais, usados como fixtures dos adaptadores (7C)
 | --- | --- |
 | `codex/version.txt`, `claude/version.txt`, `agy/version.txt` | `codex --version`, `claude --version` e `agy --version` em 2026-11-14 |
 | `codex/usage-limit-2026-11-10.txt` | Final da saída de `codex exec` quando a cota do ChatGPT Plus acabou, em 2026-11-10 (reset às 22:05) |
+| `codex/usage-limit-2026-11-14.txt` | Final da saída de `codex exec` quando a cota do ChatGPT Plus acabou em 2026-11-14 às 23:48 (horário local), durante a correção do 7E. Formato novo, com data absoluta: "try again at Nov 15th, 2026 2:00 AM" |
 | `kiro/login-io-error-2026-11-14.txt` | `kiro-cli chat --no-interactive` com o DNS do WSL quebrado em 2026-11-14: indisponibilidade que **não** é cota |
 | `kiro/whoami-not-logged-in-2026-11-14.txt` | `kiro-cli whoami` na mesma situação |
 | `claude/quota-synthetic.txt`, `agy/quota-synthetic.txt`, `kiro/quota-synthetic.txt` | **Sintéticas**, criadas no 7C para testar as gramáticas v1; não comprovam formato/versão de runtime real |

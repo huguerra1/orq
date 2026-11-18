@@ -6,7 +6,7 @@
 
 **Plataforma experimental de orquestração de agentes de IA em Python com MCP, projetada para desacoplar papéis, modelos, provedores, runtimes e executores sob contratos verificáveis, contexto auditável e avaliação determinística.**
 
-O baseline documental v0.1 e as Fases 2–5 estão concluídos. Já existem contratos executáveis, Vault Markdown, MCP somente leitura, planner, router e runner sequencial com executor simulado e avaliador determinístico. O 6E entrega `orq run simulate` e prova T1–T5 com retry e journal reproduzível. A revisão do 6E está corrigida e os 63 cenários foram auditados; a suíte integral tem 1180 testes aprovados e 4 ignorados; [cobertura e execução local](docs/phase-6/README.md). Nenhum provedor real é chamado.
+O baseline documental v0.1 e as Fases 2–6 estão concluídos, os incrementos **7A–7F** da **Fase 7** e os incrementos **8A–8E** da **Fase 8** (conforme a ADR 0009) estão implementados e verificados na suíte local/CI: contratos de assinaturas e cota, banco PostgreSQL com RLS particionada (`orq_memory_reader`) e modo de controle `shared_global` (`orq_memory_global_reader`), busca híbrida (`postgres_fts_trgm`) + fallback offline BM25 (`bm25-v1`), quatro adaptadores de CLI (`ClaudeCodeAdapter`, `CodexAdapter`, `AgyAdapter`, `KiroAdapter`) com modo somente leitura para juízes (`ORQ_FINAL:`) e conector MCP nativo por tentativa, `CompositeEvaluator` (Estágio 1 determinístico + Estágio 2 `model_rubric` em `task_attempt` sob seleção cross-family e espera `TK19→TK22`), calibração/viés $\Delta_{\text{self}}$ (`orq calibrate evaluator`), auditoria pós-hoc somente leitura (`orq audit rubric`) e harness do **Experimento 7F** (`Q28`–`Q30`). Ficam em aberto apenas os gates manuais ao vivo do operador: smoke real **V01–V12** contra binários vivos de assinatura, lotes ao vivo da Camada B do `7F` e revisão humana + calibração piloto da rubrica e do corpus iniciais em rascunho (`fixtures/v0.1/calibration/`).
 
 ---
 
@@ -31,35 +31,30 @@ Orquestrar múltiplos agentes e modelos de IA em tarefas reais de engenharia de 
 
 ## Arquitetura
 
-O diagrama abaixo representa os módulos implementados nas Fases 1–6. O runner do 6E encadeia contratos, armazenamento, máquina de estados, executor simulado e avaliador:
+O diagrama abaixo representa os módulos implementados nas Fases 1–7 (`6E` + `7A–7F`). O runner encadeia contratos, planner, router ciente de cota, sessão MCP escopada por tentativa, memória particionada por família (`PostgreSQL RLS` ou `BM25` offline) e avaliador determinístico:
 
 ```mermaid
 flowchart TD
-    subgraph Implementado["Implementado (Fases 1 a 5)"]
-        PR["PlanningRequest"] --> PLAN["Task Planner (FixedTemplatePlanner + validate_workflow)"]
-        PLAN -->|"WorkflowSpec aceito + PlanningRecord"| TASK["TaskSpec (nó do DAG)"]
-
-        TASK --> ROUTER["Model Router (filtro obrigatório + fixed / rules / DecisionEngine)"]
-        CAT_T["RoutingTargetCatalog + RoutingPolicy"] --> ROUTER
-        ROUTER -->|"RoutingDecision (alvo elegível + preflight)"| CTX_SEL["Seleção de Conhecimento (BM25 + filtros de autoridade/escopo)"]
-
-        VAULT["Vault Markdown + KnowledgeCatalogSnapshot"] --> CTX_SEL
-        CTX_SEL -->|"KnowledgeSelectionRecord"| CTX_MAT["Materialização de Contexto (ContextManifest + bundle JCS)"]
-
-        VAULT --> MCP["Servidor MCP somente leitura (orq-knowledge-mcp via stdio)"]
-        MCP -.->|"orq://catalog/summary e orq://knowledge/{source}/{rev}/{unit}"| CTX_MAT
+    subgraph Preparacao["Planejamento, Roteamento e Conhecimento (Fases 2 a 7)"]
+        PR["PlanningRequest"] --> PLAN["Task Planner (orq plan / FixedTemplatePlanner)"]
+        PLAN -->|"WorkflowSpec aceito"| ROUTER["Model Router (orq route / cota + fallback)"]
+        CAT_T["RoutingTargetCatalog + QuotaStateSnapshot"] --> ROUTER
+        VAULT["Vault Markdown + KnowledgeCatalogSnapshot"] --> SYNC["Sync / Store (Postgres RLS v2 ou BM25 offline)"]
     end
 
-    subgraph Fase6["Fase 6 — concluída"]
-        CTX_MAT -->|"Contexto imutável e auditado"| RUNNER["Runner Sequencial do Orchestrator (RunManifest + DispatchIntent)"]
-        RUNNER -->|"Despacho controlado"| EXEC["Executor (simulado inicial / adaptadores de CLI)"]
-        EXEC -->|"AttemptRecord + ArtifactRef"| EVAL["Evaluator Determinístico (EvaluationReport: pass / fail)"]
-        EVAL -->|"Reconciliação / Retry limpo se elegível"| RUNNER
+    subgraph Execucao["Runner Sequencial e Fase 7 (SubscriptionHub + MCP por tentativa)"]
+        ROUTER -->|"RoutingDecision elegível"| RUNNER["SequentialRunner + FamilyRuntime"]
+        RUNNER -->|"Sessão escopada (app.current_family_id)"| MCP["Servidor MCP de Tentativa (orq-knowledge-mcp / stdio)"]
+        SYNC -.->|"RLS orq_memory_reader / global_reader"| MCP
+        RUNNER -->|"Despacho sem shell"| EXEC["Executor / CLIAdapter (Claude, Codex, AGY, Kiro) / Simulado"]
+        MCP <-->|"search_family_knowledge / select_family_knowledge"| EXEC
+        EXEC -->|"ContextManifest selado + ArtifactRef + UsageRecord"| EVAL["DeterministicEvaluator / Harness 7F"]
+        EVAL -->|"Retry ciente de cota / Journal SHA-256"| RUNNER
     end
 ```
 
-- **Onde entra o MCP:** o servidor `orq-knowledge-mcp` (Fase 3) recebe a raiz do Vault e um `KnowledgeCatalogSnapshot` imutável na inicialização, expondo apenas *resources* somente leitura (`orq://catalog/summary` sem caminhos físicos e `orq://knowledge/{source_id}/{revision}/{unit_id}` com reconfirmação de digest SHA-256). O modelo não faz busca livre nem altera a política de seleção do Orchestrator.
-- **Próxima integração:** adaptador real de executor, após fechar o gate da Fase 6 e verificar controles com versão fixada.
+- **Onde entra o MCP:** o servidor `orq-knowledge-mcp` recebe a raiz do Vault (e, quando ativo, a configuração `Postgres`) com escopo fixado pelo host na sessão da tentativa (`AttemptKnowledgeSession`), expondo resources e tools somente leitura/escopadas (`search_family_knowledge` e `select_family_knowledge` + `orq://catalog/summary` e `orq://knowledge/{source_id}/{revision}/{unit_id}` com reconfirmação de digest SHA-256).
+- **Próxima integração:** executar o gate real **V01–V12** em binários vivos de assinatura, os lotes da Camada B do `7F` e a calibração piloto humana sobre a rubrica/corpus iniciais (`fixtures/v0.1/calibration/`).
 
 ---
 
@@ -69,12 +64,14 @@ flowchart TD
 | :--- | :--- | :--- |
 | **Fase 1** | Concluída | Baseline normativo v0.1 aceito em revisão cruzada: glossário, contratos (`TaskSpec`, `WorkflowSpec`, perfis, política, roteamento, contexto, artefatos, registros, Vault) e 160 cenários de aceitação documentados. |
 | **Fase 2** | Concluída | Contratos executáveis em JSON Schema Draft 2020-12, validação semântica de DAG/cobertura, digest SHA-256 sobre JCS (RFC 8785), Vault Markdown com seleção BM25 determinística, materialização de `ContextManifest`/bundle e CLI `orq-contracts`. |
-| **Fase 3** | Concluída | Servidor MCP local somente leitura (`orq-knowledge-mcp`, SDK oficial `mcp==2.2.0` via `stdio`) expondo resumo sanitizado do catálogo e unidades exatas com verificação de integridade. |
+| **Fase 3** | Concluída | Servidor MCP local somente leitura (`orq-knowledge-mcp`, SDK oficial via `stdio`) expondo resumo sanitizado do catálogo e unidades exatas com verificação de integridade. |
 | **Fase 4** | Concluída | Schemas de planejamento (`PlanningRequest`, `PlanningRecord`), interface `Planner`, baseline `FixedTemplatePlanner` e gate central de admissão (`plan_and_validate`) que impede planos inválidos de avançarem. |
 | **Fase 5** | Concluída | Schemas e núcleo do `Model Router` (`route_and_finalize`) com filtro determinístico de elegibilidade, modos `fixed`/`rules`, interface `DecisionEngine`, motor simulado e adaptador opcional TypeSafe/Jev (`typesafe-sdk==0.7.2`). |
-| **Fase 6** | Concluída | Contratos, journal/artefatos, projeções/guardas, executor simulado, avaliador e runner com `orq run simulate`. S02 succeeded, S03 reproduzível byte a byte; 63 cenários auditados. Revisão 6E corrigida e S04 ajustado para TK05; suíte integral com 1180 testes aprovados. |
+| **Fase 6** | Concluída | Contratos, journal/artefatos, projeções/guardas, executor simulado, avaliador e runner com `orq run simulate`. S02 succeeded, S03 reproduzível byte a byte; 63 cenários auditados. |
+| **Fase 7 (`7A–7F`)** | Implementada localmente / CI (gate real V01–V12 pendente) | Hub de assinaturas, detector de cota versionado, Postgres RLS (`orq_memory_reader` v1 + `orq_memory_global_reader` v2), busca híbrida FTS português + `pg_trgm` com fallback BM25 offline, adaptadores CLI com conector MCP nativo por tentativa, subcomandos `orq plan`/`orq route`/`orq adapters probe-versions`/`orq experiment-7f` e cenários `Q01`–`Q30`. |
+| **Fase 8 (`8A–8E`)** | Implementada localmente / CI (calibração piloto ao vivo e revisão humana de rubricas pendentes) | Contratos fechados (`RubricSpec`, `RubricEvaluationEvidence`, `EvaluatorRoutingPolicy`, `PostHocRubricAuditRecord`, `CalibrationReport`), renderizador anti-injeção com `IsolatedEvalWorkspace`, seleção cross-family/vendor, `RubricModelEvaluator` read-only nas 4 CLIs (`ORQ_FINAL:`), `CompositeEvaluator` no `SequentialRunner` (`TK19→TK22`/`TK21`), `orq calibrate evaluator`, `orq audit rubric`, corpus inicial em rascunho (`24` itens) e cenários `R01`–`R25`. |
 
-Verificação após as duas revisões do 6D: suíte integral com 1032 aprovados e 4 ignorados (symlinks sem privilégio no Windows). Detalhes em [HANDOFF](docs/HANDOFF.md).
+Detalhes em [HANDOFF](docs/HANDOFF.md), [Fase 7](docs/phase-7/README.md) e [Fase 8](docs/phase-8/README.md).
 
 ---
 
@@ -141,17 +138,64 @@ Os subcomandos `vault` operam com escrita exclusiva (não sobrescrevem arquivos 
 .venv/bin/orq-contracts validate context_manifest /tmp/orq-context/manifest.json
 ```
 
-> **Nota sobre Planner e Router:** as funções `plan_and_validate` (Fase 4) e `route_and_finalize` (Fase 5) já estão implementadas e testadas na API Python (`orq_contracts`) usando as fixtures `fixtures/v0.1/planning-request.json`, `fixtures/v0.1/routing-request.json`, `fixtures/v0.1/routing-target-catalog.json` e `fixtures/v0.1/routing-policy-rules.json`. A exposição de subcomandos de planejamento, roteamento e execução simulada na CLI faz parte do backlog da Fase 6.
+### 3. Fluxo ponta a ponta da CLI (`orq plan` → `orq route` → `orq run simulate`)
+
+As etapas de planejamento, roteamento e execução simulada agora estão expostas diretamente na CLI `orq` (sem chamar rede nem provedores reais):
+
+```bash
+F=fixtures/v0.1
+
+# 1. Propõe e valida o WorkflowSpec a partir de PlanningRequest + template minimal
+orq plan \
+  --request $F/planning-request.json \
+  --template $F/valid/workflow-minimal.json \
+  --output-record /tmp/orq-planning-record.json \
+  --output-workflow /tmp/orq-workflow.json
+
+# 2. Aplica elegibilidade + regras de prioridade e emite RoutingDecision assinada
+orq route \
+  --request $F/routing-request.json \
+  --catalog $F/routing-target-catalog.json \
+  --policy $F/routing-policy-rules.json \
+  --output /tmp/orq-routing-decision.json
+
+# 3. Executa o workflow de referência T1–T5 ponta a ponta no executor simulado
+orq run simulate \
+  --store-root /tmp/orq-store \
+  --workflow $F/valid/workflow-reference.json \
+  --request $F/run-request.json \
+  --catalog $F/run-catalog.json \
+  --policy $F/run-policy.json \
+  --script $F/valid/simulation-script-reference.json \
+  --knowledge-catalog $F/vault/catalog-snapshot.json \
+  --vault-root $F/vault
+```
+
+Saída real de `orq plan` + `orq route`:
+
+```json
+{"planning_record_id":"planning-planning-request-demo","record_output":"/tmp/orq-planning-record.json","status":"accepted","workflow_output":"/tmp/orq-workflow.json"}
+{"decision_status":"selected","effective_selection":{"recommended_target_id":"target-quality","rule":"priority_then_id","selected_target_id":"target-quality","used_fallback":false},"output":"/tmp/orq-routing-decision.json","routing_decision_id":"routing-request-T1-1"}
+```
+
+Para verificar e executar o **Experimento 7F** offline (e contra PostgreSQL quando `ORQ_MEMORY_DSN` estiver configurado):
+
+```bash
+orq experiment-7f verify-package --package-dir experiments/7f
+orq experiment-7f simulate --package-dir experiments/7f --store-root /tmp/orq-7f-store --repetitions 1
+orq experiment-7f audit --package-dir experiments/7f --store-root /tmp/orq-7f-store
+```
 
 ---
 
 ## Estrutura do repositório
 
-- [`src/orq_contracts/`](src/orq_contracts/): pacote Python com canonicalização JCS/SHA-256 (`canonical.py`), registro de schemas (`schemas.py`), validador estrutural e semântico (`validator.py`), ingestão do Vault (`vault.py`), seleção BM25 (`selection.py`), materialização de contexto (`context.py`), servidor MCP (`mcp_server.py`), Task Planner (`planner.py`), Model Router (`router.py`), adaptador TypeSafe/Jev (`jev.py`), journal e artefatos (`journal.py`, `artifact_store.py`), projeções e máquina de estados (`projections.py`, `state_machine.py`), interface de executor, executor simulado e avaliador (`executor.py`, `simulated_executor.py`, `evaluator.py`) e CLI (`cli.py`).
-- [`schemas/v0.1/`](schemas/v0.1/): 23 schemas JSON Schema (Draft 2020-12) para tipos comuns, tarefas, workflows, conhecimento, contexto, planejamento, roteamento, os oito contratos fechados de execução do 6A, o roteiro do executor simulado e o envelope de saída simulada (6D).
-- [`fixtures/v0.1/`](fixtures/v0.1/): contratos válidos e inválidos, solicitações de planejamento e roteamento, catálogo de destinos e um Vault Markdown de demonstração.
-- [`tests/`](tests/): suíte automatizada em `pytest` cobrindo canonicalização, validadores, Vault, seleção, contexto, CLI, servidor MCP (em memória e subprocesso `stdio`), Planner, Router e adaptador Jev.
-- [`docs/`](docs/): estado operacional (`HANDOFF.md`), glossário normativo, especificações das Fases 1 a 6 e Architecture Decision Records (`docs/adr/`).
+- [`src/orq_contracts/`](src/orq_contracts/): pacote Python com canonicalização JCS/SHA-256 (`canonical.py`), registro e validador de schemas (`schemas.py`, `validator.py`), Vault Markdown e backend híbrido/BM25 (`vault.py`, `selection.py`, `context.py`, `knowledge_backend.py`, `knowledge_choice.py`), store Postgres com RLS (`memory_store/`), MCP (`mcp_server.py`, `family_mcp.py`), Planner/Router (`planner.py`, `router.py`, `jev.py`), journal e artefatos (`journal.py`, `artifact_store.py`), projeções e máquina de estados (`projections.py`, `state_machine.py`), executores, adaptadores CLI e cota (`executor.py`, `adapters/`, `quota.py`, `subscription_hub.py`, `runner_family.py`), avaliador (`evaluator.py`), runner (`runner.py`), harness 7F (`experiment_7f.py`) e CLI (`cli.py`).
+- [`schemas/v0.1/`](schemas/v0.1/): schemas JSON Schema (Draft 2020-12) cobrindo contratos das Fases 2–7.
+- [`fixtures/v0.1/`](fixtures/v0.1/): contratos válidos e inválidos, solicitações de planejamento/roteamento, catálogo de destinos, fixtures reais de saída CLI e Vault Markdown.
+- [`experiments/7f/`](experiments/7f/): pacote congelado do experimento 7F (50 unidades de conhecimento, 10 tarefas, plano balanceado em 6 lotes e manifesto assinado).
+- [`tests/`](tests/): suíte automatizada em `pytest` cobrindo contratos, Vault, MCP, Postgres/RLS (no CI), adaptadores CLI, cenários da Fase 6, cenários `Q01–Q30` da Fase 7 e análise estatística 7F.
+- [`docs/`](docs/): estado operacional (`HANDOFF.md`), glossário normativo, especificações das Fases 1 a 8 e Architecture Decision Records (`docs/adr/`).
 
 ---
 
@@ -175,6 +219,8 @@ Os subcomandos `vault` operam com escrita exclusiva (não sobrescrevem arquivos 
 16. [Andamento da Fase 4 — Task Planner e admissão do plano](docs/phase-4/README.md).
 17. [Andamento da Fase 5 — Model Router](docs/phase-5/README.md).
 18. [Andamento da Fase 6 — Especificação aceita e contratos 6A](docs/phase-6/README.md).
+19. [Fase 7 — Hub de assinaturas pessoais, roteamento por cota, RLS e 7F](docs/phase-7/README.md) ([ADR 0008](docs/adr/0008-phase-7-subscription-hub-and-family-memory.md)).
+20. [Fase 8 — Proposta de avaliador por modelo e rubrica](docs/phase-8/README.md) ([ADR 0009](docs/adr/0009-phase-8-model-and-rubric-evaluator.md)).
 
 ---
 
@@ -205,9 +251,9 @@ Leia [AGENTS.md](AGENTS.md) e [docs/HANDOFF.md](docs/HANDOFF.md) antes de contin
 
 Coerentes com o [ROADMAP.md](ROADMAP.md) e o [docs/HANDOFF.md](docs/HANDOFF.md):
 
-1. **Fase 7 — hub de assinaturas pessoais** ([ADR 0008](docs/adr/0008-phase-7-subscription-hub-and-family-memory.md), aceita): adaptadores reais para **Claude Code**, **Codex**, **Gemini / Antigravity** e **Kiro** em modo não interativo, roteamento ciente de cota e memória por família em Postgres com Row-Level Security.
-2. **Experimento 7F:** memória compartilhada × memória por família e roteamento por cota, visando um artigo.
-3. **Fases seguintes do roadmap (Fases 8–12):** segundo provedor/runtime para comparação experimental, Evaluator e Execution Memory ampliados, relatórios de métricas/custos, execução concorrente do DAG e scheduling experimental.
+1. **Verificação viva V01–V12 e coleta Camada B (7F):** validar os quatro adaptadores de assinatura (`claude`, `codex`, `agy`, `kiro-cli`) contra binários reais com `ArtifactRef` por versão e executar os 6 lotes pareados do 7F.
+2. **Fase 8 — avaliador por modelo e rubrica** ([ADR 0009](docs/adr/0009-phase-8-model-and-rubric-evaluator.md)): avaliação semântica `model_rubric` restrita a `task_attempt`, seleção cross-family com independência de modelo e calibração estatística.
+3. **Fases seguintes do roadmap (Fases 9–12):** segundo provedor/runtime para comparação experimental, Execution Memory ampliada, relatórios de métricas/custos, execução concorrente do DAG e scheduling experimental.
 
 ---
 

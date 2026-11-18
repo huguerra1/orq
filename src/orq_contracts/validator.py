@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 from typing import Any, Iterable
 
@@ -64,7 +65,12 @@ def _duplicate_issues(items: list[dict[str, Any]], key: str, path: str) -> list[
     return issues
 
 
-def _task_semantic_issues(task: dict[str, Any], path: str = "") -> list[ValidationIssue]:
+def _task_semantic_issues(
+    task: dict[str, Any],
+    path: str = "",
+    *,
+    calibration_mode: bool = False,
+) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     collections = (
         ("requirements", "requirement_id"),
@@ -77,8 +83,28 @@ def _task_semantic_issues(task: dict[str, Any], path: str = "") -> list[Validati
         issues.extend(_duplicate_issues(task[field], key, f"{path}/{field}"))
 
     requirement_by_id = {item["requirement_id"]: item for item in task["requirements"]}
+    expected_output_ids = {item["output_id"] for item in task["expected_output"]}
     required_coverage: set[str] = set()
     for criterion_index, criterion in enumerate(task["evaluation_criteria"]):
+        if criterion["method"] == "model_rubric":
+            rule = criterion["pass_rule"]
+            for output_index, output_id in enumerate(rule["output_ids"]):
+                if output_id not in expected_output_ids:
+                    issues.append(
+                        ValidationIssue(
+                            code="semantic.unknown_criterion_output",
+                            path=f"{path}/evaluation_criteria/{criterion_index}/pass_rule/output_ids/{output_index}",
+                            message=f"output {output_id!r} não existe em expected_output da tarefa",
+                        )
+                    )
+            if rule.get("cross_family_policy") == "allow_same_for_calibration" and not calibration_mode:
+                issues.append(
+                    ValidationIssue(
+                        code="semantic.calibration_policy_requires_calibration_mode",
+                        path=f"{path}/evaluation_criteria/{criterion_index}/pass_rule/cross_family_policy",
+                        message="allow_same_for_calibration só é permitido com calibration_mode=true",
+                    )
+                )
         for requirement_index, requirement_id in enumerate(criterion["requirement_ids"]):
             if requirement_id not in requirement_by_id:
                 issues.append(
@@ -103,15 +129,20 @@ def _task_semantic_issues(task: dict[str, Any], path: str = "") -> list[Validati
     return issues
 
 
-def validate_task(task: Any) -> list[ValidationIssue]:
+def validate_task(task: Any, *, calibration_mode: bool = False) -> list[ValidationIssue]:
     issues = _structural_issues(task, "task")
     if issues:
         return issues
-    return _task_semantic_issues(task)
+    return _task_semantic_issues(task, calibration_mode=calibration_mode)
 
 
-def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
-    """Valida estrutura e invariantes locais, inclusive payloads da Fase 7.
+def validate_instance(
+    instance: Any,
+    schema_name: str,
+    *,
+    calibration_mode: bool | None = None,
+) -> list[ValidationIssue]:
+    """Valida estrutura e invariantes locais, inclusive payloads das Fases 7 e 8.
 
     Não substitui os validadores de vínculos e transições previstos no 6C.
     """
@@ -124,10 +155,36 @@ def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
             ))
         issues.extend(_subscription_zero_issues(instance, schema_name))
         return issues
-    if schema_name in {"subscription_profile", "quota_state_record", "quota_consumption_record"} or (
-        schema_name == "usage_record" and "subscription_id" in instance
-    ):
+    signed_schemas = {
+        "subscription_profile",
+        "quota_state_record",
+        "quota_consumption_record",
+        "rubric_spec",
+        "rubric_evaluation_evidence",
+        "evaluator_routing_policy",
+        "post_hoc_rubric_audit_record",
+        "calibration_report",
+    }
+    if schema_name in signed_schemas or (schema_name == "usage_record" and "subscription_id" in instance):
         issues.extend(_record_hash_issues(instance))
+    if schema_name == "rubric_spec":
+        issues.extend(_rubric_spec_issues(instance))
+    if schema_name == "rubric_evaluation_evidence":
+        issues.extend(_rubric_evidence_issues(instance))
+    if schema_name == "evaluator_routing_policy":
+        issues.extend(_evaluator_routing_policy_issues(instance))
+    if schema_name == "post_hoc_rubric_audit_record":
+        issues.extend(_timestamp_issues(instance, ("recorded_at",)))
+    if schema_name == "calibration_report":
+        issues.extend(_calibration_report_issues(instance))
+    if schema_name == "task":
+        issues.extend(_task_semantic_issues(instance, calibration_mode=bool(calibration_mode)))
+    if schema_name == "workflow":
+        issues.extend(_workflow_semantic_issues(instance, calibration_mode=bool(calibration_mode)))
+    if schema_name == "run_intent":
+        issues.extend(_run_intent_issues(instance))
+    if schema_name == "run_manifest":
+        issues.extend(_run_manifest_issues(instance, calibration_mode=calibration_mode))
     if schema_name == "quota_state_record":
         timestamps = _timestamp_issues(instance, ("observed_at", "reset_at", "blocked_until"))
         issues.extend(timestamps or _quota_state_issues(instance))
@@ -139,8 +196,11 @@ def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
         issues.extend(_prefixed(validate_instance(instance["quota_state"], "quota_state_record"), "/quota_state"))
         if instance["run_id"] != instance["quota_state"]["run_id"]:
             issues.append(ValidationIssue("semantic.quota_run_mismatch", "/quota_state/run_id", "run do bloqueio diverge"))
-        if instance["scope_ref"] != instance["quota_state"]["source_attempt_id"]:
-            issues.append(ValidationIssue("semantic.quota_attempt_mismatch", "/quota_state/source_attempt_id", "tentativa do bloqueio diverge"))
+        if instance["scope_type"] == "attempt":
+            if instance["scope_ref"] != instance["quota_state"]["source_attempt_id"]:
+                issues.append(ValidationIssue("semantic.quota_attempt_mismatch", "/quota_state/source_attempt_id", "tentativa do bloqueio diverge"))
+        elif instance["scope_ref"] != instance["quota_state"].get("source_evaluation_id"):
+            issues.append(ValidationIssue("semantic.quota_evaluation_mismatch", "/quota_state/source_evaluation_id", "avaliação do bloqueio diverge"))
     if schema_name == "journal_event":
         payload_schemas = {
             "quota_exhausted_recorded": "quota_state_record",
@@ -155,15 +215,23 @@ def validate_instance(instance: Any, schema_name: str) -> list[ValidationIssue]:
             if instance["event_type"].startswith("quota_"):
                 if payload["run_id"] != instance["run_id"]:
                     issues.append(ValidationIssue("semantic.quota_run_mismatch", "/payload/run_id", "run do payload diverge"))
-                expected = payload["attempt_id"] if payload_schema == "quota_consumption_record" else payload["run_id"]
+                if payload_schema == "quota_consumption_record":
+                    expected = payload["evaluation_id"] if payload.get("scope_type") == "evaluation" else payload["attempt_id"]
+                else:
+                    expected = payload["run_id"]
                 if instance["aggregate_id"] != expected:
                     issues.append(ValidationIssue("semantic.quota_aggregate_mismatch", "/aggregate_id", "agregado de cota diverge"))
+            elif instance["event_type"] == "usage_attached" and payload.get("scope_type") == "evaluation":
+                if instance["aggregate_id"] != payload["scope_ref"]:
+                    issues.append(ValidationIssue("semantic.usage_aggregate_mismatch", "/aggregate_id", "agregado de uso da avaliação diverge"))
     if schema_name == "evaluation_report":
-        return _workflow_criterion_output_issues(instance)
+        issues.extend(_evaluation_issues(instance, calibration_mode=bool(calibration_mode)))
+        return issues
     if schema_name == "journal_event" and instance["event_type"] in {
         "evaluation_requested", "evaluation_report_recorded",
     }:
-        return _workflow_criterion_output_issues(instance["payload"], "/payload")
+        issues.extend(_evaluation_issues(instance["payload"], "/payload", calibration_mode=bool(calibration_mode)))
+        return issues
     return issues
 
 
@@ -266,7 +334,12 @@ def validate_quota_consumption_record(record: Any, *, usage_record: Any = None) 
     expected = {"id": usage_record["usage_id"], "version": usage_record["schema_version"], "content_digest": canonical_digest(usage_record)}
     if record["usage_record_ref"] != expected:
         issues.append(ValidationIssue("semantic.quota_usage_ref_mismatch", "/usage_record_ref", "referência/digest do uso diverge"))
-    if (record["run_id"], record["attempt_id"], record["subscription_id"]) != (
+    if record.get("scope_type") == "evaluation":
+        if (record["run_id"], record["evaluation_id"], record["subscription_id"]) != (
+            usage_record["run_id"], usage_record["scope_ref"], usage_record.get("subscription_id"),
+        ) or usage_record["scope_type"] != "evaluation":
+            issues.append(ValidationIssue("semantic.quota_usage_scope_mismatch", "/usage_record_ref", "run, avaliação ou assinatura do uso diverge"))
+    elif (record["run_id"], record["attempt_id"], record["subscription_id"]) != (
         usage_record["run_id"], usage_record["scope_ref"], usage_record.get("subscription_id"),
     ) or usage_record["scope_type"] != "attempt":
         issues.append(ValidationIssue("semantic.quota_usage_scope_mismatch", "/usage_record_ref", "run, tentativa ou assinatura do uso diverge"))
@@ -292,6 +365,256 @@ def _quota_routing_issues(decision: dict[str, Any]) -> list[ValidationIssue]:
     for index, check in enumerate(decision["preflight_checks"]):
         if check.get("reason", {}).get("code") == "quota_exhausted" and check["status"] != "failed":
             issues.append(ValidationIssue("semantic.invalid_quota_preflight", f"/preflight_checks/{index}", "cota esgotada reprova o preflight"))
+    return issues
+
+
+def _parse_decimal(value: Any) -> Decimal | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return Decimal(value)
+    except InvalidOperation:
+        return None
+
+
+def _is_7f_experiment(doc: dict[str, Any]) -> bool:
+    if doc.get("project_id") == "orq-7f":
+        return True
+    meta = doc.get("experiment_metadata")
+    if isinstance(meta, dict):
+        if str(meta.get("experiment_id", "")).strip().lower() == "7f":
+            return True
+        if any(str(tag).strip().lower() in {"experiment:7f", "7f"} for tag in meta.get("tags", [])):
+            return True
+    return False
+
+
+def _rubric_spec_issues(rubric: dict[str, Any]) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    min_score = rubric["scale"]["min_score"]
+    max_score = rubric["scale"]["max_score"]
+    if min_score >= max_score or max_score > 10:
+        issues.append(ValidationIssue("semantic.invalid_rubric_scale", "/scale", "escala deve satisfazer 0 <= min_score < max_score <= 10"))
+
+    dimensions = rubric["dimensions"]
+    issues.extend(_duplicate_issues(dimensions, "dimension_id", "/dimensions"))
+    total_weight = Decimal(0)
+    for idx, dim in enumerate(dimensions):
+        weight = _parse_decimal(dim["weight"])
+        if weight is None or weight <= Decimal(0) or weight > Decimal(1):
+            issues.append(ValidationIssue("semantic.invalid_rubric_weight", f"/dimensions/{idx}/weight", "peso deve estar em (0, 1]"))
+        else:
+            total_weight += weight
+        min_req = dim["mandatory_minimum_score"]
+        if min_req is not None and not (min_score <= min_req <= max_score):
+            issues.append(ValidationIssue(
+                "semantic.invalid_mandatory_minimum_score",
+                f"/dimensions/{idx}/mandatory_minimum_score",
+                "nota mínima bloqueante fora da escala da rubrica",
+            ))
+        if rubric["require_evidence_citations"] and dim["min_citations"] < 1:
+            issues.append(ValidationIssue(
+                "semantic.rubric_citations_required",
+                f"/dimensions/{idx}/min_citations",
+                "require_evidence_citations=true exige min_citations >= 1",
+            ))
+        anchor_scores = [anchor["score"] for anchor in dim["anchors"]]
+        if (
+            any(not (min_score <= score <= max_score) for score in anchor_scores)
+            or len(set(anchor_scores)) != len(anchor_scores)
+            or anchor_scores != sorted(anchor_scores)
+        ):
+            issues.append(ValidationIssue(
+                "semantic.invalid_rubric_anchors",
+                f"/dimensions/{idx}/anchors",
+                "âncoras devem ter notas únicas, ordenadas e dentro da escala",
+            ))
+
+    if total_weight != Decimal(1):
+        issues.append(ValidationIssue("semantic.rubric_weights_sum_mismatch", "/dimensions", "soma dos pesos deve ser exatamente 1"))
+
+    threshold = _parse_decimal(rubric["pass_threshold"])
+    if threshold is None or not (Decimal(0) <= threshold <= Decimal(1)):
+        issues.append(ValidationIssue("semantic.invalid_rubric_threshold", "/pass_threshold", "pass_threshold deve estar em [0, 1]"))
+    band = rubric["inconclusive_band"]
+    if band is not None:
+        lower = _parse_decimal(band["lower"])
+        upper = _parse_decimal(band["upper"])
+        if lower is None or upper is None or threshold is None or not (Decimal(0) <= lower < upper == threshold):
+            issues.append(ValidationIssue(
+                "semantic.invalid_inconclusive_band",
+                "/inconclusive_band",
+                "inconclusive_band exige 0 <= lower < upper == pass_threshold",
+            ))
+    return issues
+
+
+def _rubric_evidence_issues(evidence: dict[str, Any]) -> list[ValidationIssue]:
+    issues = _timestamp_issues(evidence, ("recorded_at",))
+    assessments = evidence["dimension_assessments"]
+    issues.extend(_duplicate_issues(assessments, "dimension_id", "/dimension_assessments"))
+    score = _parse_decimal(evidence["normalized_score"])
+    if score is None or not (Decimal(0) <= score <= Decimal(1)):
+        issues.append(ValidationIssue("semantic.invalid_normalized_score", "/normalized_score", "normalized_score deve estar em [0, 1]"))
+    if evidence["citation_verification_status"] == "invalid_citation" and evidence["derived_status"] != "inconclusive":
+        issues.append(ValidationIssue(
+            "semantic.invalid_citation_must_be_inconclusive",
+            "/derived_status",
+            "citação inválida obriga derived_status='inconclusive'",
+        ))
+    if (
+        evidence["blocking_dimension_failed"]
+        and evidence["citation_verification_status"] == "verified"
+        and evidence["derived_status"] != "fail"
+    ):
+        issues.append(ValidationIssue(
+            "semantic.blocking_dimension_must_fail",
+            "/derived_status",
+            "dimensão bloqueante reprovada obriga derived_status='fail'",
+        ))
+    for d_idx, item in enumerate(assessments):
+        for c_idx, cit in enumerate(item["citations"]):
+            locator = cit["locator"]
+            if locator["kind"] == "line_range" and locator["start_line"] > locator["end_line"]:
+                issues.append(ValidationIssue(
+                    "semantic.invalid_citation_line_range",
+                    f"/dimension_assessments/{d_idx}/citations/{c_idx}/locator",
+                    "start_line não pode ser maior que end_line",
+                ))
+    return issues
+
+
+def _evaluator_routing_policy_issues(policy: dict[str, Any]) -> list[ValidationIssue]:
+    overlap = set(policy["primary_evaluator_families"]) & set(policy["fallback_evaluator_families"])
+    if overlap:
+        return [ValidationIssue(
+            "semantic.overlapping_evaluator_families",
+            "/fallback_evaluator_families",
+            f"famílias não podem repetir entre primárias e fallback: {sorted(overlap)}",
+        )]
+    return []
+
+
+def _calibration_report_issues(report: dict[str, Any]) -> list[ValidationIssue]:
+    issues = _timestamp_issues(report, ("recorded_at",))
+    counts = report["sample_counts"]
+    expected_total = counts["gold_pass"] + counts["seeded_semantic_fail"] + counts["borderline_cases"]
+    if counts["total"] != expected_total:
+        issues.append(ValidationIssue(
+            "semantic.calibration_sample_count_mismatch",
+            "/sample_counts/total",
+            "total deve igualar a soma das categorias do corpus",
+        ))
+    tested = set(report["evaluator_families_tested"])
+    per_fam = report["per_family_metrics"]
+    issues.extend(_duplicate_issues(per_fam, "family_id", "/per_family_metrics"))
+    if {item["family_id"] for item in per_fam} != tested:
+        issues.append(ValidationIssue(
+            "semantic.calibration_family_metrics_mismatch",
+            "/per_family_metrics",
+            "per_family_metrics deve cobrir exatamente evaluator_families_tested",
+        ))
+    if bool(report["gates_passed"]) != (len(report["failed_gates"]) == 0):
+        issues.append(ValidationIssue(
+            "semantic.calibration_gates_mismatch",
+            "/gates_passed",
+            "gates_passed deve refletir failed_gates vazia",
+        ))
+    rec = report["recommended_thresholds"]
+    thresh = _parse_decimal(rec["pass_threshold"])
+    lower = _parse_decimal(rec["inconclusive_band"]["lower"])
+    upper = _parse_decimal(rec["inconclusive_band"]["upper"])
+    if thresh is None or lower is None or upper is None or not (Decimal(0) <= lower <= thresh <= upper <= Decimal(1)):
+        issues.append(ValidationIssue(
+            "semantic.invalid_inconclusive_band",
+            "/recommended_thresholds/inconclusive_band",
+            "limiares recomendados exigem 0 <= lower <= pass_threshold <= upper <= 1",
+        ))
+    return issues
+
+
+def _run_intent_issues(intent: dict[str, Any]) -> list[ValidationIssue]:
+    meta = intent.get("experiment_metadata") or {}
+    if _is_7f_experiment(intent) and meta.get("calibration_mode") is True:
+        return [ValidationIssue(
+            "experiment_7f_forbids_model_rubric",
+            "/experiment_metadata/calibration_mode",
+            "experimento 7F não pode operar em calibration_mode",
+        )]
+    return []
+
+
+def _run_manifest_issues(manifest: dict[str, Any], *, calibration_mode: bool | None = None) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    meta = manifest.get("experiment_metadata") or {}
+    effective_cal = bool(meta.get("calibration_mode")) if calibration_mode is None else calibration_mode
+    snap = manifest.get("evaluator_snapshot")
+    if isinstance(snap, dict):
+        if snap.get("cross_family_policy") == "allow_same_for_calibration" and not effective_cal:
+            issues.append(ValidationIssue(
+                "semantic.calibration_policy_requires_calibration_mode",
+                "/evaluator_snapshot/cross_family_policy",
+                "allow_same_for_calibration exige calibration_mode=true no RunIntent",
+            ))
+        if _is_7f_experiment(manifest) and (
+            snap.get("kind") == "composite_rubric" or "model_rubric" in snap.get("supported_methods", [])
+        ):
+            issues.append(ValidationIssue(
+                "experiment_7f_forbids_model_rubric",
+                "/evaluator_snapshot",
+                "experimento 7F proíbe avaliador model_rubric",
+            ))
+    return issues
+
+
+def _evaluation_issues(
+    record: dict[str, Any],
+    path: str = "",
+    *,
+    calibration_mode: bool = False,
+) -> list[ValidationIssue]:
+    issues = _workflow_criterion_output_issues(record, path)
+    is_workflow_scope = record["scope"]["kind"] == "workflow"
+    snap = record["evaluator_snapshot"]
+    if snap.get("cross_family_policy") == "allow_same_for_calibration" and not calibration_mode:
+        issues.append(ValidationIssue(
+            "semantic.calibration_policy_requires_calibration_mode",
+            f"{path}/evaluator_snapshot/cross_family_policy",
+            "allow_same_for_calibration só é permitido com calibration_mode=true",
+        ))
+    rubric_refs_present = record["criteria_snapshot"].get("rubric_refs")
+    used_rubric_refs: list[dict[str, Any]] = []
+    for index, criterion in enumerate(record["criteria_snapshot"]["criteria"]):
+        if criterion["method"] == "model_rubric":
+            if is_workflow_scope:
+                issues.append(ValidationIssue(
+                    "workflow_scope_model_rubric_not_supported",
+                    f"{path}/criteria_snapshot/criteria/{index}/method",
+                    "model_rubric é restrito ao escopo task_attempt na Fase 8",
+                ))
+            rule = criterion["pass_rule"]
+            if rule.get("cross_family_policy") == "allow_same_for_calibration" and not calibration_mode:
+                issues.append(ValidationIssue(
+                    "semantic.calibration_policy_requires_calibration_mode",
+                    f"{path}/criteria_snapshot/criteria/{index}/pass_rule/cross_family_policy",
+                    "allow_same_for_calibration só é permitido com calibration_mode=true",
+                ))
+            if isinstance(rule, dict) and "rubric_ref" in rule:
+                used_rubric_refs.append(rule["rubric_ref"])
+    if snap.get("kind") == "composite_rubric" and used_rubric_refs:
+        if not rubric_refs_present or any(ref not in rubric_refs_present for ref in used_rubric_refs):
+            issues.append(ValidationIssue(
+                "semantic.missing_rubric_ref",
+                f"{path}/criteria_snapshot/rubric_refs",
+                "criteria_snapshot.rubric_refs deve listar todos os rubric_ref dos critérios model_rubric",
+            ))
+    if "criterion_results" in record and record["execution_status"] == "completed":
+        if any(item["required"] and item["status"] == "fail" for item in record["criterion_results"]) and record["verdict"] != "fail":
+            issues.append(ValidationIssue(
+                "semantic.required_criterion_failed_verdict_mismatch",
+                f"{path}/verdict",
+                "critério obrigatório reprovado exige verdict='fail' (Regra 5 da Fase 1)",
+            ))
     return issues
 
 
@@ -545,8 +868,9 @@ def _same_ref(left: Any, right: Any) -> bool:
     return left == right or left is None or right is None
 
 
-def _workflow_semantic_issues(workflow: dict[str, Any]) -> list[ValidationIssue]:
+def _workflow_semantic_issues(workflow: dict[str, Any], *, calibration_mode: bool = False) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
+    is_7f = _is_7f_experiment(workflow)
     for field, key in (
         ("requirements", "requirement_id"),
         ("external_inputs", "input_id"),
@@ -564,7 +888,17 @@ def _workflow_semantic_issues(workflow: dict[str, Any]) -> list[ValidationIssue]
     workflow_output_by_id = {item["output_id"]: item for item in workflow["outputs"]}
 
     for task_index, task in enumerate(workflow["tasks"]):
-        issues.extend(_task_semantic_issues(task, f"/tasks/{task_index}"))
+        issues.extend(_task_semantic_issues(task, f"/tasks/{task_index}", calibration_mode=calibration_mode))
+        if is_7f:
+            for crit_index, criterion in enumerate(task["evaluation_criteria"]):
+                if criterion["method"] == "model_rubric":
+                    issues.append(
+                        ValidationIssue(
+                            "experiment_7f_forbids_model_rubric",
+                            f"/tasks/{task_index}/evaluation_criteria/{crit_index}/method",
+                            "experimento 7F proíbe critérios model_rubric",
+                        )
+                    )
         for dependency_index, dependency_id in enumerate(task["dependencies"]):
             dependency_path = f"/tasks/{task_index}/dependencies/{dependency_index}"
             if dependency_id == task["task_id"]:
@@ -743,6 +1077,22 @@ def _workflow_semantic_issues(workflow: dict[str, Any]) -> list[ValidationIssue]
 
     required_global_criteria: set[str] = set()
     for criterion_index, criterion in enumerate(workflow["evaluation_criteria"]):
+        if criterion["method"] == "model_rubric":
+            issues.append(
+                ValidationIssue(
+                    code="workflow_scope_model_rubric_not_supported",
+                    path=f"/evaluation_criteria/{criterion_index}/method",
+                    message="model_rubric é restrito ao escopo task_attempt na Fase 8",
+                )
+            )
+            if is_7f:
+                issues.append(
+                    ValidationIssue(
+                        code="experiment_7f_forbids_model_rubric",
+                        path=f"/evaluation_criteria/{criterion_index}/method",
+                        message="experimento 7F proíbe critérios model_rubric",
+                    )
+                )
         for requirement_index, requirement_id in enumerate(criterion["workflow_requirement_ids"]):
             if requirement_id not in workflow_requirement_by_id:
                 issues.append(
@@ -788,8 +1138,8 @@ def _workflow_semantic_issues(workflow: dict[str, Any]) -> list[ValidationIssue]
     return issues
 
 
-def validate_workflow(workflow: Any) -> list[ValidationIssue]:
+def validate_workflow(workflow: Any, *, calibration_mode: bool = False) -> list[ValidationIssue]:
     issues = _structural_issues(workflow, "workflow")
     if issues:
         return issues
-    return _workflow_semantic_issues(workflow)
+    return _workflow_semantic_issues(workflow, calibration_mode=calibration_mode)

@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Protocol
 
 from .canonical import canonical_digest, canonicalize
+from .quota import QuotaStateSnapshot, subscription_category
 from .validator import (
     validate_instance,
     validate_routing_decision,
@@ -178,6 +179,8 @@ def route_and_finalize(
     *,
     preflight_checks: list[dict[str, Any]],
     decision_engine: DecisionEngine | None = None,
+    quota_snapshot: QuotaStateSnapshot | None = None,
+    implementation_families: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """Produz decisão final; não despacha nem consome tentativa."""
 
@@ -197,8 +200,21 @@ def route_and_finalize(
 
     candidates: list[dict[str, Any]] = []
     eligible_targets: list[dict[str, Any]] = []
+    rules = policy.get("subscription_rules") if policy["mode"] == "rules" else None
+    category = subscription_category(request["task_snapshot"]) if rules else None
+    family_order = rules["family_order_by_task_type"].get(category, []) if rules else []
+    otherwise_eligible = []
     for position, target in enumerate(catalog["targets"], 1):
         reasons = _eligibility_reasons(request, target)
+        if family_order and target.get("family_id") not in family_order:
+            reasons.append(_reason("family_not_in_task_order", str(category)))
+        if (category == "review" and rules["review_requires_different_family"]
+                and target.get("family_id") in implementation_families):
+            reasons.append(_reason("review_family_conflict", target["family_id"]))
+        if not reasons:
+            otherwise_eligible.append(target)
+        if quota_snapshot is not None:
+            reasons.extend(quota_snapshot.reasons(target))
         candidate = {
             "target_ref": _target_ref(target),
             "input_position": position,
@@ -209,7 +225,11 @@ def route_and_finalize(
         candidates.append(candidate)
         if not reasons:
             eligible_targets.append(target)
-    eligible_targets.sort(key=lambda target: (target["priority"], target["target_id"]))
+    def priority(target):
+        return ((family_order.index(target["family_id"]) if family_order else 0),
+                target["priority"], target["target_id"])
+    eligible_targets.sort(key=priority)
+    otherwise_eligible.sort(key=priority)
     rank_by_id = {target["target_id"]: index for index, target in enumerate(eligible_targets, 1)}
     for candidate in candidates:
         candidate["rank"] = rank_by_id.get(candidate["target_ref"]["id"])
@@ -249,11 +269,32 @@ def route_and_finalize(
                 status = "selected"
             else:
                 status = "policy_rejected"
+                primary = next((t for t in catalog["targets"] if t["target_id"] == target_id), None)
+                replacement = next((t for t in eligible_targets if t["target_id"] == policy["fallback_target_id"]), None)
+                if (primary and replacement and quota_snapshot and
+                        any(r["code"] == "quota_exhausted" for r in quota_snapshot.reasons(primary)) and
+                        primary.get("family_id") != replacement.get("family_id")):
+                    recommendation = _recommendation(target_id, None)
+                    selection = _selection(target_id, replacement["target_id"], True, "quota_fallback")
+                    status = "selected"
         elif policy["mode"] == "rules":
             target_id = eligible_targets[0]["target_id"]
             recommendation = _recommendation(target_id, None)
             selection = _selection(target_id, target_id, False, "priority_then_id")
-            status = "selected"
+            # Todas as alternativas contam: o destino original é o primeiro, na
+            # ordem da regra, bloqueado por cota e preferido ao selecionado, mesmo
+            # que outro anterior esteja indisponível por motivo não-cota.
+            original = next((t for t in otherwise_eligible if quota_snapshot and quota_snapshot.blocking_record(t)), None)
+            if original and priority(original) < priority(eligible_targets[0]):
+                # Mesmo pool/família nunca é fallback de uma recusa de assinatura.
+                replacement = next((t for t in eligible_targets if t.get("family_id") != original.get("family_id")), None)
+                if replacement:
+                    target_id = replacement["target_id"]
+                    recommendation = _recommendation(original["target_id"], None)
+                    selection = _selection(original["target_id"], target_id, True, "quota_fallback")
+                else:
+                    selection = None
+            status = "selected" if selection is not None else "no_eligible_target"
         else:
             if decision_engine is None:
                 raise RoutingError("decision_engine_required", "/decision_engine", "motor tipado ausente")
@@ -326,6 +367,15 @@ def route_and_finalize(
         "usage_record_refs": usage_refs,
         "provider_extension": provider_extension,
     }
+    if not eligible_targets and otherwise_eligible and quota_snapshot and all(
+            quota_snapshot.blocking_record(t) for t in otherwise_eligible):
+        # Registra o próximo desbloqueio e cita os eventos de cota que o provam.
+        evidence = {ref["id"]: ref for t in otherwise_eligible for r in quota_snapshot.reasons(t)
+                    if r["code"] == "quota_exhausted" for ref in r["evidence_refs"]}
+        until = quota_snapshot.next_blocked_until(otherwise_eligible)
+        decision["reason"] = _reason("all_eligible_families_quota_exhausted",
+            "subscription_pools" + (f"; blocked_until={until}" if until else ""),
+            [evidence[key] for key in sorted(evidence)])
     decision["record_hash"] = canonical_digest(decision)
     _raise_first(validate_routing_decision(decision))
     return decision

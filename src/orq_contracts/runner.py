@@ -17,6 +17,7 @@ from typing import Callable
 from ._storage import StorageError, confined_path, ensure_directory, publish_bytes, reject_pending_files
 from .artifact_store import ArtifactStore
 from .canonical import canonical_digest, canonicalize
+from .composite_evaluator import CompositeEvaluator
 from .context import ContextError, materialize_knowledge_context
 from .evaluator import ArtifactEvidence, ContentContractRegistry, DeterministicEvaluator
 from .executor import ExecutorError, Record, WorkspaceHandle, bytes_digest, error_record, seal_record, stable_id
@@ -57,11 +58,29 @@ class SequentialRunner:
                knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
                id_factory: Callable = deterministic_id, on_event: Callable | None = None,
                decision_engine: DecisionEngine | None = None,
-               external_inputs: dict[str, bytes] | None = None) -> SequentialRunner:
-        script.validate_against_workflow(workflow)
+               external_inputs: dict[str, bytes] | None = None, family_runtime=None,
+               contracts: ContentContractRegistry | None = None,
+               evaluator_routing_policy: Record | None = None,
+               rubric_specs: Any = None,
+               evaluator_profiles: Any = None,
+               judge_adapter: Any = None,
+               eval_temp_root: Path | None = None,
+               prompt_template_ref: Record | None = None) -> SequentialRunner:
+        calibration_mode = bool(
+            request.get("experiment_metadata", {}).get("calibration_mode")
+            or policy.get("experiment_metadata", {}).get("calibration_mode")
+        )
+        script.validate_against_workflow(workflow, contracts=contracts, calibration_mode=calibration_mode)
         journal = RunJournal.create(store_root, request["run_id"], clock=clock)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, False,
+                          family_runtime, contracts,
+                          evaluator_routing_policy=evaluator_routing_policy,
+                          rubric_specs=rubric_specs,
+                          evaluator_profiles=evaluator_profiles,
+                          judge_adapter=judge_adapter,
+                          eval_temp_root=eval_temp_root,
+                          prompt_template_ref=prompt_template_ref)
 
     @classmethod
     def open(cls, store_root: Path, *, workflow: Record, request: Record,
@@ -69,8 +88,19 @@ class SequentialRunner:
              knowledge_catalog: Record, vault_root: Path, clock: DeterministicClock,
              id_factory: Callable = deterministic_id, on_event: Callable | None = None,
              decision_engine: DecisionEngine | None = None,
-             external_inputs: dict[str, bytes] | None = None) -> SequentialRunner:
-        script.validate_against_workflow(workflow)
+             external_inputs: dict[str, bytes] | None = None, family_runtime=None,
+             contracts: ContentContractRegistry | None = None,
+             evaluator_routing_policy: Record | None = None,
+             rubric_specs: Any = None,
+             evaluator_profiles: Any = None,
+             judge_adapter: Any = None,
+             eval_temp_root: Path | None = None,
+             prompt_template_ref: Record | None = None) -> SequentialRunner:
+        calibration_mode = bool(
+            request.get("experiment_metadata", {}).get("calibration_mode")
+            or policy.get("experiment_metadata", {}).get("calibration_mode")
+        )
+        script.validate_against_workflow(workflow, contracts=contracts, calibration_mode=calibration_mode)
         def prepare_recovery(events):
             times = [parse_utc(e["recorded_at"]) for e in events]
             directory = confined_path(Path(store_root), f"runs/{request['run_id']}/simulator")
@@ -85,11 +115,25 @@ class SequentialRunner:
                                             timedelta(milliseconds=clock.step_ms)))
         journal = RunJournal.open(store_root, request["run_id"], clock=clock, prepare_recovery=prepare_recovery)
         return cls._build(journal, workflow, request, catalog, policy, script, knowledge_catalog,
-                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True)
+                          vault_root, clock, id_factory, on_event, decision_engine, external_inputs, True,
+                          family_runtime, contracts,
+                          evaluator_routing_policy=evaluator_routing_policy,
+                          rubric_specs=rubric_specs,
+                          evaluator_profiles=evaluator_profiles,
+                          judge_adapter=judge_adapter,
+                          eval_temp_root=eval_temp_root,
+                          prompt_template_ref=prompt_template_ref)
 
     @classmethod
     def _build(cls, journal, workflow, request, catalog, policy, script, knowledge_catalog,
-               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed):
+               vault_root, clock, id_factory, on_event, decision_engine, external_inputs, resumed,
+               family_runtime, contracts=None, *,
+               evaluator_routing_policy=None,
+               rubric_specs=None,
+               evaluator_profiles=None,
+               judge_adapter=None,
+               eval_temp_root=None,
+               prompt_template_ref=None):
         self = cls()
         self.journal, self.clock, self.script = journal, clock, script
         self.workflow, self.request, self.catalog, self.policy, self.knowledge_catalog = deepcopy(
@@ -97,8 +141,11 @@ class SequentialRunner:
         self.vault_root, self.ids, self.on_event = Path(vault_root), id_factory, on_event
         self.decision_engine, self.external_inputs = decision_engine, deepcopy(external_inputs or {})
         self.resumed = resumed
+        self.family_runtime = family_runtime
         self._undispatched: set[str] = set()  # prova volátil de AT04
         try:
+            if any(t.get("subscription_id") for t in self.catalog["targets"]) and not self.family_runtime:
+                raise ExecutorError("subscription_policy_violation", "catálogo de assinaturas exige FamilyRuntime")
             if not isinstance(clock, DeterministicClock) or journal.clock is not clock:
                 raise ExecutorError("clock_mismatch", "runner e journal exigem o mesmo relógio injetado")
             self.store = ArtifactStore(journal)
@@ -126,12 +173,44 @@ class SequentialRunner:
                                             timedelta(milliseconds=clock.step_ms)))
             self._input_hash = identity
             self.executor = SimulatedExecutor(script, self.store, clock=clock, state=state, persist=self._persist_executor)
-            contracts = ContentContractRegistry()
-            contracts.register(*simulated_output_contract())
-            self.evaluator = DeterministicEvaluator(self.store, script, clock=clock, contracts=contracts)
+            self.simulated_executor = self.executor
+            contracts = contracts if contracts is not None else ContentContractRegistry()
+            if contracts.validator(simulated_output_contract()[0]) is None:
+                contracts.register(*simulated_output_contract())
+            uses_rubric = (
+                rubric_specs is not None
+                or evaluator_routing_policy is not None
+                or any(
+                    c.get("method") == "model_rubric"
+                    for t in workflow.get("tasks", [])
+                    for c in t.get("evaluation_criteria", [])
+                )
+            )
+            if uses_rubric:
+                self.evaluator = CompositeEvaluator(
+                    self.store,
+                    script,
+                    clock=clock,
+                    contracts=contracts,
+                    routing_policy=evaluator_routing_policy,
+                    rubric_specs=rubric_specs,
+                    prompt_template_ref=prompt_template_ref,
+                    eval_temp_root=eval_temp_root,
+                    profiles=evaluator_profiles,
+                    judge_adapter=judge_adapter,
+                )
+            else:
+                self.evaluator = DeterministicEvaluator(self.store, script, clock=clock, contracts=contracts)
+            if self.family_runtime:
+                self.family_runtime.attach(self)
             self._authoritative = any(c["id"] == AUTHORITATIVE_NOT_FOUND_CONTROL and c["support"] == "supported"
                                       for c in self.executor.describe().controls)
             self.projection = self._project(journal.events)
+            if self.family_runtime and self.projection.manifest:
+                if self.projection.manifest["executor_snapshot"]["executor_ref"] != self.executor.describe().executor_ref:
+                    raise ExecutorError("snapshot_mismatch", "hub da retomada divergente")
+                if self.projection.manifest["orchestrator_snapshot"]["config_ref"]["content_digest"] != canonical_digest([self.policy, self.family_runtime.snapshot]):
+                    raise ExecutorError("snapshot_mismatch", "configuração de assinatura divergente")
             return self
         except BaseException:
             journal.close()
@@ -148,6 +227,8 @@ class SequentialRunner:
         self._checkpoint_number = number
 
     def close(self) -> None:
+        if self.family_runtime:
+            self.family_runtime.close()
         self.journal.close()
 
     def __enter__(self):
@@ -158,7 +239,8 @@ class SequentialRunner:
 
     def _project(self, events) -> RunProjection:
         return project_journal(events, workflow=self.workflow,
-                               reconcile_not_found_authoritative=self._authoritative)
+                               reconcile_not_found_authoritative=self._authoritative,
+                               knowledge_catalog=self.knowledge_catalog)
 
     def append(self, event_type: str, payload: Record, kind: str = "run", id: str | None = None,
                *, key: str | None = None, actor: str = "orchestrator") -> Record:
@@ -202,7 +284,7 @@ class SequentialRunner:
             "state_transition", "dispatch_requested", "dispatch_acknowledged", "execution_started",
             "error_attached", "termination_confirmed", "result_collected", "artifact_ingested", "output_bound",
             "evaluation_requested", "evaluation_report_recorded", "outputs_accepted", "admission_rejected",
-            "reconciliation_observed", "cancel_requested", "deadline_exceeded", "run_manifest_closed"}]
+            "reconciliation_observed", "cancel_requested", "deadline_exceeded", "run_manifest_closed", "attempt_context_sealed"}]
         return self.append("state_transition", {"from": s.aggregate_state(kind, id), "to": to,
                                                "reason": reason, "evidence_event_ids": evidence}, kind, id)
 
@@ -233,7 +315,10 @@ class SequentialRunner:
             self.append("run_intent_recorded", seal_record({
                 "schema_version": "0.1", "run_id": self.request["run_id"], "project_id": self.request["project_id"],
                 "objective": self.request["objective"], "requested_by": {"kind": "human", "ref": "local-user"},
-                "experiment_metadata": {}, "created_at": self.clock.now(),
+                "experiment_metadata": deepcopy({
+                    **self.request.get("experiment_metadata", {}),
+                    **self.policy.get("experiment_metadata", {}),
+                }), "created_at": self.clock.now(),
                 "idempotency_key": self.request["run_id"] + "/create",
             }, "run_intent"))
         if self.projection.state == "created":
@@ -293,6 +378,11 @@ class SequentialRunner:
                                      "missing": [] if ready else ["execution"], "reason": None if ready else status},
             "preparation_usage_refs": [], "preparation_error_refs": [],
         }
+        if ready and self.family_runtime:
+            manifest["executor_snapshot"]["target_executor_refs"] = list({
+                canonicalize(t["executor_ref"]): t["executor_ref"] for t in self.catalog["targets"]}.values())
+            manifest["orchestrator_snapshot"]["config_ref"]["content_digest"] = canonical_digest(
+                [self.policy, self.family_runtime.snapshot])
         self.append("run_manifest_closed", seal_record(manifest, "run_manifest"))
         if not ready:
             self._transition("run", s.id, "cancelled" if status == "cancelled_before_ready" else "failed", status)
@@ -358,6 +448,8 @@ class SequentialRunner:
     def _budget_check(self, operations):
         s = self.projection
         budget = s.manifest["budget_snapshot"]
+        if self.family_runtime and budget["cap_mandatory"] and any(scope == "attempt" for scope, _ in operations):
+            return "budget_unknown"
         estimates = [self._estimate(scope, subject) for scope, subject in operations]
         if (budget["cap_mandatory"] or budget["unknown_cost_action"] == "reject") and any(e is None for e in estimates):
             return "budget_unknown"
@@ -375,10 +467,15 @@ class SequentialRunner:
         estimate = self._estimate(scope, subject)
         # O número da sequência evita reutilizar reservas abandonadas por crash.
         rid = self.ids("reservation", id, len(self.journal.events) + 1)
-        self.append("budget_reserved", {"reservation_id": rid, "scope_type": scope, "scope_ref": id,
+        payload = {"reservation_id": rid, "scope_type": scope, "scope_ref": id,
                     "amount": estimate["amount"] if estimate else None, "status": "estimated" if estimate else "unavailable",
                     "currency": self.projection.manifest["budget_snapshot"]["currency"],
-                    "method": estimate["method"] if estimate else "unavailable"})
+                    "method": estimate["method"] if estimate else "unavailable"}
+        if self.family_runtime and scope == "attempt":
+            target = next(t for t in self.catalog["targets"] if reference(t, "target_id") == subject)
+            payload.update(subscription_id=target["subscription_id"], amount=None, currency=None,
+                           status="unavailable", method="unavailable")
+        self.append("budget_reserved", payload)
         return rid
 
     def _admit(self, task_id):
@@ -394,7 +491,9 @@ class SequentialRunner:
         except (ExecutorError, StorageError):
             return self._reject(task_id, "inputs_unavailable")
         try:
-            selection = select_knowledge(self.vault_root, self.knowledge_catalog, task["knowledge_requirements"],
+            if self.family_runtime:
+                self.family_runtime.refresh_quotas()
+            selection = select_knowledge(self.vault_root, self.knowledge_catalog, [] if self.family_runtime else task["knowledge_requirements"],
                 query=task["objective"], run_id=s.id, workflow_ref=s.manifest["workflow_snapshot_ref"], task_id=task_id,
                 candidate_attempt_number=number, project_id=s.intent["project_id"], created_at=self.clock.now(),
                 max_tokens=self.policy.get("knowledge_max_tokens", 2048),
@@ -416,7 +515,9 @@ class SequentialRunner:
                        "required_control_ids": ["timeout", "cancellation"], "created_at": self.clock.now()}
             decision = route_and_finalize(request, self.catalog, self.policy["routing_policy"],
                 preflight_checks=[{"control": c, "status": "passed", "observed_at": self.clock.now(), "evidence_refs": [self.script.reference]}
-                                  for c in ("credentials", "quota", "limits")], decision_engine=self.decision_engine)
+                                  for c in ("credentials", "quota", "limits")], decision_engine=self.decision_engine,
+                quota_snapshot=self.family_runtime.quota_snapshot if self.family_runtime else None,
+                implementation_families=self.family_runtime.implementation_families(task) if self.family_runtime else frozenset())
             self.append("routing_decision_recorded", decision, "task", task_id)
             if self.projection.cancel_requested:
                 return
@@ -424,6 +525,9 @@ class SequentialRunner:
                 return self._reject(task_id, decision["decision_status"])
             target = next(t for t in self.catalog["targets"] if t["target_id"] == decision["effective_selection"]["selected_target_id"])
             target_ref = reference(target, "target_id")
+            if self.family_runtime:
+                session = self.family_runtime.session(task, number, decision, target)
+                session.preflight()
             context = materialize_knowledge_context(self.vault_root, self.knowledge_catalog, selection,
                 routing_decision_ref=record_ref(decision, "routing_decision_id"), target_ref=target_ref,
                 target_context_limit_tokens=target["context_limit_tokens"], reserved_output_tokens=request["required_output_tokens"],
@@ -435,7 +539,10 @@ class SequentialRunner:
             if self.projection.cancel_requested:
                 return
         except (VaultError, ContextError, RoutingError) as error:
-            return self._reject(task_id, "context_rejected" if isinstance(error, ContextError) else "policy_rejected")
+            if self.family_runtime and error.code == "knowledge_unsatisfied":
+                return self._reject(task_id, "knowledge_unsatisfied")
+            code = "integrity_mismatch" if self.family_runtime and error.code in {"integrity_mismatch", "unit_integrity_mismatch", "selected_unit_missing"} else None
+            return self._reject(task_id, "context_rejected" if isinstance(error, ContextError) or code else "policy_rejected", code)
         aid = self.ids("attempt", task_id, number)
         eid = self.ids("evaluation", task_id, number, 1)
         operations = [("attempt", target_ref), ("evaluation", self.evaluator.snapshot["evaluator_ref"])]
@@ -472,6 +579,8 @@ class SequentialRunner:
                   "input_bindings": bindings, "budget_reservation_ids": reservations, "dispatch_intent_id": dispatch_id,
                   "dispatch_idempotency_key": s.id + "/" + dispatch_id, "created_at": now,
                   "deadline_at": self._deadline(s.limit("attempt_timeout_ms", task_id))}
+        if self.family_runtime:
+            common["knowledge_session_ref"] = session.reference
         header = seal_record({**common, "previous_attempt_id": s.tasks[task_id].attempt_ids[-1] if number > 1 else None,
                               "effective_policy_snapshot_ref": s.manifest["execution_policy_snapshot_ref"],
                               "execution_target_snapshot": {"target_ref": target_ref, **{k: target[k] for k in (
@@ -491,6 +600,8 @@ class SequentialRunner:
         self._undispatched.remove(aid)
         workspace = WorkspaceHandle(self.ids("workspace", task_id, number), base, tuple(task["expected_output"]), target["model_ref"]["id"])
         try:
+            if self.family_runtime:
+                self.executor.bind_knowledge_session(intent, session)
             ack = self.executor.dispatch(intent, context.bundle, workspace)
         except ExecutorError as error:
             if error.termination_certainty == "confirmed":
@@ -531,8 +642,17 @@ class SequentialRunner:
             self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
         for error in result.errors:
             self._attach_error(error, "attempt", aid)
+        if self.family_runtime:
+            self.family_runtime.record_result(aid, result)
+            if result.errors:
+                self.family_runtime.seal_context(aid)
+                self._settle_attempt(aid)
+                return self._transition("attempt", aid, "failed", "execution_failed")
         task = self.projection.tasks[a.header["task_id"]].spec
-        failed = False
+        failed = not self.family_runtime.seal_context(aid, required=True) if self.family_runtime else False
+        if failed:
+            self._settle_attempt(aid)
+            return self._transition("attempt", aid, "failed", "output_invalid")
         for file in result.produced_files:
             artifact_id = self.ids("artifact", aid, file.output_id)
             if artifact_id not in self.projection.artifacts:
@@ -598,6 +718,9 @@ class SequentialRunner:
             self._attach_error(error, "attempt", aid)
         for usage in result.usage:
             self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+        if self.family_runtime:
+            self.family_runtime.record_result(aid, result)
+            self.family_runtime.seal_context(aid)
         self._settle_attempt(aid)
         self._transition("attempt", aid, "failed", "execution_failed")
 
@@ -625,6 +748,11 @@ class SequentialRunner:
             result = self.executor.collect(a.intent)
             for usage in result.usage:
                 self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+            if self.family_runtime:
+                for error in result.errors:
+                    self._attach_error(error, "attempt", aid)
+                self.family_runtime.record_result(aid, result)
+                self.family_runtime.seal_context(aid)
             self._settle_attempt(aid)
             self._transition("attempt", aid, "timed_out" if timeout else "cancelled", "attempt_timeout" if timeout else "run_cancelled")
         elif a.state != "unknown":
@@ -670,6 +798,12 @@ class SequentialRunner:
                 errors = result.errors or errors
                 for usage in result.usage:
                     self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+                if self.family_runtime:
+                    # Mesmo caminho idempotente da coleta normal, inclusive após corte no journal.
+                    for error in errors:
+                        self._attach_error(error, "attempt", aid)
+                    self.family_runtime.record_result(aid, result)
+                    self.family_runtime.seal_context(aid)
             # Um crash pode ocorrer após o ErrorRecord e antes de AT13/AT15.
             prior = [e for e in self.projection.history("attempt", aid, "error_attached")
                      if e["global_sequence"] > observed["global_sequence"] and e["payload"]["termination_certainty"] == "confirmed"]
@@ -693,6 +827,11 @@ class SequentialRunner:
             result = self.executor.collect(a.intent)
             for usage in result.usage:
                 self.append("usage_attached", usage, "attempt", aid, key=usage["usage_id"], actor="executor")
+            if self.family_runtime:
+                for error in result.errors:
+                    self._attach_error(error, "attempt", aid)
+                self.family_runtime.record_result(aid, result)
+                self.family_runtime.seal_context(aid)
             self._settle_attempt(aid)
             if timeout:
                 self._transition("attempt", aid, "timed_out", "attempt_timeout")
@@ -720,7 +859,35 @@ class SequentialRunner:
     def _release_evaluation(self, ev):
         for rid in ev.request["budget_reservation_ids"]:
             if self.projection.reservations[rid].state == "open":
-                self.append("budget_released", {"reservation_id": rid, "reason": "evaluation_finished"})
+                if ev.usage_record_ids:
+                    self.append("budget_settled", {"reservation_id": rid, "usage_ids": list(ev.usage_record_ids)})
+                else:
+                    reason = (
+                        "deterministic_only_evaluation"
+                        if isinstance(self.evaluator, CompositeEvaluator)
+                        else "evaluation_finished"
+                    )
+                    self.append("budget_released", {"reservation_id": rid, "reason": reason})
+
+    def _refresh_eval_quotas_without_family_runtime(self):
+        for old in list(self.projection.quota_states.values()):
+            if old["status"] != "quota_exhausted" or parse_utc(self.clock.now()) < parse_utc(old["blocked_until"]):
+                continue
+            record = {
+                "schema_version": "0.1",
+                "quota_event_id": self.ids("quota-reset", old["quota_event_id"]),
+                **{k: old[k] for k in ("run_id", "quota_pool_id", "subscription_id", "family_id")},
+                "source_attempt_id": None,
+                "status": "available",
+                "previous_status": old["status"],
+                "probe_evidence_refs": [],
+                "observed_at": self.clock.now(),
+                "reset_at": None,
+                "blocked_until": None,
+                "reset_source": "clock_expired",
+                "raw_message_excerpt": None,
+            }
+            self.append("quota_reset_observed", seal_record(record, "quota_state_record"), key=record["quota_event_id"])
 
     def _evaluate(self, task_id=None, *, interrupted=False):
         s = self.projection
@@ -745,14 +912,36 @@ class SequentialRunner:
                 # Cancelamento chegou durante a reserva: não inicia a avaliação e devolve a reserva.
                 self.append("budget_released", {"reservation_id": reservations[0], "reason": "admission_aborted"})
                 return
+        criteria_snap = (
+            self.evaluator.criteria_snapshot(criteria)
+            if isinstance(self.evaluator, CompositeEvaluator)
+            else {"criteria": criteria, "criteria_hash": canonical_digest(criteria)}
+        )
+        eval_deadline = self._deadline(s.limit("evaluation_timeout_ms", task_id))
         self.append("evaluation_requested", {"evaluation_id": eid, "evaluation_number": number, "scope": scope,
-                    "subject_bindings": bindings, "criteria_snapshot": {"criteria": criteria, "criteria_hash": canonical_digest(criteria)},
-                    "evaluator_snapshot": self.evaluator.snapshot, "deadline_at": self._deadline(s.limit("evaluation_timeout_ms", task_id)),
+                    "subject_bindings": bindings, "criteria_snapshot": criteria_snap,
+                    "evaluator_snapshot": self.evaluator.snapshot, "deadline_at": eval_deadline,
                     "budget_reservation_ids": reservations}, "evaluation", eid)
         if task_id and self.projection.tasks[task_id].state == "waiting_evaluation":
             self._transition("task", task_id, "evaluating", "reevaluation_requested")
         if interrupted:
             return self._interrupted_evaluation(eid)
+        if isinstance(self.evaluator, CompositeEvaluator) and task_id is not None:
+            completed = self.evaluator.execute_task_evaluation(
+                self,
+                evaluation_id=eid,
+                evaluation_number=number,
+                scope=scope,
+                task=s.tasks[task_id].spec,
+                attempt=a,
+                subject_bindings=bindings,
+                criteria=criteria,
+                artifacts={id: ArtifactEvidence(d) for id, d in self.projection.artifacts.items()},
+                deadline_at=eval_deadline,
+            )
+            if completed:
+                self._release_evaluation(self.projection.evaluations[eid])
+            return
         result = self.evaluator.evaluate(run_id=s.id, evaluation_id=eid, evaluation_number=number, scope=scope,
                     subject_bindings=bindings, criteria=criteria,
                     artifacts={id: ArtifactEvidence(d) for id, d in self.projection.artifacts.items()},
@@ -792,10 +981,27 @@ class SequentialRunner:
             self._release_unused_evaluation(a)
             return self._transition("task", tid, "cancelled", "run_cancelled")
         if a.state == "completed":
-            if task.state in {"running", "reconciling"}:
-                return self._transition("task", tid, "evaluating", "attempt_completed")
             evaluations = s.task_evaluations(tid)
-            if not evaluations or task.state == "waiting_evaluation":
+            if task.state == "running":
+                return self._transition("task", tid, "evaluating", "attempt_completed")
+            if task.state == "reconciling":
+                if evaluations and evaluations[-1].report is None and isinstance(self.evaluator, CompositeEvaluator):
+                    self.evaluator.reconcile_evaluation(self, evaluations[-1].id)
+                    return
+                return self._transition("task", tid, "evaluating", "attempt_completed")
+            if task.state == "waiting_evaluation":
+                if self.family_runtime:
+                    self.family_runtime.refresh_quotas()
+                if isinstance(self.evaluator, CompositeEvaluator):
+                    wait_until = self.evaluator.quota_wait_target(self, task_id=tid)
+                    if wait_until is not None and parse_utc(wait_until) <= parse_utc(self._end()):
+                        self.clock.advance_to(wait_until)
+                        if self.family_runtime:
+                            self.family_runtime.refresh_quotas()
+                        elif self.projection.quota_states:
+                            self._refresh_eval_quotas_without_family_runtime()
+                return self._evaluate(tid)
+            if not evaluations:
                 return self._evaluate(tid)
             ev = evaluations[-1]
             if ev.report is None:
@@ -850,7 +1056,7 @@ class SequentialRunner:
             handled.add((action.kind, action.aggregate_id))
             if action.kind == "release_reservation":
                 self.append("budget_released", {"reservation_id": action.aggregate_id, "reason": "admission_aborted"})
-            elif action.kind == "release_evaluation":
+            elif action.kind in {"release_evaluation", "settle_evaluation"}:
                 self._release_evaluation(self.projection.evaluations[action.aggregate_id])
             elif action.kind == "settle_attempt":
                 self._settle_attempt(action.aggregate_id)
@@ -862,6 +1068,34 @@ class SequentialRunner:
                 deadline = min(parse_utc(requested["recorded_at"]) + timedelta(milliseconds=self.projection.limit("reconciliation_timeout_ms")),
                                parse_utc(self._end()))
                 self.clock.advance_to(format_utc(deadline))
+            elif action.kind == "reconcile_evaluation":
+                eid = action.aggregate_id
+                details = action.details
+                tid = details.get("task_id")
+                ev = self.projection.evaluations[eid]
+                if details.get("transition_to_reconciling") and tid:
+                    has_uncertain_err = any(
+                        self.projection.errors[err_id]["termination_certainty"] == "unknown"
+                        for err_id in ev.error_record_ids
+                    )
+                    if not has_uncertain_err:
+                        self._attach_error(
+                            error_record(
+                                run_id=self.journal.run_id,
+                                scope_type="evaluation",
+                                scope_ref=eid,
+                                phase="observe",
+                                category="evaluation",
+                                code="evaluator_failed",
+                                message="crash durante avaliação por modelo",
+                                timestamp=self.clock.now(),
+                                retryability="unknown",
+                                termination_certainty="unknown",
+                            ),
+                            "evaluation",
+                            eid,
+                        )
+                    self._transition("task", tid, "reconciling", "evaluation_unknown")
             elif action.kind == "record_interrupted_evaluation":
                 self._interrupted_evaluation(action.aggregate_id)
             elif action.kind == "reconcile_dispatch":
@@ -899,6 +1133,11 @@ class SequentialRunner:
                             result = self.executor.collect(a.intent)
                             for usage in result.usage:
                                 self.append("usage_attached", usage, "attempt", a.id, key=usage["usage_id"], actor="executor")
+                            if self.family_runtime:
+                                for error in result.errors:
+                                    self._attach_error(error, "attempt", a.id)
+                                self.family_runtime.record_result(a.id, result)
+                                self.family_runtime.seal_context(a.id)
                             self._settle_attempt(a.id)
                             self._transition("attempt", a.id, {"timeout": "timed_out", "cancel": "cancelled"}[cause], cause)
             elif action.kind == "stop_run" and self.projection.manifest:
@@ -944,14 +1183,26 @@ class SequentialRunner:
         for tid in list(self.projection.tasks):
             task = self.projection.tasks[tid]
             if task.state not in TASK_TERMINAL:
+                evs = self.projection.task_evaluations(tid)
+                if task.state == "reconciling" and evs and evs[-1].report is None and isinstance(self.evaluator, CompositeEvaluator):
+                    self.evaluator.reconcile_evaluation(self, evs[-1].id, force_cancel=True)
+                    task = self.projection.tasks[tid]
+                if task.state in TASK_TERMINAL:
+                    continue
                 if task.state in {"evaluating", "waiting_evaluation"}:
-                    evs = self.projection.task_evaluations(tid)
                     if not evs:
                         self._evaluate(tid, interrupted=True)
                     elif evs[-1].report is None:
-                        self._interrupted_evaluation(evs[-1].id)
-                    else:
-                        self._release_evaluation(evs[-1])
+                        if evs[-1].judge_calls and isinstance(self.evaluator, CompositeEvaluator):
+                            self._transition("task", tid, "reconciling", "evaluation_unknown")
+                            self.evaluator.reconcile_evaluation(self, evs[-1].id, force_cancel=True)
+                            task = self.projection.tasks[tid]
+                            if task.state in TASK_TERMINAL:
+                                continue
+                        else:
+                            self._interrupted_evaluation(evs[-1].id)
+                    if evs and evs[-1].report is not None:
+                        self._release_evaluation(self.projection.evaluations[evs[-1].id])
                 self._transition("task", tid, "blocked" if task.state == "pending" and self.projection.failed_dependency(tid) else "cancelled",
                                  "run_cancelled" if self.projection.stopping_cause == "cancelled" else "workflow_failed")
         for rid, r in list(self.projection.unassigned_reservations.items()):

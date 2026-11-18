@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orq.local/schemas/v0.1/post-hoc-rubric-audit-record.schema.json",
+  "title": "ORQ PostHocRubricAuditRecord v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "audit_id",
+    "source_run_id",
+    "source_task_id",
+    "source_attempt_id",
+    "source_evaluation_id",
+    "source_run_cutoff_event_hash",
+    "source_deterministic_verdict",
+    "subject_bindings",
+    "author_family_id",
+    "author_model_vendor",
+    "rubric_ref",
+    "calibration_report_ref",
+    "rubric_evidence_refs",
+    "audit_derived_status",
+    "audit_normalized_score",
+    "usage_record_refs",
+    "quota_consumption_refs",
+    "recorded_at",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "audit_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source_run_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source_task_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source_attempt_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source_evaluation_id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source_run_cutoff_event_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    },
+    "source_deterministic_verdict": {
+      "const": "pass"
+    },
+    "subject_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "evaluation-report.schema.json#/$defs/outputBinding"
+      }
+    },
+    "author_family_id": {
+      "$ref": "common.schema.json#/$defs/familyId"
+    },
+    "author_model_vendor": {
+      "$ref": "common.schema.json#/$defs/nonEmptyText",
+      "maxLength": 128
+    },
+    "rubric_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "calibration_report_ref": {
+      "$ref": "common.schema.json#/$defs/versionedRef"
+    },
+    "rubric_evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactRef"
+      }
+    },
+    "audit_derived_status": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ]
+    },
+    "audit_normalized_score": {
+      "oneOf": [
+        {
+          "$ref": "common.schema.json#/$defs/decimal"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "usage_record_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "quota_consumption_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/versionedRef"
+      }
+    },
+    "recorded_at": {
+      "$ref": "common.schema.json#/$defs/utcTimestamp"
+    },
+    "record_hash": {
+      "$ref": "common.schema.json#/$defs/digest"
+    }
+  },
+  "additionalProperties": false
+}

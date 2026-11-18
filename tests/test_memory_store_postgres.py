@@ -24,18 +24,23 @@ psycopg = pytest.importorskip("psycopg")
 from _memory_vault import OTHER_PROJECT, PROJECT, build_family_vault  # noqa: E402
 from orq_contracts.canonical import canonical_digest  # noqa: E402
 from orq_contracts.memory_store import (  # noqa: E402
+    SHARED_GLOBAL_REGIME,
     MemoryScope,
     MemoryStoreError,
     build_sync_plan,
     resolve_memory_config,
 )
 from orq_contracts.memory_store.ddl import (  # noqa: E402
+    ALL_MEMORY_ROLES,
+    GLOBAL_READER_ROLE,
     MEMORY_ROLES,
     MEMORY_TABLES,
     OWNER_ROLE,
     READER_ROLE,
+    SCHEMA_V2_VERSION,
     SCHEMA_VERSION,
     schema_digest,
+    schema_v2_digest,
 )
 from orq_contracts.memory_store.postgres import (  # noqa: E402
     ScopedMemoryReader,
@@ -100,18 +105,21 @@ def sources_of(units: set) -> set:
 
 def test_schema_is_versioned_and_idempotent(admin) -> None:
     assert apply_schema(admin) == "unchanged"
-    rows = admin.execute("SELECT version, ddl_digest FROM orq_memory.schema_migrations").fetchall()
-    assert [tuple(row) for row in rows] == [(SCHEMA_VERSION, schema_digest())]
+    rows = admin.execute("SELECT version, ddl_digest FROM orq_memory.schema_migrations ORDER BY version").fetchall()
+    assert [tuple(row) for row in rows] == [
+        (SCHEMA_VERSION, schema_digest()),
+        (SCHEMA_V2_VERSION, schema_v2_digest()),
+    ]
     assert admin.execute("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'").fetchone() is not None
 
 
 def test_roles_have_no_superuser_nor_bypass(admin) -> None:
     rows = admin.execute(
         "SELECT rolname, rolsuper, rolbypassrls, rolcanlogin FROM pg_roles WHERE rolname = ANY(%s)",
-        (list(MEMORY_ROLES),),
+        (list(ALL_MEMORY_ROLES),),
     ).fetchall()
 
-    assert {row[0] for row in rows} == set(MEMORY_ROLES)
+    assert {row[0] for row in rows} == set(ALL_MEMORY_ROLES)
     for _name, superuser, bypass, can_login in rows:
         assert (superuser, bypass, can_login) == (False, False, False)
 
@@ -402,3 +410,23 @@ def test_reader_rows_carry_vault_digests(admin, synced) -> None:
 
     for row in ScopedMemoryReader(admin, make_scope(plan, "family_codex")).list_units():
         assert row["content_digest"] == expected[(row["source_id"], row["unit_id"])]
+
+
+def test_shared_global_reader_sees_cross_family_units_in_same_catalog_and_project(admin, synced) -> None:
+    _root, _snapshot, plan = synced
+    shared_scope = MemoryScope(
+        catalog_id=plan.catalog_id,
+        project_id=PROJECT,
+        family_id="family_codex",
+        role_id="backend_engineer",
+        memory_regime=SHARED_GLOBAL_REGIME,
+    )
+    partitioned = {row["source_id"] for row in ScopedMemoryReader(admin, make_scope(plan, "family_codex")).list_units()}
+    shared = {row["source_id"] for row in ScopedMemoryReader(admin, shared_scope).list_units()}
+
+    assert "claude-only" not in partitioned
+    assert {"codex-only", "claude-only", "claude-security", "tester-only", "common-project", "global-ops"} <= shared
+    assert {"other-project", "collection-src"} & shared == set()
+    with scoped_transaction(admin, shared_scope) as cursor:
+        cursor.execute("SELECT current_user AS who")
+        assert cursor.fetchone()["who"] == GLOBAL_READER_ROLE

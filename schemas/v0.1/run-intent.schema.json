@@ -82,6 +82,13 @@
             "maxLength": 4096
           },
           "uniqueItems": true
+        },
+        "experiment_id": {
+          "$ref": "common.schema.json#/$defs/nonEmptyText",
+          "maxLength": 128
+        },
+        "calibration_mode": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
