@@ -64,3 +64,26 @@ class SubscriptionHub:
         if intent is None:
             raise ExecutorError("dispatch_not_known", "chave sem intenção no journal")
         return self._adapter(intent).reconcile(key, external_call_id)
+
+    def dispatch_judge(self, intent, prompt_bytes, eval_workspace):
+        return self._adapter(intent).dispatch_judge(intent, prompt_bytes, eval_workspace)
+
+    def observe_judge(self, intent, until):
+        return self._adapter(intent).observe_judge(intent, until)
+
+    def cancel_judge(self, intent, reason):
+        return self._adapter(intent).cancel_judge(intent, reason)
+
+    def collect_judge(self, intent, **kwargs):
+        return self._adapter(intent).collect_judge(intent, **kwargs)
+
+    def reconcile_judge(self, key, external_call_id):
+        for ev in self.runner.projection.evaluations.values():
+            for jc in getattr(ev, "judge_calls", {}).values():
+                if jc.intent.get("dispatch_idempotency_key") == key:
+                    return self._adapter(jc.intent).reconcile_judge(key, external_call_id)
+        for event in self.runner.journal.events:
+            if event["event_type"] == "evaluator_dispatch_requested" and event["payload"]["dispatch_idempotency_key"] == key:
+                target_id = event["payload"]["evaluator_target_ref"]["id"]
+                return self.executors[target_id].reconcile_judge(key, external_call_id)
+        raise ExecutorError("dispatch_not_known", "chave de juiz sem intenção no journal")

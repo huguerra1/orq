@@ -17,8 +17,109 @@ if sys.argv[1] == "child":
         time.sleep(.03)
 
 cli, mode, *args = sys.argv[1:]
-Path("invocation.json").write_text(json.dumps({"argv": args, "stdin": sys.stdin.read(), "cwd": str(Path.cwd()),
-                                             "environment_names": sorted(os.environ)}), encoding="utf-8")
+invocation_path = Path("invocation.json")
+while args and args[0].startswith("--fake-"):
+    opt = args.pop(0)
+    if opt.startswith("--fake-invocation-out="):
+        invocation_path = Path(opt.split("=", 1)[1])
+if not mode.startswith("judge_") or invocation_path != Path("invocation.json"):
+    invocation_path.write_text(
+        json.dumps({"argv": args, "stdin": sys.stdin.read(), "cwd": str(Path.cwd()),
+                    "environment_names": sorted(os.environ)}),
+        encoding="utf-8",
+    )
+else:
+    sys.stdin.read()
+
+if mode.startswith("judge_"):
+    if mode == "judge_hang":
+        child = subprocess.Popen([sys.executable, __file__, "child", str(invocation_path.parent / "heartbeat")], stdin=subprocess.DEVNULL)
+        (invocation_path.parent / "child.pid").write_text(str(child.pid), encoding="utf-8")
+        while True:
+            time.sleep(.05)
+    if mode == "judge_quota":
+        message = {
+            "codex": "You’ve hit your usage limit. Try again at 10:05 PM.",
+            "claude": "Rate limit reached.",
+            "agy": "RESOURCE_EXHAUSTED: quota exceeded",
+            "kiro-cli": "Monthly limit exceeded.",
+        }[cli]
+        print("ERROR: " + message, file=sys.stderr)
+        sys.exit(1)
+    if mode == "judge_mutate":
+        Path("unauthorized-edit.txt").write_text("mutated by rogue judge\n", encoding="utf-8")
+    if mode == "judge_escape":
+        if cli == "claude":
+            print(json.dumps({"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Read", "input": {"file_path": "/home/user/.claude/credentials.json"}}
+            ]}}))
+        elif cli == "codex":
+            print(json.dumps({"type": "item.completed", "item": {
+                "type": "file_read", "path": "/home/user/.codex/auth.json"
+            }}))
+        else:
+            print("[tool] read_file ../journal.jsonl")
+    input_files = sorted((Path.cwd() / "inputs").glob("*")) if (Path.cwd() / "inputs").is_dir() else []
+    raw_bytes = input_files[0].read_bytes() if input_files else b""
+    import hashlib
+    artifact_digest = {"algorithm": "sha256", "value": hashlib.sha256(raw_bytes).hexdigest()}
+    first_line = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").splitlines()[0] if raw_bytes else "line"
+    output_id = input_files[0].stem if input_files else "security_report"
+    artifact_id = f"artifact-{output_id}"
+    if mode == "judge_invalid_citation":
+        excerpt = "TEXTO_INEXISTENTE_CITADO_PELO_JUIZ"
+        s1, s2 = 4, 4
+    elif mode == "judge_blocking_fail":
+        excerpt = first_line[:120]
+        s1, s2 = 2, 4
+    else:
+        excerpt = first_line[:120]
+        s1, s2 = 4, 3
+    if mode == "judge_invalid_output":
+        final = "Parecer textual livre sem marcador ORQ_FINAL estruturado."
+    else:
+        evidence = {
+            "dimension_assessments": [
+                {
+                    "dimension_id": "auth-and-secrets-boundary",
+                    "raw_score": s1,
+                    "rationale": f"Avaliação objetiva da dimensão auth-and-secrets-boundary ({s1}).",
+                    "citations": [{
+                        "output_id": output_id,
+                        "artifact_id": artifact_id,
+                        "content_digest": artifact_digest,
+                        "locator": {"kind": "line_range", "start_line": 1, "end_line": max(1, len(raw_bytes.splitlines()))},
+                        "verbatim_excerpt": excerpt,
+                    }],
+                },
+                {
+                    "dimension_id": "contract-completeness",
+                    "raw_score": s2,
+                    "rationale": f"Avaliação objetiva da dimensão contract-completeness ({s2}).",
+                    "citations": [{
+                        "output_id": output_id,
+                        "artifact_id": artifact_id,
+                        "content_digest": artifact_digest,
+                        "locator": {"kind": "line_range", "start_line": 1, "end_line": max(1, len(raw_bytes.splitlines()))},
+                        "verbatim_excerpt": first_line[:120],
+                    }],
+                },
+            ],
+            "overall_summary": "Síntese técnica emitida pela CLI avaliadora em modo somente leitura.",
+        }
+        final = "ORQ_FINAL:" + json.dumps({"outputs": {"rubric_evidence": evidence}}, ensure_ascii=False, separators=(",", ":"))
+    if cli == "claude":
+        print(json.dumps({"type": "result", "subtype": "success", "result": final, "session_id": "judge-session-claude",
+                          "model": "claude-opus-4", "usage": {"input_tokens": 120, "output_tokens": 45}, "total_cost_usd": 99.99}))
+    elif cli == "codex":
+        print(json.dumps({"type": "thread.started", "thread_id": "judge-session-codex"}))
+        print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": final}}))
+        print(json.dumps({"type": "turn.completed", "usage": {"input_tokens": 120, "output_tokens": 45}, "model": "gpt-5-codex"}))
+    else:
+        print("logging before google.Init", file=sys.stderr)
+        print("[tool] read_file inputs/security_report.json")
+        print(final)
+    sys.exit(0)
 if mode == "hang":
     child = subprocess.Popen([sys.executable, __file__, "child", str(Path.cwd() / "heartbeat")], stdin=subprocess.DEVNULL)
     Path("child.pid").write_text(str(child.pid), encoding="utf-8")
