@@ -12,7 +12,9 @@ from typing import Any, Sequence
 
 from .canonical import CanonicalizationError, canonical_digest, canonicalize
 from ._storage import StorageError
-from .planner import PlanningError
+from .adapters import probe_cli_versions
+from .planner import FixedTemplatePlanner, PlanningError, plan_and_validate
+from .router import RoutingError, route_and_finalize
 from .runner import SequentialRunner
 from .simulated_executor import SimulationScript
 from .context import ContextError, materialize_knowledge_context
@@ -126,6 +128,26 @@ def _parser() -> argparse.ArgumentParser:
     simulate = run_commands.add_parser("simulate", help="executa com o executor simulado, sem rede")
     for flag in ("store-root", "workflow", "request", "catalog", "policy", "script", "knowledge-catalog", "vault-root"):
         simulate.add_argument("--" + flag, type=Path, required=True)
+
+    plan = subparsers.add_parser("plan", help="propõe e valida um WorkflowSpec via FixedTemplatePlanner")
+    plan.add_argument("--request", type=Path, required=True)
+    plan.add_argument("--template", type=Path, action="append", required=True)
+    plan.add_argument("--output-record", type=Path, required=True)
+    plan.add_argument("--output-workflow", type=Path)
+    plan.add_argument("--completed-at")
+
+    route = subparsers.add_parser("route", help="decide destino elegível e emite RoutingDecision assinada")
+    route.add_argument("--request", type=Path, required=True)
+    route.add_argument("--catalog", type=Path, required=True)
+    route.add_argument("--policy", type=Path, required=True)
+    route.add_argument("--output", type=Path, required=True)
+
+    adapters = subparsers.add_parser("adapters", help="inspeciona os adaptadores de CLI")
+    adapters_commands = adapters.add_subparsers(dest="adapters_command", required=True)
+    probe_versions = adapters_commands.add_parser(
+        "probe-versions", help="sonda disponibilidade e versão local das CLIs sem alterar controles unknown"
+    )
+    probe_versions.add_argument("--include-wsl", action="store_true")
     return parser
 
 
@@ -203,6 +225,68 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(_run_vault(arguments), ensure_ascii=False, indent=2))
             return 0
 
+        if arguments.command == "plan":
+            request = _read_json(arguments.request)
+            templates = [_read_json(path) for path in arguments.template]
+            planner_ref = {
+                "id": "fixed-template-planner",
+                "version": "0.1",
+                "content_digest": canonical_digest("fixed-template-planner:0.1"),
+            }
+            result = plan_and_validate(
+                FixedTemplatePlanner(templates, planner_ref),
+                request,
+                completed_at=arguments.completed_at or request["created_at"],
+            )
+            _write_exclusive(arguments.output_record, _json_bytes(result.record))
+            if arguments.output_workflow is not None and result.workflow is not None:
+                _write_exclusive(arguments.output_workflow, _json_bytes(result.workflow))
+            summary = {
+                "status": result.record["status"],
+                "planning_record_id": result.record["planning_record_id"],
+                "record_output": str(arguments.output_record),
+            }
+            if arguments.output_workflow is not None and result.workflow is not None:
+                summary["workflow_output"] = str(arguments.output_workflow)
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+            return 0 if result.record["status"] == "accepted" else 1
+
+        if arguments.command == "route":
+            request = _read_json(arguments.request)
+            catalog = _read_json(arguments.catalog)
+            policy = _read_json(arguments.policy)
+            decision = route_and_finalize(
+                request,
+                catalog,
+                policy,
+                preflight_checks=[
+                    {
+                        "control": "limits",
+                        "status": "passed",
+                        "observed_at": request["created_at"],
+                        "evidence_refs": [],
+                    }
+                ],
+            )
+            _write_exclusive(arguments.output, _json_bytes(decision))
+            print(
+                json.dumps(
+                    {
+                        "decision_status": decision["decision_status"],
+                        "routing_decision_id": decision["routing_decision_id"],
+                        "effective_selection": decision["effective_selection"],
+                        "output": str(arguments.output),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 0 if decision["decision_status"] == "selected" else 1
+
+        if arguments.command == "adapters":
+            print(json.dumps(probe_cli_versions(include_wsl=arguments.include_wsl), ensure_ascii=False, indent=2))
+            return 0
+
         if arguments.command == "run":
             document = _read_json(arguments.script)
             script = SimulationScript(document, expected_digest=canonical_digest(document))
@@ -236,6 +320,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         MemoryStoreError,
         StorageError,
         PlanningError,
+        RoutingError,
     ) as error:
         result = {"valid": False, "error": str(error)}
         if arguments.command == "run" and hasattr(error, "code"):

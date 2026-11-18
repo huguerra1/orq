@@ -856,3 +856,126 @@ def test_posix_receipt_waits_for_entire_process_group(supervisor_case, monkeypat
     assert len(probes) == 3
     receipt = _read_state(directory / "receipt.json")
     assert receipt["phase"] == ("terminal" if disappears else "unknown")
+
+
+def test_safe_environment_adds_local_bin_on_posix_and_filters_extra_env(tmp_path, monkeypatch):
+    local_bin = tmp_path / ".local" / "bin"
+    local_bin.mkdir(parents=True)
+    monkeypatch.setattr(supervisor, "WINDOWS", False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PATH", "/usr/bin")
+    env = safe_environment({"PYTHONPATH": "/opt/orq/src"})
+    assert env["PYTHONPATH"] == "/opt/orq/src"
+    assert str(local_bin) in env["PATH"].split(supervisor.os.pathsep)
+    with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        safe_environment({"OPENAI_API_KEY": "nope"})
+
+
+def test_bind_knowledge_session_requires_vault_root(build):
+    adapter, intent, _bundle, _workspace = build(CodexAdapter)
+    with pytest.raises(ExecutorError, match="mcp_binding_unverified"):
+        adapter.bind_knowledge_session(intent, SimpleNamespace(reference={"id": "s", "version": "0.1", "content_digest": {"algorithm": "sha256", "value": "0" * 64}}))
+
+
+@pytest.mark.parametrize("cls", ADAPTERS)
+def test_native_mcp_connector_roundtrip_and_cleanup(tmp_path, monkeypatch, cls):
+    from _search_vault import build_search_vault, requirement
+    from _memory_vault import PROJECT
+    from orq_contracts.family_mcp import AttemptKnowledgeSession
+    from orq_contracts.knowledge_backend import EligibilityPolicy, OfflineMarkdownBackend
+    from orq_contracts.memory_store.config import MemoryScope
+
+    monkeypatch.setattr(socket, "create_connection", lambda *a, **k: pytest.fail("rede proibida"))
+    root = tmp_path / "case"
+    root.mkdir()
+    vault = root / "vault"
+    vault.mkdir()
+    catalog = build_search_vault(vault, "cat-mcp")
+    clock = lambda: NOW
+    journal = RunJournal.create(root / "runs", "run-demo-001", clock=clock)
+    try:
+        cli = cls.cli
+        family = {"claude": "claude", "codex": "codex", "agy": "gemini", "kiro-cli": "kiro"}[cli]
+        profile = seal({
+            "schema_version": "0.1", "subscription_id": "subscription-test", "family_id": "family_" + family,
+            "cli_executable": cli, "quota_pool_id": "pool-test", "billing_mode": "personal_subscription",
+            "default_cooldown_ms": 3600000, "local_timezone": "America/Sao_Paulo", "detector_version": VERSIONS[cli],
+        })
+        schema = {"type": "object", "properties": {"ok": {"const": True}}, "required": ["ok"], "additionalProperties": False}
+        contract_ref = {"id": "cli-test-output", "version": "0.1", "content_digest": canonical_digest(schema)}
+        registry = ContentContractRegistry()
+        registry.register(contract_ref, schema)
+        adapter = cls(profile, ArtifactStore(journal), state_directory=root / "state", workspace_root=root / "work",
+                      clock=clock, runtime_version="test-1", contracts=registry, platform="linux", vault_root=vault)
+        original = adapter._argv
+        adapter._argv = lambda *args: [sys.executable, str(FAKE), cli, "mcp_roundtrip", *original(*args)]
+
+        scope = MemoryScope(catalog["catalog_id"], PROJECT, "family_" + family, "backend_engineer")
+        policy = EligibilityPolicy(PROJECT, NOW)
+        backend = OfflineMarkdownBackend(vault, catalog, policy, scope)
+        req = requirement("K1")
+        session_cfg = {
+            "session_id": "session-mcp-1",
+            "scope": {"catalog_id": scope.catalog_id, "project_id": scope.project_id,
+                      "family_id": scope.family_id, "role_id": scope.role_id},
+            "eligibility": {"project_id": PROJECT, "as_of": NOW},
+            "requirements": [req],
+            "choice": {
+                "run_id": "run-demo-001",
+                "workflow_ref": {"id": "wf", "version": "1", "content_digest": {"algorithm": "sha256", "value": "0" * 64}},
+                "task_id": "T1", "candidate_attempt_number": 1, "created_at": NOW, "max_tokens": 2048,
+                "policy_snapshot_refs": [{"id": "pol", "version": "1", "content_digest": {"algorithm": "sha256", "value": "1" * 64}}],
+                "selection_id": "sel-mcp-1",
+            },
+            "materialize": {
+                "routing_decision_ref": {"id": "rd", "version": "0.1", "content_digest": {"algorithm": "sha256", "value": "2" * 64}},
+                "target_ref": {"id": "target-" + family, "version": "1", "content_digest": {"algorithm": "sha256", "value": "3" * 64}},
+                "target_context_limit_tokens": 4096, "reserved_output_tokens": 256, "context_manifest_id": "cm-mcp-1",
+            },
+            "backend_id": backend.backend_id,
+        }
+        session = AttemptKnowledgeSession(root / "session", session_cfg, backend, clock=clock)
+        bundle = canonicalize({"context": "mcp"})
+        intent = load_fixture("valid/dispatch-intent.json")
+        intent.update(bundle_hash=bytes_digest(bundle), executor_ref=adapter.describe().executor_ref,
+                      attempt_timeout_ms=10000, created_at=NOW, deadline_at="2026-11-15T00:31:00Z",
+                      knowledge_session_ref=session.reference)
+        seal(intent)
+        spec = {"output_id": "report", "artifact_type": "report", "description": "relatório JSON", "content_contract_ref": contract_ref}
+        workspace = WorkspaceHandle("workspace-mcp", intent["workspace_base_ref"], (spec,), "requested-model")
+        adapter.bind_knowledge_session(intent, session)
+        observation, result = finish(adapter, intent, bundle, workspace)
+        assert observation.status == "finished"
+        assert not result.errors
+        assert result.produced_files[0].content == b'{"ok":true}'
+        sealed_result, audit, _closed = session.seal()
+        assert sealed_result is not None
+        assert any(entry["tool"] == "select_family_knowledge" and "error" not in entry["response"] for entry in audit)
+        work_dir = adapter.workspace_root / workspace.workspace_id
+        assert not (work_dir / ".orq-mcp.json").exists()
+        assert not (work_dir / ".gemini" / "antigravity-cli" / "settings.json").exists()
+        assert not (work_dir / ".kiro" / "settings" / "mcp.json").exists()
+    finally:
+        journal.close()
+
+
+def test_probe_cli_versions_never_promotes_unknown_controls(monkeypatch):
+    from orq_contracts.adapters import V01_V12_IDS, probe_cli_versions
+
+    def fake_run(argv, **kwargs):
+        assert kwargs["stdin"] == subprocess.DEVNULL
+        assert kwargs["shell"] is False
+        assert "OPENAI_API_KEY" not in kwargs["env"]
+        if argv[0] == "claude":
+            return subprocess.CompletedProcess(argv, 0, stdout="2.1.319 (Claude Code)\n", stderr="")
+        raise FileNotFoundError(argv[0])
+
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    report = probe_cli_versions(include_wsl=False, platform="win32", runner=fake_run)
+    assert report["all_controls_status"] == "unknown"
+    by_cli = {item["cli"]: item for item in report["adapters"]}
+    assert by_cli["claude"]["installed"] is True
+    assert by_cli["claude"]["detected_version"] == "2.1.319 (Claude Code)"
+    assert by_cli["kiro-cli"]["status"] == "skipped_wsl_disabled"
+    assert all(item["controls_status"] == "unknown" for item in report["adapters"])
+    assert all(item["pending_checklist"] == list(V01_V12_IDS) for item in report["adapters"])

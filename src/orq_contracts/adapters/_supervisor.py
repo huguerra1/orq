@@ -19,6 +19,7 @@ import time
 
 WINDOWS = os.name == "nt"
 PERMISSION_ATTEMPTS = 100
+_ALLOWED_EXTRA_ENV = frozenset({"PYTHONPATH"})
 
 
 def retry_permission(operation):
@@ -39,10 +40,22 @@ def read_bytes(path: Path, limit: int = -1) -> bytes:
     return retry_permission(read)
 
 
-def safe_environment() -> dict[str, str]:
+def safe_environment(extra_env: dict[str, str] | None = None) -> dict[str, str]:
     names = {"PATH", "SYSTEMROOT", "WINDIR", "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
              "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "TMPDIR", "LANG", "LC_ALL", "USER", "LOGNAME"}
-    return {key: value for key, value in os.environ.items() if key.upper() in names}
+    env = {key: value for key, value in os.environ.items() if key.upper() in names}
+    if not WINDOWS and env.get("HOME"):
+        local_bin = os.path.join(env["HOME"], ".local", "bin")
+        if os.path.isdir(local_bin):
+            parts = env.get("PATH", "").split(os.pathsep) if env.get("PATH") else []
+            if local_bin not in parts:
+                env["PATH"] = os.pathsep.join([*parts, local_bin])
+    if extra_env:
+        for key, value in extra_env.items():
+            if key not in _ALLOWED_EXTRA_ENV or not isinstance(value, str):
+                raise ValueError(f"variável de ambiente não permitida: {key}")
+            env[key] = value
+    return env
 
 
 def sync_directory(path: Path) -> None:
@@ -200,7 +213,7 @@ def main(directory: Path):
             try:
                 process = subprocess.Popen(config["argv"], cwd=config["cwd"], stdin=subprocess.DEVNULL,
                                            stdout=stdout, stderr=stderr, shell=False,
-                                           env=safe_environment(), start_new_session=not WINDOWS,
+                                           env=safe_environment(config.get("env")), start_new_session=not WINDOWS,
                                            creationflags=(0x4 | subprocess.CREATE_NO_WINDOW) if WINDOWS else 0)
                 if job:
                     job.attach_and_resume(process)

@@ -116,3 +116,63 @@ def test_vault_cli_does_not_overwrite_output(tmp_path, capsys) -> None:
     assert result == 2
     assert output.read_text(encoding="utf-8") == "preservar"
     assert "saída já existe" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_plan_and_route_cli_commands(tmp_path, capsys) -> None:
+    record_out = tmp_path / "planning-record.json"
+    workflow_out = tmp_path / "workflow.json"
+    decision_out = tmp_path / "routing-decision.json"
+    fixtures = ROOT / "fixtures" / "v0.1"
+
+    assert main(
+        [
+            "plan",
+            "--request",
+            str(fixtures / "planning-request.json"),
+            "--template",
+            str(fixtures / "valid" / "workflow-minimal.json"),
+            "--output-record",
+            str(record_out),
+            "--output-workflow",
+            str(workflow_out),
+            "--completed-at",
+            "2026-09-29T13:00:01Z",
+        ]
+    ) == 0
+    plan_summary = json.loads(capsys.readouterr().out)
+    assert plan_summary["status"] == "accepted"
+    assert json.loads(record_out.read_text(encoding="utf-8"))["status"] == "accepted"
+    assert json.loads(workflow_out.read_text(encoding="utf-8"))["workflow_id"] == "workflow-demo"
+
+    assert main(
+        [
+            "route",
+            "--request",
+            str(fixtures / "routing-request.json"),
+            "--catalog",
+            str(fixtures / "routing-target-catalog.json"),
+            "--policy",
+            str(fixtures / "routing-policy-rules.json"),
+            "--output",
+            str(decision_out),
+        ]
+    ) == 0
+    route_summary = json.loads(capsys.readouterr().out)
+    assert route_summary["decision_status"] == "selected"
+    assert route_summary["effective_selection"]["selected_target_id"] == "target-quality"
+    assert json.loads(decision_out.read_text(encoding="utf-8"))["effective_selection"]["selected_target_id"] == "target-quality"
+
+
+def test_adapters_probe_versions_cli(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        "orq_contracts.cli.probe_cli_versions",
+        lambda include_wsl=False: {
+            "schema_version": "0.1",
+            "all_controls_status": "unknown",
+            "include_wsl": include_wsl,
+            "adapters": [],
+        },
+    )
+    assert main(["adapters", "probe-versions"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["all_controls_status"] == "unknown" and out["include_wsl"] is False

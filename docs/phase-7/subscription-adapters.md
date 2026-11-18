@@ -158,3 +158,14 @@ Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas 
 
 Não há smoke automático habilitado nesta entrega. O gate V01–V12 continua aberto
 até a sessão real com versões fixadas e ArtifactRefs; testes sintéticos não o fecham.
+
+## Conector MCP nativo por tentativa, PATH POSIX e CLI (`claude/fase7-conector-mcp`)
+
+- **Conector MCP nativo (`bind_knowledge_session` / `_mcp_context`):** quando o adaptador recebe `vault_root` e é vinculado à sessão aberta pelo runner (`RunnerSession`), cada tentativa grava configuração MCP efêmera no espaço de trabalho isolado apontando para `orq-knowledge-mcp --vault <vault_root>` escopado à família da tentativa:
+  - `ClaudeCodeAdapter`: `.orq-mcp.json` + `--mcp-config` / `--strict-mcp-config`;
+  - `CodexAdapter`: `-c mcp_servers.orq_knowledge...`;
+  - `AgyAdapter`: `mcpServers` + allowlist em `.gemini/antigravity-cli/settings.json`;
+  - `KiroAdapter`: `.kiro/settings/mcp.json` + `@orq-knowledge/...` em `--trust-tools`.
+  A configuração e os diretórios temporários são limpos ao final da tentativa (`_restore_permissions`).
+- **Ambiente seguro (`safe_environment`):** inclui fallback POSIX para `~/.local/bin` no `PATH` e filtra `extra_env` com allowlist estrita (`PYTHONPATH`), repassada no `Popen`.
+- **Probe de versões e CLI:** adicionado `orq_contracts.adapters.verify.probe_cli_versions` e os subcomandos `orq plan`, `orq route` e `orq adapters probe-versions`. O probe executa `--version` somente leitura (`stdin=DEVNULL`, `shell=False`, ambiente sanitizado) e **nunca** promove controles `unknown` para `supported` sem artefatos V01–V12 reais.
