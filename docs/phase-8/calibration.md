@@ -1,6 +1,6 @@
 # Protocolo de calibração, viés entre famílias e uso no experimento 7F
 
-Estado: Proposta ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md), aguardando revisão e aceite do dono). Complementa a especificação do [avaliador por rubrica](rubric-evaluator.md) e estabelece as regras metodológicas para uso em conjunto com o [experimento científico 7F](../phase-7/experiment.md).
+Estado: Aceita em 2026-11-18 ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md#decisões-do-dono-aceitas-em-2026-11-18)). Complementa a especificação do [avaliador por rubrica](rubric-evaluator.md) e estabelece as regras metodológicas para uso em conjunto com o [experimento científico 7F](../phase-7/experiment.md).
 
 ## Motivação e problema científico
 

@@ -1,6 +1,6 @@
 # Contratos e arquitetura do avaliador por rubrica e modelo
 
-Estado: Proposta ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md), aguardando revisão e aceite do dono). Estende o [relatório de avaliação da Fase 1](../phase-1/execution-records-contract.md#evaluationreport), os [contratos de execução da Fase 6](../phase-6/run-contracts.md#evaluationreport), a [máquina de estados do runner](../phase-6/runner-state-machine.md) e os [adaptadores e cotas da Fase 7](../phase-7/subscription-adapters.md).
+Estado: Aceita em 2026-11-18 ([ADR 0009](../adr/0009-phase-8-model-and-rubric-evaluator.md#decisões-do-dono-aceitas-em-2026-11-18)). Estende o [relatório de avaliação da Fase 1](../phase-1/execution-records-contract.md#evaluationreport), os [contratos de execução da Fase 6](../phase-6/run-contracts.md#evaluationreport), a [máquina de estados do runner](../phase-6/runner-state-machine.md) e os [adaptadores e cotas da Fase 7](../phase-7/subscription-adapters.md).
 
 ## Problema
 

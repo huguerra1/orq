@@ -1,6 +1,6 @@
 # Retomada do projeto ORQ
 
-Atualizado em 2026-11-17. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
+Atualizado em 2026-11-18. Este é um resumo operacional da conversa e do repositório, não uma transcrição integral do chat. Atualizar após cada entrega; em caso de divergência, conferir arquivos e histórico Git.
 
 ## Leitura para retomar
 
@@ -16,7 +16,9 @@ Papéis previstos incluem orchestrator, software_architect, backend_engineer, fr
 
 ## Estado atual
 
-- **7F implementado e verificado (localmente em modo offline; Postgres/RLS v2 pronto para CI) em 2026-11-17:** adicionado regime experimental `shared_global` em DDL v2 isolado (`schema_v2.sql` + role `orq_memory_global_reader` com RLS fail-closed sem filtro de família/papel, mantendo v1 intacto), espelhado em `OfflineMarkdownBackend` via `MemoryScope.memory_regime` e integrado ao `FamilyRuntime`/`attempt_context_sealed`. Criado harness `orq_contracts.experiment_7f` + subcomandos `orq experiment-7f` (`verify-package`, `simulate`, `quota-stress`, `audit`) cobrindo `Q28`–`Q30` com testes não paramétricos em stdlib (Wilcoxon bilateral exato, McNemar exato, delta de Cliff) e testes Postgres reais sob `ORQ_MEMORY_DSN`. Atualizado `README.md` com fluxo reproduzível `orq plan -> orq route -> orq run simulate` e cobertura da Fase 7. Gate real V01–V12 e Camada B em CLIs vivas seguem pendentes.
+- **ADR 0009 (Fase 8) aceita em 2026-11-18 (PR #26 do 7F verde e mergeado na `dev`):** aprovadas as 6 decisões da [ADR 0009](adr/0009-phase-8-model-and-rubric-evaluator.md#decisões-do-dono-aceitas-em-2026-11-18) (`model_rubric` restrito a `task_attempt`, primários `family_gemini` → `family_kiro` com fallbacks `family_claude`/`family_codex` e `enforce_distinct_model_vendor: true`, espera até `blocked_until` em `TK19→TK22` sem autoavaliação, `panel_size: 1` e corpus de 24 artefatos a calibrar no `8E`, `7F` protegido por `experiment_7f_forbids_model_rubric`, e `model_rubric` padrão em `software_architect`/`code_reviewer`/`security_reviewer` com revisão humana para promoção). Próximo: incrementos `8A`–`8E` na `dev` enquanto `V01–V12` ao vivo e Camada B aguardam janela local.
+
+- **7F implementado e verificado (localmente em modo offline; Postgres/RLS v2 aprovado no CI Python 3.12/3.13) em 2026-11-18:** adicionado regime experimental `shared_global` em DDL v2 isolado (`schema_v2.sql` + role `orq_memory_global_reader` com RLS fail-closed sem filtro de família/papel, mantendo v1 intacto), espelhado em `OfflineMarkdownBackend` via `MemoryScope.memory_regime` e integrado ao `FamilyRuntime`/`attempt_context_sealed`. Criado harness `orq_contracts.experiment_7f` + subcomandos `orq experiment-7f` (`verify-package`, `simulate`, `quota-stress`, `audit`) cobrindo `Q28`–`Q30` com testes não paramétricos em stdlib (Wilcoxon bilateral exato, McNemar exato, delta de Cliff) e testes Postgres reais sob `ORQ_MEMORY_DSN`. Atualizado `README.md` com fluxo reproduzível `orq plan -> orq route -> orq run simulate` e cobertura da Fase 7. Gate real V01–V12 e Camada B em CLIs vivas seguem pendentes.
 
 - **Conector MCP nativo nos adaptadores e subcomandos CLI (`plan`, `route`, `adapters probe-versions`) concluídos em 2026-11-17:** `ClaudeCodeAdapter`, `CodexAdapter`, `AgyAdapter` e `KiroAdapter` passaram a aceitar `vault_root` e `bind_knowledge_session(intent, session)` com configuração MCP efêmera isolada por tentativa e limpeza automática; `safe_environment` ganhou fallback POSIX `~/.local/bin` e allowlist estrita para `PYTHONPATH`; `probe_cli_versions` e `orq adapters probe-versions` executam `--version` em modo somente leitura sem promover controles `unknown`. Adicionados também `orq plan` e `orq route`. Gate real V01–V12 (com `ArtifactRef` por versão) e execução do **7F** seguem pendentes; `1635 passed, 69 skipped` localmente com fakes/stubs.
 
@@ -161,7 +163,7 @@ O objetivo científico é comparar Single-Agent, Multi-Agent com roteamento fixo
 - [ADR 0007 — runner sequencial e executor simulado](adr/0007-phase-6-runner-and-simulated-executor.md), aceita.
 - [Fase 7 — hub de assinaturas pessoais, roteamento por cota e memória por família](phase-7/README.md), 7A–7F implementados localmente/CI (gate real V01–V12 e Camada B ao vivo pendentes).
 - [ADR 0008 — hub de assinaturas pessoais, roteamento por cota e memória por família em Postgres](adr/0008-phase-7-subscription-hub-and-family-memory.md), aceita.
-- [Fase 8 — avaliador por modelo e rubrica](phase-8/README.md) e [ADR 0009](adr/0009-phase-8-model-and-rubric-evaluator.md), proposta aguardando as decisões do dono.
+- [Fase 8 — avaliador por modelo e rubrica](phase-8/README.md) e [ADR 0009](adr/0009-phase-8-model-and-rubric-evaluator.md), aceita em 2026-11-18; iniciando implementação incremental `8A`–`8E` na `dev`.
 - 69f7360: documentos iniciais.
 - bd5904e: workflow, ciclo e cenários.
 - 05050eb: perfis e oito casos de aceitação.
