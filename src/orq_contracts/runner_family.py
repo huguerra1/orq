@@ -104,6 +104,16 @@ class FamilyRuntime:
         a = r.projection.attempts[aid]
         old = r.projection.history("attempt", aid, "attempt_context_sealed")
         if old:
+            if required and old[0]["payload"]["manifest"] is None:
+                # A selagem e o erro são eventos separados. Se o processo caiu
+                # entre eles, reponha o erro exigido por AT07/AT13, sem duplicá-lo.
+                boundary = max((e["global_sequence"] for e in (
+                    r.projection.history("attempt", aid, "termination_confirmed") +
+                    r.projection.history("attempt", aid, "reconciliation_observed"))), default=0)
+                if not any(e["global_sequence"] > boundary and e["payload"]["code"] == "context_rejected" and
+                           e["payload"]["termination_certainty"] == "confirmed" for e in
+                           r.projection.history("attempt", aid, "error_attached")):
+                    r._error("attempt", aid, "context_rejected", phase="collect")
             return old[0]["payload"]["manifest"] is not None or not required
         task = r.projection.tasks[a.header["task_id"]].spec
         decision = r.projection.records[a.intent["routing_decision_ref"]["id"]]

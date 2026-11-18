@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from .canonical import canonical_digest
 
@@ -29,9 +30,19 @@ class QuotaStateSnapshot:
                     unavailable[dispatch["target_ref"]["id"]] = deepcopy(payload)
         return cls(pools, unavailable)
 
-    def reasons(self, target):
+    def blocking_record(self, target):
+        """Registro de cota que bloqueia o destino (quota_exhausted/cooldown) ou None."""
         record = self.pools.get(target.get("quota_pool_id"))
-        if record and record["status"] in {"quota_exhausted", "cooldown"}:
+        return record if record and record["status"] in {"quota_exhausted", "cooldown"} else None
+
+    def next_blocked_until(self, targets):
+        """Menor blocked_until entre os pools bloqueados dos destinos; None se nenhum."""
+        values = [r["blocked_until"] for r in map(self.blocking_record, targets) if r and r["blocked_until"]]
+        return min(values, key=lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")), default=None)
+
+    def reasons(self, target):
+        record = self.blocking_record(target)
+        if record:
             return [{"code": "quota_exhausted", "subject": record["quota_pool_id"],
                      "evidence_refs": [{"id": record["quota_event_id"], "version": record["schema_version"],
                                         "content_digest": record["record_hash"]}]}]

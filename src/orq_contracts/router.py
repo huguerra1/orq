@@ -281,8 +281,11 @@ def route_and_finalize(
             target_id = eligible_targets[0]["target_id"]
             recommendation = _recommendation(target_id, None)
             selection = _selection(target_id, target_id, False, "priority_then_id")
-            original = otherwise_eligible[0] if otherwise_eligible else None
-            if original and quota_snapshot and any(r["code"] == "quota_exhausted" for r in quota_snapshot.reasons(original)):
+            # Todas as alternativas contam: o destino original é o primeiro, na
+            # ordem da regra, bloqueado por cota e preferido ao selecionado, mesmo
+            # que outro anterior esteja indisponível por motivo não-cota.
+            original = next((t for t in otherwise_eligible if quota_snapshot and quota_snapshot.blocking_record(t)), None)
+            if original and priority(original) < priority(eligible_targets[0]):
                 # Mesmo pool/família nunca é fallback de uma recusa de assinatura.
                 replacement = next((t for t in eligible_targets if t.get("family_id") != original.get("family_id")), None)
                 if replacement:
@@ -365,8 +368,14 @@ def route_and_finalize(
         "provider_extension": provider_extension,
     }
     if not eligible_targets and otherwise_eligible and quota_snapshot and all(
-            any(r["code"] == "quota_exhausted" for r in quota_snapshot.reasons(t)) for t in otherwise_eligible):
-        decision["reason"] = _reason("all_eligible_families_quota_exhausted", "subscription_pools")
+            quota_snapshot.blocking_record(t) for t in otherwise_eligible):
+        # Registra o próximo desbloqueio e cita os eventos de cota que o provam.
+        evidence = {ref["id"]: ref for t in otherwise_eligible for r in quota_snapshot.reasons(t)
+                    if r["code"] == "quota_exhausted" for ref in r["evidence_refs"]}
+        until = quota_snapshot.next_blocked_until(otherwise_eligible)
+        decision["reason"] = _reason("all_eligible_families_quota_exhausted",
+            "subscription_pools" + (f"; blocked_until={until}" if until else ""),
+            [evidence[key] for key in sorted(evidence)])
     decision["record_hash"] = canonical_digest(decision)
     _raise_first(validate_routing_decision(decision))
     return decision

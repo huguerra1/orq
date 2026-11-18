@@ -108,6 +108,9 @@ class RunProjection(AggregateProjection):
     stopping_cause: str | None = None
     quota_states: dict[str, dict] = field(default_factory=dict)
     quota_consumptions: dict[str, dict] = field(default_factory=dict)
+    # Snapshot do catálogo de conhecimento (conferido contra o manifesto) para
+    # validar escopo/revogação do contexto lacrado no replay. Não entra na igualdade.
+    knowledge_catalog: dict | None = field(default=None, compare=False, repr=False)
 
     def aggregate(self, kind: str, id: str) -> AggregateProjection:
         if kind == "run":
@@ -338,7 +341,8 @@ def _record_hash(record: dict, field: str = "record_hash") -> None:
 
 def project_journal(events: Iterable[dict[str, Any]], *, workflow: dict | None = None,
                     as_of_global_sequence: int | None = None,
-                    reconcile_not_found_authoritative: bool = False) -> RunProjection:
+                    reconcile_not_found_authoritative: bool = False,
+                    knowledge_catalog: dict | None = None) -> RunProjection:
     """Reconstrói um prefixo inteiro, usando os mesmos dicts de RunJournal.events.
 
     Não ordena nem deduplica entradas: o journal já deduplica no append. Verifica
@@ -347,7 +351,8 @@ def project_journal(events: Iterable[dict[str, Any]], *, workflow: dict | None =
     conservador False. Evidência versionada continua obrigatória no evento.
     """
     projection = RunProjection("", workflow=deepcopy(workflow),
-                               reconcile_not_found_authoritative=reconcile_not_found_authoritative)
+                               reconcile_not_found_authoritative=reconcile_not_found_authoritative,
+                               knowledge_catalog=deepcopy(knowledge_catalog))
     for event in events:
         if as_of_global_sequence is not None and event.get("global_sequence", 0) > as_of_global_sequence:
             break
@@ -451,8 +456,15 @@ def _apply(s: RunProjection, e: dict) -> None:
                     timestamp(p["observed_at"]) >= timestamp(previous["blocked_until"]),
                     "quota_reset_premature", "reset sem bloqueio vencido")
             if previous["status"] == "cooldown":
+                # A prova precisa responder a uma sondagem deste bloqueio, não a
+                # uma sondagem de cooldown anterior do mesmo pool.
+                blocked = record_ref(previous, "quota_event_id")
+                probe_ids = {event["payload"]["probe_id"] for event in s.events.values()
+                             if event["event_type"] == "quota_probe_requested"
+                             and event["payload"]["quota_pool_id"] == p["quota_pool_id"]
+                             and event["payload"]["blocked_record_ref"] == blocked}
                 probes = [event for event in s.events.values() if event["event_type"] == "quota_probe_observed"
-                          and event["payload"]["quota_pool_id"] == p["quota_pool_id"]]
+                          and event["payload"]["probe_id"] in probe_ids]
                 require(probes and probes[-1]["payload"]["available"] is True and
                         probes[-1]["payload"]["evidence_refs"] == p["probe_evidence_refs"],
                         "quota_probe_required", "cooldown exige sondagem conclusiva")
@@ -479,6 +491,10 @@ def _apply(s: RunProjection, e: dict) -> None:
         require(requested and all(ref["artifact_id"] in s.artifacts and
                 s.artifacts[ref["artifact_id"]]["content_digest"] == ref["content_digest"] for ref in p["evidence_refs"]),
                 "quota_probe_evidence_missing", "resultado sem intenção/evidência")
+        require(not any(x["event_type"] == type and x["payload"]["probe_id"] == p["probe_id"] for x in s.events.values()),
+                "quota_probe_reused", "sondagem já observada")
+        require(timestamp(p["observed_at"]) >= timestamp(requested[0]["payload"]["requested_at"]),
+                "quota_probe_out_of_order", "resultado anterior ao pedido da sondagem")
     elif type in {"knowledge_selection_recorded", "routing_decision_recorded", "context_manifest_recorded"}:
         require(agg.state == "ready" and s.state == "running" and not s.cancel_requested,
                 "event_out_of_order", "admissão exige tarefa ready e run ativo")
@@ -730,10 +746,48 @@ def _seal_attempt_context(s, e):
                 selection["status"] in {"satisfied", "partial"} and
                 manifest["knowledge_selection_refs"] == [record_ref(selection, "selection_id")],
                 "knowledge_session_mismatch", "contexto efetivo de outra tentativa")
+        # Cada item do manifesto lacrado corresponde, em ordem, a uma unidade escolhida.
+        require([item.get("knowledge_provenance", {}).get("unit_ref") for item in manifest["items"]] ==
+                [unit["unit_ref"] for unit in selection["selected_units"]] and
+                all(item["knowledge_provenance"]["selection_id"] == selection["selection_id"] for item in manifest["items"]),
+                "knowledge_session_mismatch", "itens do manifesto divergem da seleção")
+        _knowledge_status(s, manifest, a.intent)
+    _sealed_scope(s, p, delivered)
+    if delivered:
         _record_hash(selection, "selection_hash")
         _unique_record(s, selection, "selection_id")
         _unique_record(s, manifest, "context_manifest_id")
         a.effective_context_manifest_ref = record_ref(manifest, "context_manifest_id")
+
+
+def _sealed_scope(s, p, delivered):
+    """Unidades buscadas/escolhidas pertencem ao escopo da sessão e não estão revogadas."""
+    from .knowledge_backend import catalog_units, scope_allows
+    from .memory_store.config import MemoryScope
+    catalog, config = s.knowledge_catalog, p["session_config"]
+    require(catalog is not None, "knowledge_catalog_snapshot_required", "forneça o catálogo para validar o contexto lacrado")
+    require({"id": catalog["catalog_id"], "version": catalog.get("version", catalog.get("schema_version")),
+             "content_digest": catalog["catalog_hash"]} == s.manifest["knowledge_catalog_snapshot_ref"],
+            "knowledge_catalog_mismatch", "catálogo diverge do manifesto")
+    scope, index = MemoryScope(**config["scope"]), catalog_units(catalog)
+    searched = [(c["source_id"], c["revision"], c["unit_id"]) for entry in p["audit"]
+                if entry["tool"] == "search_family_knowledge" and "error" not in entry["response"]
+                for c in entry["response"]["candidates"]]
+    selected = [unit["unit_ref"] for unit in (delivered["selection"]["selected_units"] if delivered else [])]
+    for key in searched + [(ref["source_id"], ref["revision"], ref["unit_id"]) for ref in selected]:
+        require(key in index and scope_allows(*index[key], scope), "knowledge_scope_mismatch", "unidade fora do escopo da sessão")
+    as_of = timestamp(config["eligibility"]["as_of"])
+    for ref in selected:
+        _, source, unit = index[(ref["source_id"], ref["revision"], ref["unit_id"])]
+        require(ref["source_digest"] == source["content_digest"] and ref["unit_digest"] == unit["content_digest"],
+                "knowledge_session_mismatch", "digest da unidade diverge do catálogo")
+        source_ref = {"source_id": source["source_id"], "revision": source["revision"], "content_digest": source["content_digest"]}
+        assertions = [x for x in (*catalog["status_assertions"], *s.manifest["knowledge_status_assertions"])
+                      if x["source_ref"] == source_ref and timestamp(x["effective_at"]) <= as_of]
+        if assertions:
+            latest = max(timestamp(x["effective_at"]) for x in assertions)
+            require(all(x["status"] == "active" for x in assertions if timestamp(x["effective_at"]) == latest),
+                    "knowledge_revoked", "contexto lacrado usa fonte revogada")
 
 
 def _check_inputs(s: RunProjection, task: TaskProjection, bindings: list[dict]) -> None:
@@ -1016,7 +1070,8 @@ def _close(s: RunProjection, e: dict) -> None:
     require(all(event["event_type"] in {"usage_attached", "late_observation"} for event in s.events.values()
                 if event["global_sequence"] > cutoff), "cutoff_invalid", "somente observações/uso podem seguir o cutoff")
     prefix = s if cutoff == s.as_of_global_sequence else project_journal(s.events.values(), workflow=s.workflow,
-        as_of_global_sequence=cutoff, reconcile_not_found_authoritative=s.reconcile_not_found_authoritative)
+        as_of_global_sequence=cutoff, reconcile_not_found_authoritative=s.reconcile_not_found_authoritative,
+        knowledge_catalog=s.knowledge_catalog)
     require(prefix.state in RUN_TERMINAL and all(t.state in TASK_TERMINAL for t in prefix.tasks.values()),
             "cutoff_invalid", "cutoff anterior ao término")
     summary = p["run_summary"]

@@ -29,6 +29,51 @@ def test_real_codex_curly_apostrophe_and_local_reset():
     assert not result.requires_probe
 
 
+def test_real_codex_absolute_date_2026_11_14_uses_local_timezone():
+    # Saída real de 14/11/2026 às 23:48 locais: data absoluta e apóstrofo tipográfico.
+    text = (FIXTURES / "codex/usage-limit-2026-11-14.txt").read_text(encoding="utf-8")
+    assert "’" in text and "try again at Nov 15th, 2026 2:00 AM." in text
+    result = detect(text, observed_at=local(23, 48))
+    assert result.reason == "quota_exhausted"
+    assert result.detector_version == VERSIONS["codex"] == "codex-quota-v2"
+    expected = datetime(2026, 11, 15, 2, 0, tzinfo=ZoneInfo("America/Sao_Paulo")).astimezone(timezone.utc)
+    assert expected.isoformat() == "2026-11-15T05:00:00+00:00"
+    assert result.reset_at == result.blocked_until == "2026-11-15T05:00:00.000000Z"
+    assert result.reset_source == "cli_reported" and not result.requires_probe
+    # Outro fuso configurado muda o UTC: a data impressa é local, não UTC. Às
+    # 23:48 de São Paulo (02:48Z), 02:00 em UTC já passou e vira cooldown.
+    utc = QuotaLimitDetector("codex", local_timezone="UTC")
+    late = utc.detect(returncode=1, final_response=False, diagnostics=tuple(text.splitlines()), observed_at=local(23, 48))
+    assert late.reset_at is None and late.reset_source == "cooldown_policy"
+    early = utc.detect(returncode=1, final_response=False, diagnostics=tuple(text.splitlines()), observed_at=local(21, 30))
+    assert early.reset_at == "2026-11-15T02:00:00.000000Z"
+
+
+@pytest.mark.parametrize("phrase,expected", [
+    ("Nov 15th, 2026 2:00 AM", "2026-11-15T05:00:00.000000Z"),
+    ("Nov 15, 2026 2:00 AM", "2026-11-15T05:00:00.000000Z"),
+    ("November 16th, 2026 14:30", "2026-11-16T17:30:00.000000Z"),
+    ("Dec 1st, 2026 12:05 AM", "2026-12-01T03:05:00.000000Z"),
+    ("Nov 15th, 2026 at 1:00 PM", "2026-11-15T16:00:00.000000Z"),
+])
+def test_codex_absolute_date_variants(phrase, expected):
+    assert detect("You’ve hit your usage limit. ... or try again at " + phrase + ".", observed_at=local(23, 48)).reset_at == expected
+
+
+@pytest.mark.parametrize("phrase", ["Nov 14th, 2026 2:00 AM", "Foo 15th, 2026 2:00 AM", "Feb 30th, 2027 2:00 AM",
+                                    "Nov 15th, 2026 13:00 PM", "Nov 15th, 2026 2:75 AM"])
+def test_codex_absolute_date_past_or_invalid_uses_cooldown(phrase):
+    result = detect("You’ve hit your usage limit. Try again at " + phrase, observed_at=local(23, 48))
+    assert result.reason == "quota_exhausted" and result.reset_at is None
+    assert result.reset_source == "cooldown_policy"
+
+
+def test_absolute_date_is_a_codex_v2_grammar_only():
+    # As gramáticas v1 das outras CLIs não mudaram: data absoluta cai no cooldown.
+    result = detect("Usage limit reached. Resets at Nov 15th, 2026 2:00 AM", cli="claude", observed_at=local(23, 48))
+    assert result.detector_version == "claude-quota-v1" and result.reset_at is None
+
+
 @pytest.mark.parametrize("message,now,expected", [
     ("You've hit your usage limit. Try again at 01:05 AM", local(23, 10), "2026-11-15T04:05:00.000000Z"),
     ("You've hit your usage limit. Try again at 22:05", local(21, 30), "2026-11-15T01:05:00.000000Z"),

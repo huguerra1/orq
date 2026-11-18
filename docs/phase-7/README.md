@@ -1,6 +1,6 @@
 # Fase 7 — Hub de assinaturas pessoais, roteamento por cota e memória por família
 
-Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A–7D na dev**; **7E implementado para revisão**, com MCP escopado, auditoria por tentativa e integração de cota/contexto no runner ([Notas 7E](#notas-de-implementação-7e)). A [cobertura Q01–Q27](acceptance-scenarios.md#cobertura-automatizada-do-7e) distingue testes locais, Postgres e a ressalva temporal de Q25. Próximo incremento: **7F**, após revisão e verificações. O smoke V01–V12 das CLIs reais continua pendente; seus controles permanecem unknown.
+Estado: aceita em 2026-11-14 ([ADR 0008](../adr/0008-phase-7-subscription-hub-and-family-memory.md), seção "Decisões do dono"); **7A–7D na dev**; **7E implementado e revisado**, com MCP escopado, auditoria por tentativa e integração de cota/contexto no runner ([Notas 7E](#notas-de-implementação-7e)). A [cobertura Q01–Q27](acceptance-scenarios.md#cobertura-automatizada-do-7e) distingue testes locais, Postgres e a ressalva temporal de Q25. Próximo incremento: **7F**, após CI e merge do `7E`. O smoke V01–V12 das CLIs reais continua pendente; seus controles permanecem unknown.
 
 ## Problema
 
@@ -218,7 +218,20 @@ O 7D está na dev. A integração do **7E** está descrita abaixo; próximo incr
 - **Custo e contratos:** reservas de assinatura e UsageRecords mantêm `unavailable`, `amount: null`, `currency: null`. O consumo vem exclusivamente de `quota_consumption(intent)` do adaptador e é ligado ao UsageRecord pelo digest integral exigido no 7A. Projeções conferem esses vínculos e preservam `unavailable_count`/`total_cost_exact: false`; subtotais de custos conhecidos não viram um custo total zero. Teto financeiro obrigatório sem cobertura monetária de assinatura rejeita a admissão. Extensões aditivas: `knowledge_session_ref` no cabeçalho/intenção, `target_executor_refs` no manifesto e três eventos novos (`attempt_context_sealed`, `quota_probe_requested`, `quota_probe_observed`). Nenhum schema novo, fixture antiga ou dependência nova.
 - **Ajustes de fidelidade:** AGY com diagnóstico explícito `no output produced` usa o novo código `permission_or_empty_output` (ruído `google.Init` continua filtrado). Campos de audiência no frontmatter recebem `forbidden_frontmatter_field`; os erros anteriores do parser permanecem para os outros campos. Os testes de vocabulário do 6A reconhecem somente as extensões da Fase 7.
 
-Verificação nova: `tests/test_phase7_scenarios.py`, `test_family_mcp.py`, `test_phase7_boundaries.py` e `test_phase7_postgres.py`. Os três testes Postgres novos exigem `ORQ_MEMORY_DSN` (fallback completo sob RLS, alteração de bytes antes do despacho e CLI `vault sync-db` repetida com fontes operacionais/de projeto). As verificações de RLS/busca do 7B/7D e dos adaptadores do 7C continuam compondo a matriz; nenhuma CLI real, API paga ou rede externa é chamada pelos testes locais. Verificação ampliada dos arquivos afetados: **1051 aprovados, 66 ignorados e 2 desmarcados**, incluindo S01–S63; após o ajuste de fallback na mesma família, **22 testes de roteamento aprovados**. `git diff --check` sem erros. Testes de banco e smokes stdio continuam exigidos no CI; a suíte integral cabe ao orquestrador. Resultado e pendências no [HANDOFF](../HANDOFF.md). Próximo: revisão, CI com Postgres/stdio, smoke V01–V12 e **7F**.
+Verificação nova: `tests/test_phase7_scenarios.py`, `test_family_mcp.py`, `test_phase7_boundaries.py` e `test_phase7_postgres.py`. Os três testes Postgres novos exigem `ORQ_MEMORY_DSN` (fallback completo sob RLS, alteração de bytes antes do despacho e CLI `vault sync-db` repetida com fontes operacionais/de projeto). As verificações de RLS/busca do 7B/7D e dos adaptadores do 7C continuam compondo a matriz; nenhuma CLI real, API paga ou rede externa é chamada pelos testes locais.
+
+### Revisão independente do 7E
+
+Os seis achados da revisão cruzada foram corrigidos com regressões, preservando a compatibilidade com as Fases 1–6:
+
+1. **Indisponibilidade não-cota (`network_unavailable`, `authentication_unavailable`):** erros confirmados pelo detector são marcados como `retryable` sem fabricar `quota_state` ou `reset_at`, permitindo fallback para outro destino sem classificar erroneamente como `quota_fallback` quando não há cota bloqueada acima do selecionado.
+2. **Retomada após `attempt_context_sealed` vazio:** quando a tentativa falha por contexto inválido e o processo cai entre a selagem e o erro, a retomada repõe `context_rejected` antes de `AT07` sem redespachar nem duplicar eventos.
+3. **Guarda compartilhada `AT07`/`AT13` (`_finished_error_allowed`):** reconciliação `found_finished` em tentativas com `knowledge_session_ref` aceita os mesmos códigos de falha da Fase 7.
+4. **Escopo/revogação no replay (`_sealed_scope`):** `project_journal(..., knowledge_catalog=...)` valida no replay que todas as unidades buscadas e selecionadas pertencem ao escopo da sessão, sem revogação nem adulteração de catálogo/digests.
+5. **Unicidade e vínculo de sondagem (`quota_probe_observed`):** exige resposta vinculada ao `blocked_record_ref` do bloqueio ativo, sem duplicar `probe_id` nem anteceder `requested_at`.
+6. **Fallback e desbloqueio em `all_eligible_families_quota_exhausted`:** o Router considera toda a lista de alternativas na ordem da regra e cita os eventos bloqueantes junto ao menor `blocked_until`.
+
+Além disso, entrou a gramática `codex-quota-v2` (com a fixture real `fixtures/v0.1/cli-output/codex/usage-limit-2026-11-14.txt` para datas absolutas locais) e foram reforçados os cenários `Q03`, `Q09`, `Q10`, `Q11` e `Q12`. Próximo passo: CI com Postgres/stdio, merge na `dev`, conector MCP nativo/V01–V12 e **7F**.
 
 ## Documentos da Fase 7
 

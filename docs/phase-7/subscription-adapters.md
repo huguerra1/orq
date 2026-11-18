@@ -150,7 +150,7 @@ Nenhum adaptador declarará `provider_context_coverage: "complete"`, pois todas 
   conta `messages_consumed: 1`, sem afirmar aceitação ou cobrança pelo provedor;
   interrupções mantêm `quota_outcome: unknown`, tokens/multiplicador desconhecidos
   ficam null. Resultado e consumo são reconstruíveis e a coleta é idempotente.
-- Gramáticas `claude-quota-v1`, `codex-quota-v1`, `agy-quota-v1` e `kiro-cli-quota-v1`
+- Gramáticas `claude-quota-v1`, `codex-quota-v2` (adiciona suporte a data absoluta local observada em `codex/usage-limit-2026-11-14.txt`), `agy-quota-v1` e `kiro-cli-quota-v1`
   resolvem relógio local/data explícita para UTC, com rollover de dia. Sem horário
   válido, reset_at fica null e o cooldown padrão é 60 minutos, com indicação de
   sondagem obrigatória. Login/rede têm motivo próprio e nenhum reset. O 7C produz

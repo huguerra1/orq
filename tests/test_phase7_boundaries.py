@@ -4,6 +4,7 @@ import pytest
 from test_cli_adapters import build, finish, ADAPTERS
 from test_vault import source_metadata, write_source
 from orq_contracts.adapters import AgyAdapter
+from orq_contracts.quota import QuotaStateSnapshot
 from orq_contracts.vault import ingest_markdown_source, VaultError
 
 
@@ -32,4 +33,7 @@ def test_Q11_project_literal_and_valid_final_do_not_exhaust_quota(build, adapter
     observed, result = finish(adapter, intent, bundle, workspace)
     assert observed.status == "finished"
     assert result.produced_files and not result.errors
+    assert result.produced_files[0].content == b'{"ok":true}'
+    assert adapter.store.read(result.produced_files[0].storage_locator) == b'{"ok":true}'
     assert adapter.quota_consumption(intent)["quota_outcome"] == "accepted"
+    assert QuotaStateSnapshot.from_events([]).blocking_record({"quota_pool_id": "pool-test"}) is None

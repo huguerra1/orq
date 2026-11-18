@@ -171,7 +171,8 @@ class SequentialRunner:
 
     def _project(self, events) -> RunProjection:
         return project_journal(events, workflow=self.workflow,
-                               reconcile_not_found_authoritative=self._authoritative)
+                               reconcile_not_found_authoritative=self._authoritative,
+                               knowledge_catalog=self.knowledge_catalog)
 
     def append(self, event_type: str, payload: Record, kind: str = "run", id: str | None = None,
                *, key: str | None = None, actor: str = "orchestrator") -> Record:
@@ -578,7 +579,9 @@ class SequentialRunner:
                 return self._transition("attempt", aid, "failed", "execution_failed")
         task = self.projection.tasks[a.header["task_id"]].spec
         failed = not self.family_runtime.seal_context(aid, required=True) if self.family_runtime else False
-        failed = failed or bool(self.family_runtime and result.errors)
+        if failed:
+            self._settle_attempt(aid)
+            return self._transition("attempt", aid, "failed", "output_invalid")
         for file in result.produced_files:
             artifact_id = self.ids("artifact", aid, file.output_id)
             if artifact_id not in self.projection.artifacts:
