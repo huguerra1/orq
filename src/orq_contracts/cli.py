@@ -27,6 +27,7 @@ from .simulated_executor import SimulationScript
 from .context import ContextError, materialize_knowledge_context
 from .memory_store import POSTGRES_BACKEND, MemoryStoreError, build_sync_plan, resolve_memory_config
 from .selection import select_knowledge
+from .calibration import run_calibration, run_post_hoc_rubric_audit
 from .validator import (
     validate_context_manifest,
     validate_instance,
@@ -96,6 +97,11 @@ def _parser() -> argparse.ArgumentParser:
             "knowledge_catalog",
             "knowledge_selection",
             "context_manifest",
+            "rubric_spec",
+            "evaluator_routing_policy",
+            "rubric_evaluation_evidence",
+            "calibration_report",
+            "post_hoc_rubric_audit_record",
         ),
     )
     validate.add_argument("path", type=Path)
@@ -177,6 +183,27 @@ def _parser() -> argparse.ArgumentParser:
     audit_cmd.add_argument("--package-dir", type=Path, required=True)
     audit_cmd.add_argument("--store-root", type=Path, required=True)
     audit_cmd.add_argument("--output", type=Path)
+
+    cal = subparsers.add_parser("calibrate", help="calibra avaliadores por rubrica em corpus rotulado")
+    cal_commands = cal.add_subparsers(dest="calibrate_command", required=True)
+    cal_eval = cal_commands.add_parser("evaluator", help="executa protocolo de calibração e verifica gates")
+    cal_eval.add_argument("--corpus", type=Path, required=True)
+    cal_eval.add_argument("--rubric", type=Path, required=True)
+    cal_eval.add_argument("--output-dir", type=Path, required=True)
+    cal_eval.add_argument("--responses", type=Path)
+    cal_eval.add_argument("--recorded-at", type=str, default="2026-11-18T00:00:00Z")
+
+    audit_top = subparsers.add_parser("audit", help="auditoria somente leitura de runs encerrados")
+    audit_commands = audit_top.add_subparsers(dest="audit_command", required=True)
+    audit_rubric = audit_commands.add_parser("rubric", help="executa auditoria pós-hoc por rubrica sem mutar o run")
+    audit_rubric.add_argument("--store-root", type=Path, required=True)
+    audit_rubric.add_argument("--run-id", type=str, required=True)
+    audit_rubric.add_argument("--rubric", type=Path, required=True)
+    audit_rubric.add_argument("--calibration-report", type=Path, required=True)
+    audit_rubric.add_argument("--output-dir", type=Path, required=True)
+    audit_rubric.add_argument("--task-id", type=str)
+    audit_rubric.add_argument("--simulate-script", type=Path)
+    audit_rubric.add_argument("--recorded-at", type=str, default="2026-11-18T00:00:00Z")
     return parser
 
 
@@ -188,6 +215,11 @@ def _validate(kind: str, document: Any):
         "knowledge_catalog": lambda value: validate_instance(value, "knowledge_catalog"),
         "knowledge_selection": lambda value: validate_instance(value, "knowledge_selection"),
         "context_manifest": validate_context_manifest,
+        "rubric_spec": lambda value: validate_instance(value, "rubric_spec"),
+        "evaluator_routing_policy": lambda value: validate_instance(value, "evaluator_routing_policy"),
+        "rubric_evaluation_evidence": lambda value: validate_instance(value, "rubric_evaluation_evidence"),
+        "calibration_report": lambda value: validate_instance(value, "calibration_report"),
+        "post_hoc_rubric_audit_record": lambda value: validate_instance(value, "post_hoc_rubric_audit_record"),
     }
     return validators[kind](document)
 
@@ -343,6 +375,33 @@ def main(argv: Sequence[str] | None = None) -> int:
             if getattr(arguments, "output", None) is not None:
                 _write_exclusive(arguments.output, _json_bytes(payload))
             print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return 0
+
+        if arguments.command == "calibrate" and arguments.calibrate_command == "evaluator":
+            responses = _read_json(arguments.responses) if arguments.responses else None
+            report = run_calibration(
+                corpus=_read_json(arguments.corpus),
+                rubric=_read_json(arguments.rubric),
+                responses=responses,
+                output_dir=arguments.output_dir,
+                recorded_at=arguments.recorded_at,
+            )
+            print(canonicalize(report).decode("utf-8"))
+            return 0 if report["gates_passed"] else 1
+
+        if arguments.command == "audit" and arguments.audit_command == "rubric":
+            sim_script = _read_json(arguments.simulate_script) if arguments.simulate_script else None
+            record = run_post_hoc_rubric_audit(
+                store_root=arguments.store_root,
+                run_id=arguments.run_id,
+                rubric=_read_json(arguments.rubric),
+                calibration_report=_read_json(arguments.calibration_report),
+                output_dir=arguments.output_dir,
+                task_id=arguments.task_id,
+                simulate_script=sim_script,
+                recorded_at=arguments.recorded_at,
+            )
+            print(canonicalize(record).decode("utf-8"))
             return 0
 
         if arguments.command == "run":

@@ -16,6 +16,7 @@ SCHEMA_FILES = {
     "agent_family": "agent-family.schema.json",
     "attempt_header": "attempt-header.schema.json",
     "audience_metadata": "audience-metadata.schema.json",
+    "calibration_report": "calibration-report.schema.json",
     "common": "common.schema.json",
     "context_manifest": "context-manifest.schema.json",
     "dispatch_intent": "dispatch-intent.schema.json",

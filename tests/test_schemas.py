@@ -8,6 +8,7 @@ def test_all_declared_schemas_load_and_validate_their_meta_schema() -> None:
         "agent_family",
         "attempt_header",
         "audience_metadata",
+        "calibration_report",
         "common",
         "context_manifest",
         "dispatch_intent",
